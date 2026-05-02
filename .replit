@@ -48,3 +48,7 @@ build = ["npm", "run", "build"]
 [userenv.shared]
 BETTER_AUTH_SECRET = "aK4gJ5TzmWqfkVEhaGmFhhGhCPTYGzUMI5mQ+wp2mh4="
 BETTER_AUTH_URL = "http://localhost:5000"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000
