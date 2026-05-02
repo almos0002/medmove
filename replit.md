@@ -30,7 +30,15 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
   - `db.ts` - Drizzle client (postgres-js, reads `DATABASE_URL`)
   - `auth.ts` - Better Auth server config (drizzleAdapter with schema, role + organizationName additional fields, trustedOrigins for Replit)
   - `auth-client.ts` - Better Auth React client with `inferAdditionalFields<typeof auth>()`
-  - `auth-schema.ts` - Generated Drizzle schema for `user`, `session`, `account`, `verification`
+  - `auth-schema.ts` - Better Auth tables: `user`, `session`, `account`, `verification`
+  - `schema/` - Business domain Drizzle schema
+    - `enums.ts` - All `pgEnum` definitions (org type/status, listing/request/delivery status, etc.)
+    - `organizations.ts` - `organizations`, `organization_members`, `organization_documents`
+    - `medicines.ts` - `medicines` (catalog), `inventory_batches`
+    - `listings.ts` - `listings`, `transfer_requests`, `deliveries` (+ CHECK constraints on quantities)
+    - `audit.ts` - append-only `audit_logs`
+    - `index.ts` - re-exports all tables and relations
+- `scripts/seed.ts` - Idempotent dev seed (admin + pharmacy + hospital users, 10 medicines, demo listing)
 - `src/router.tsx` - Router configuration
 - `src/styles.css` - Global styles
 - `drizzle.config.ts` - Drizzle Kit config
@@ -54,11 +62,18 @@ Sign-up form (`/sign-up`) lets users pick a role and provide an organization nam
 
 ## Running the App
 ```bash
-npm run dev                      # Dev server on port 5000
-npm run build                    # Production build
-npm run test                     # Run tests
-npx drizzle-kit push --force     # Push auth-schema.ts to the DB
+npm run dev          # Dev server on port 5000
+npm run build        # Production build
+npm run test         # Run tests
+npm run db:push      # Push schema to Postgres (drizzle-kit)
+npm run db:studio    # Open Drizzle Studio
+npm run db:seed      # Seed dev data (admin + pharmacy + hospital + demo listing)
 ```
+
+## Seeded dev credentials
+- admin: `admin@medmove.dev` / `AdminPass123!`
+- pharmacy owner: `pharmacy-owner@medmove.dev` / `PharmaPass123!`
+- hospital owner: `hospital-owner@medmove.dev` / `HospitalPass123!`
 
 ## Configuration Notes
 - Dev server runs on `0.0.0.0:5000` with `allowedHosts: true` for Replit proxy compatibility

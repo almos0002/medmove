@@ -1,0 +1,70 @@
+You are a senior backend engineer specializing in PostgreSQL, Drizzle ORM, TypeScript, and SaaS database design.
+
+We are building a verified B2B medicine redistribution platform.
+
+MVP concept:
+Verified pharmacies/clinics can list safe near-expiry medicine stock. Verified hospitals/NGOs/clinics can request that stock. Admin must approve organizations, listings, and transfer requests. The platform tracks pickup/delivery manually and stores audit logs.
+
+Important MVP safety rules:
+- Only verified organizations can list or request medicine.
+- No expired medicine can be listed.
+- No opened/unsealed medicine can be listed.
+- No controlled/restricted medicines in MVP.
+- No cold-chain/refrigerated medicines in MVP.
+- Admin approval is required for organization verification.
+- Admin approval is required before a listing becomes active.
+- Admin approval is required before a transfer request proceeds.
+- Every sensitive action must be recorded in audit logs.
+- This is not a public medicine marketplace.
+
+Tech stack:
+- TanStack Start
+- TypeScript
+- PostgreSQL
+- Drizzle ORM
+- Better Auth or Clerk later
+- Cloudflare R2/S3 later for uploads
+
+Now design the MVP database schema using Drizzle ORM.
+
+Create Drizzle schema for these tables:
+
+1. users
+2. organizations
+3. organization_documents
+4. medicines
+5. inventory_batches
+6. listings
+7. transfer_requests
+8. deliveries
+9. audit_logs
+
+Requirements:
+- Use UUID primary keys.
+- Add created_at and updated_at where useful.
+- Use enums for statuses and roles.
+- Add foreign keys.
+- Add useful indexes.
+- Add quantity fields carefully.
+- Add medicine expiry_date.
+- Add batch_number.
+- Add sealed_status.
+- Add storage_type.
+- Add listing status.
+- Add transfer request status.
+- Add delivery status.
+- Add organization verification status.
+- Add organization type.
+- Add audit metadata as JSONB.
+- Add comments explaining important fields.
+- Keep schema realistic but not overcomplicated.
+
+Also include:
+1. The full Drizzle schema code.
+2. A short explanation of each table.
+3. Important constraints I should enforce in backend code, not just database.
+4. Suggested migration command.
+5. Recommended seed data for testing.
+
+Do not build frontend yet.
+Only focus on database schema.

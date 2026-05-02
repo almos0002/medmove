@@ -12,7 +12,10 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -45,6 +48,7 @@
     "eslint": "^9.20.0",
     "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5"
