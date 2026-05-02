@@ -127,6 +127,14 @@ export const transferRequests = pgTable(
     index('transfer_requests_requester_org_idx').on(t.requesterOrgId),
     index('transfer_requests_status_idx').on(t.status),
     index('transfer_requests_expires_at_idx').on(t.expiresAt),
+    // Race-safe duplicate-request guard: at most one in-flight request per
+    // (listing, requester_org). Mirrors the application-level check inside
+    // requestTransfer so concurrent submits can't both pass the SELECT.
+    uniqueIndex('transfer_requests_active_uq')
+      .on(t.listingId, t.requesterOrgId)
+      .where(
+        sql`status IN ('pending_admin','pending_seller','accepted','awaiting_handoff','dispatched')`,
+      ),
     check(
       'transfer_requests_qty_positive',
       sql`${t.quantityRequested} > 0`,

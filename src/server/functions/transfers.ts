@@ -1,7 +1,15 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/lib/db'
-import { inventoryBatches, listings, transferRequests } from '@/lib/schema'
+import {
+  inventoryBatches,
+  listings,
+  medicines,
+  organizationMembers,
+  organizations,
+  transferRequests,
+} from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
@@ -17,12 +25,47 @@ import {
 } from '../transitions'
 import {
   adminApproveTransferSchema,
+  adminListTransferRequestsSchema,
   adminRejectTransferSchema,
   cancelTransferSchema,
+  getTransferRequestSchema,
+  listMyTransferRequestsSchema,
   requestTransferSchema,
   sellerAcceptSchema,
   sellerDeclineSchema,
+  type TransferRequestStatus,
 } from '../validators/transfers'
+import type { ListingExpiryWindow } from '../validators/listings'
+
+/**
+ * SQL fragment for an expiry-window filter against `inventoryBatches.expiryDate`.
+ * Mirrors `expiryWindowFilter` in `functions/listings.ts`.
+ */
+function expiryWindowFilter(window: ListingExpiryWindow) {
+  switch (window) {
+    case 'expired':
+      return sql`${inventoryBatches.expiryDate} <= CURRENT_DATE`
+    case 'critical':
+      return sql`${inventoryBatches.expiryDate} > CURRENT_DATE AND ${inventoryBatches.expiryDate} <= CURRENT_DATE + INTERVAL '30 days'`
+    case 'expiring_soon':
+      return sql`${inventoryBatches.expiryDate} > CURRENT_DATE + INTERVAL '30 days' AND ${inventoryBatches.expiryDate} <= CURRENT_DATE + INTERVAL '90 days'`
+    case 'safe':
+      return sql`${inventoryBatches.expiryDate} > CURRENT_DATE + INTERVAL '90 days'`
+  }
+}
+
+/**
+ * Transfer-request statuses that count as "still in flight" for the purpose
+ * of duplicate-request prevention and the buyer-side existing-request hint
+ * on the marketplace listing detail page.
+ */
+const ACTIVE_REQUEST_STATUSES: TransferRequestStatus[] = [
+  'pending_admin',
+  'pending_seller',
+  'accepted',
+  'awaiting_handoff',
+  'dispatched',
+]
 
 const REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -64,18 +107,65 @@ export const requestTransfer = createServerFn({
           )
         }
 
-        const [req] = await tx
-          .insert(transferRequests)
-          .values({
-            listingId: data.listingId,
-            requesterOrgId: requesterOrg.id,
-            requesterUserId: user.id,
-            quantityRequested: data.quantityRequested,
-            intendedUse: data.intendedUse,
-            status: 'pending_admin',
-            expiresAt: new Date(Date.now() + REQUEST_TTL_MS),
-          })
-          .returning()
+        // Block duplicate active requests from the same org against the same
+        // listing — keeps the buyer surface clean and prevents accidental
+        // double-submits when the form is re-submitted.
+        const dup = await tx
+          .select({ id: transferRequests.id })
+          .from(transferRequests)
+          .where(
+            and(
+              eq(transferRequests.listingId, data.listingId),
+              eq(transferRequests.requesterOrgId, requesterOrg.id),
+              inArray(
+                transferRequests.status,
+                ACTIVE_REQUEST_STATUSES,
+              ),
+            ),
+          )
+          .limit(1)
+        if (dup.length > 0) {
+          throw new AppError(
+            'CONFLICT',
+            'You already have an active transfer request for this listing',
+          )
+        }
+
+        let req
+        try {
+          ;[req] = await tx
+            .insert(transferRequests)
+            .values({
+              listingId: data.listingId,
+              requesterOrgId: requesterOrg.id,
+              requesterUserId: user.id,
+              quantityRequested: data.quantityRequested,
+              intendedUse: data.intendedUse,
+              status: 'pending_admin',
+              expiresAt: new Date(Date.now() + REQUEST_TTL_MS),
+            })
+            .returning()
+        } catch (insertErr) {
+          // Race-safe backstop: the partial unique index
+          // `transfer_requests_active_uq` will fire if two concurrent
+          // submits both passed the SELECT above. Surface the same friendly
+          // CONFLICT we use for the synchronous duplicate check.
+          if (
+            insertErr &&
+            typeof insertErr === 'object' &&
+            'code' in insertErr &&
+            (insertErr as { code?: string }).code === '23505' &&
+            'constraint' in insertErr &&
+            (insertErr as { constraint?: string }).constraint ===
+              'transfer_requests_active_uq'
+          ) {
+            throw new AppError(
+              'CONFLICT',
+              'You already have an active transfer request for this listing',
+            )
+          }
+          throw insertErr
+        }
 
         await writeAudit({
           ctx,
@@ -613,6 +703,199 @@ export const cancelTransfer = createServerFn({
       })
 
       return { ok: true as const, request: result }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Fetch a single transfer request with listing + batch + medicine + both
+ * organizations joined. Visible to admins, members of the requester org, and
+ * members of the seller org. Used by both org and admin detail pages.
+ */
+export const getTransferRequest = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => getTransferRequestSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const actor = requireAuth(ctx)
+
+      const requesterOrgT = alias(organizations, 'requester_org')
+      const sellerOrgT = alias(organizations, 'seller_org')
+
+      const [row] = await db
+        .select({
+          request: transferRequests,
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          requesterOrg: requesterOrgT,
+          sellerOrg: sellerOrgT,
+        })
+        .from(transferRequests)
+        .innerJoin(listings, eq(listings.id, transferRequests.listingId))
+        .innerJoin(
+          inventoryBatches,
+          eq(inventoryBatches.id, listings.batchId),
+        )
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(
+          requesterOrgT,
+          eq(requesterOrgT.id, transferRequests.requesterOrgId),
+        )
+        .innerJoin(sellerOrgT, eq(sellerOrgT.id, listings.sellerOrgId))
+        .where(eq(transferRequests.id, data.id))
+        .limit(1)
+      if (!row) throw new AppError('NOT_FOUND', 'Transfer request not found')
+
+      if (!isAdminRole(actor.role)) {
+        // Single membership query checking either org in one round-trip.
+        const memberships = await db
+          .select({ orgId: organizationMembers.organizationId })
+          .from(organizationMembers)
+          .where(
+            and(
+              eq(organizationMembers.userId, actor.id),
+              inArray(organizationMembers.organizationId, [
+                row.request.requesterOrgId,
+                row.listing.sellerOrgId,
+              ]),
+            ),
+          )
+          .limit(1)
+        if (memberships.length === 0) {
+          throw new AppError(
+            'FORBIDDEN',
+            'Not allowed to view this transfer request',
+          )
+        }
+      }
+      return { ok: true as const, ...row }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * List the caller org's outgoing transfer requests, with status / medicine /
+ * expiry filters. Read-only — like `listMyListings`, no capability gate.
+ */
+export const listMyTransferRequests = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => listMyTransferRequestsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const actor = requireAuth(ctx)
+      if (!isAdminRole(actor.role)) {
+        await requireOrgMember(ctx, data.organizationId)
+      }
+
+      const where = and(
+        eq(transferRequests.requesterOrgId, data.organizationId),
+        data.status ? eq(transferRequests.status, data.status) : undefined,
+        data.medicineSearch
+          ? or(
+              ilike(medicines.name, `%${data.medicineSearch}%`),
+              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+            )
+          : undefined,
+        data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
+      )
+
+      const rows = await db
+        .select({
+          request: transferRequests,
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          sellerOrg: organizations,
+        })
+        .from(transferRequests)
+        .innerJoin(listings, eq(listings.id, transferRequests.listingId))
+        .innerJoin(
+          inventoryBatches,
+          eq(inventoryBatches.id, listings.batchId),
+        )
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
+        .where(where)
+        .orderBy(desc(transferRequests.createdAt))
+        .limit(data.limit)
+
+      return { ok: true as const, items: rows, total: rows.length }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Admin-wide queue of transfer requests, with optional status / medicine /
+ * requester / seller / expiry filters. Defaults to most-recently-submitted
+ * first. Used by `/admin/requests` (which defaults the status filter to
+ * `pending_admin`).
+ */
+export const adminListTransferRequests = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => adminListTransferRequestsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      requireAdmin(ctx)
+
+      const requesterOrgT = alias(organizations, 'requester_org')
+      const sellerOrgT = alias(organizations, 'seller_org')
+
+      const where = and(
+        data.status ? eq(transferRequests.status, data.status) : undefined,
+        data.medicineSearch
+          ? or(
+              ilike(medicines.name, `%${data.medicineSearch}%`),
+              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+            )
+          : undefined,
+        data.requesterOrgSearch
+          ? ilike(requesterOrgT.name, `%${data.requesterOrgSearch}%`)
+          : undefined,
+        data.sellerOrgSearch
+          ? ilike(sellerOrgT.name, `%${data.sellerOrgSearch}%`)
+          : undefined,
+        data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
+      )
+
+      const rows = await db
+        .select({
+          request: transferRequests,
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          requesterOrg: requesterOrgT,
+          sellerOrg: sellerOrgT,
+        })
+        .from(transferRequests)
+        .innerJoin(listings, eq(listings.id, transferRequests.listingId))
+        .innerJoin(
+          inventoryBatches,
+          eq(inventoryBatches.id, listings.batchId),
+        )
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(
+          requesterOrgT,
+          eq(requesterOrgT.id, transferRequests.requesterOrgId),
+        )
+        .innerJoin(sellerOrgT, eq(sellerOrgT.id, listings.sellerOrgId))
+        .where(where)
+        .orderBy(desc(transferRequests.createdAt))
+        .limit(data.limit)
+
+      return { ok: true as const, items: rows, total: rows.length }
     } catch (e) {
       throw toClientError(e)
     }

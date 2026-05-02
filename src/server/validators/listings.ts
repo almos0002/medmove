@@ -76,3 +76,12 @@ export const adminListAllListingsSchema = z.object({
   expiryWindow: listingExpiryWindowSchema.optional(),
   limit: z.number().int().positive().max(100).default(100),
 })
+
+export const listMarketplaceListingsSchema = z.object({
+  medicineSearch: z.string().trim().max(120).optional(),
+  city: z.string().trim().max(120).optional(),
+  expiryWindow: listingExpiryWindowSchema.optional(),
+  limit: z.number().int().positive().max(50).default(50),
+})
+
+export const getMarketplaceListingSchema = z.object({ id: uuid })

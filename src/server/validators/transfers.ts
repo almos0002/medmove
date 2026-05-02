@@ -1,5 +1,24 @@
 import { z } from 'zod'
 import { nonEmpty, positiveInt, uuid } from './_shared'
+import { listingExpiryWindowSchema } from './listings'
+
+/**
+ * Mirrors `transferRequestStatusEnum` in `src/lib/schema/enums.ts`. Used for
+ * URL search filters and admin/org list queries.
+ */
+export const transferRequestStatusSchema = z.enum([
+  'pending_admin',
+  'rejected',
+  'pending_seller',
+  'declined',
+  'accepted',
+  'awaiting_handoff',
+  'dispatched',
+  'completed',
+  'expired',
+  'cancelled',
+])
+export type TransferRequestStatus = z.infer<typeof transferRequestStatusSchema>
 
 export const requestTransferSchema = z.object({
   listingId: uuid,
@@ -30,5 +49,24 @@ export const sellerDeclineSchema = z.object({
 
 export const cancelTransferSchema = z.object({
   transferRequestId: uuid,
-  reason: nonEmpty(500),
+  reason: z.string().trim().min(5).max(500),
+})
+
+export const getTransferRequestSchema = z.object({ id: uuid })
+
+export const listMyTransferRequestsSchema = z.object({
+  organizationId: uuid,
+  status: transferRequestStatusSchema.optional(),
+  medicineSearch: z.string().trim().max(120).optional(),
+  expiryWindow: listingExpiryWindowSchema.optional(),
+  limit: z.number().int().positive().max(100).default(100),
+})
+
+export const adminListTransferRequestsSchema = z.object({
+  status: transferRequestStatusSchema.optional(),
+  medicineSearch: z.string().trim().max(120).optional(),
+  requesterOrgSearch: z.string().trim().max(120).optional(),
+  sellerOrgSearch: z.string().trim().max(120).optional(),
+  expiryWindow: listingExpiryWindowSchema.optional(),
+  limit: z.number().int().positive().max(100).default(100),
 })

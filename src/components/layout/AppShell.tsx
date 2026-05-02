@@ -3,9 +3,11 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Boxes,
   Building2,
+  Inbox,
   LayoutDashboard,
   Pill,
   ShieldCheck,
+  ShoppingBag,
   Truck,
   LogOut,
   type LucideIcon,
@@ -43,6 +45,20 @@ const APP_NAV: NavItem[] = [
   { to: '/org', label: 'Overview', icon: LayoutDashboard },
   { to: '/org/inventory', label: 'Inventory', icon: Boxes },
   { to: '/org/listings', label: 'Listings', icon: Tags },
+  {
+    to: '/org/marketplace',
+    label: 'Marketplace',
+    icon: ShoppingBag,
+    // Show to all orgs that can request medicine — the page itself surfaces an
+    // "unverified" banner so the verification flow is discoverable from here.
+    show: (s) => !!s.primaryOrg?.canRequestMedicine,
+  },
+  {
+    to: '/org/requests',
+    label: 'My requests',
+    icon: Inbox,
+    show: (s) => !!s.primaryOrg?.canRequestMedicine,
+  },
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
 ]
@@ -51,6 +67,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
   { to: '/admin/medicines', label: 'Medicines', icon: Pill },
   { to: '/admin/listings', label: 'Listings', icon: Tags },
+  { to: '/admin/requests', label: 'Transfers', icon: Inbox },
 ]
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },

@@ -1,11 +1,24 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   inventoryBatches,
   listings,
   medicines,
   organizations,
+  transferRequests,
 } from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
@@ -23,7 +36,9 @@ import {
   adminRejectListingSchema,
   createListingSchema,
   getListingSchema,
+  getMarketplaceListingSchema,
   listActiveListingsSchema,
+  listMarketplaceListingsSchema,
   listMyListingsSchema,
   submitListingSchema,
   withdrawListingSchema,
@@ -605,6 +620,155 @@ export const adminListAllListings = createServerFn({
         .limit(data.limit)
 
       return { ok: true as const, items: rows, total: rows.length }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Buyer-side marketplace browse. Returns active listings with positive
+ * available quantity, in-date batches, joined with medicine + sellerOrg.
+ *
+ * Auth model:
+ * - Admins see everything (no org filtering).
+ * - Members of an org never see their own org's listings.
+ * - Users without an org / orgs without `can_request_medicine` get an empty
+ *   list (the page surfaces an explanatory banner instead of throwing —
+ *   browsing-while-unverified is intentional for upsell).
+ */
+export const listMarketplaceListings = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => listMarketplaceListingsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const user = requireAuth(ctx)
+
+      let excludeOrgId: string | null = null
+      if (!isAdminRole(user.role)) {
+        if (!ctx.primaryOrg) {
+          return { ok: true as const, items: [], total: 0 }
+        }
+        excludeOrgId = ctx.primaryOrg.id
+      }
+
+      const where = and(
+        eq(listings.status, 'active'),
+        sql`${listings.quantityAvailable} > 0`,
+        sql`${inventoryBatches.expiryDate} > CURRENT_DATE`,
+        excludeOrgId ? ne(listings.sellerOrgId, excludeOrgId) : undefined,
+        data.medicineSearch
+          ? or(
+              ilike(medicines.name, `%${data.medicineSearch}%`),
+              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+            )
+          : undefined,
+        data.city ? ilike(listings.pickupCity, `%${data.city}%`) : undefined,
+        data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
+      )
+
+      const rows = await db
+        .select({
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          sellerOrg: organizations,
+        })
+        .from(listings)
+        .innerJoin(inventoryBatches, eq(inventoryBatches.id, listings.batchId))
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
+        .where(where)
+        .orderBy(asc(inventoryBatches.expiryDate))
+        .limit(data.limit)
+
+      return { ok: true as const, items: rows, total: rows.length }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Buyer-side marketplace listing detail. Same join as `getListing` but:
+ * - Refuses non-active listings (CONFLICT).
+ * - Refuses own-org listings (FORBIDDEN).
+ * - Returns the caller org's existing in-flight request for this listing
+ *   (if any) so the UI can hide the request form and link to it instead.
+ */
+export const getMarketplaceListing = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => getMarketplaceListingSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const user = requireAuth(ctx)
+
+      const [row] = await db
+        .select({
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          sellerOrg: organizations,
+        })
+        .from(listings)
+        .innerJoin(inventoryBatches, eq(inventoryBatches.id, listings.batchId))
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
+        .where(eq(listings.id, data.id))
+        .limit(1)
+      if (!row) throw new AppError('NOT_FOUND', 'Listing not found')
+      if (row.listing.status !== 'active') {
+        throw new AppError(
+          'CONFLICT',
+          `Listing is not currently active (status: ${row.listing.status})`,
+        )
+      }
+
+      let existingRequest:
+        | typeof transferRequests.$inferSelect
+        | null = null
+      if (!isAdminRole(user.role)) {
+        if (!ctx.primaryOrg) {
+          throw new AppError('FORBIDDEN', 'Join an organization first')
+        }
+        if (row.listing.sellerOrgId === ctx.primaryOrg.id) {
+          throw new AppError(
+            'FORBIDDEN',
+            'Cannot request your own organization’s listing',
+          )
+        }
+        // Detail page exposes batch numbers + seller contact context — gate
+        // on can_request_medicine so non-buyers can't enumerate it.
+        await requireCapability(
+          ctx,
+          ctx.primaryOrg.id,
+          CAPABILITIES.CAN_REQUEST_MEDICINE,
+        )
+        const [existing] = await db
+          .select()
+          .from(transferRequests)
+          .where(
+            and(
+              eq(transferRequests.listingId, data.id),
+              eq(transferRequests.requesterOrgId, ctx.primaryOrg.id),
+              inArray(transferRequests.status, [
+                'pending_admin',
+                'pending_seller',
+                'accepted',
+                'awaiting_handoff',
+                'dispatched',
+              ]),
+            ),
+          )
+          .limit(1)
+        existingRequest = existing ?? null
+      }
+
+      return { ok: true as const, ...row, existingRequest }
     } catch (e) {
       throw toClientError(e)
     }
