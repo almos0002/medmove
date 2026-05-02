@@ -11,16 +11,19 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
 - **Router**: TanStack Router (file-based routing)
 - **Styling**: Tailwind CSS v4 (configured via `@theme` in `src/styles.css`)
 - **Icons**: lucide-react
-- **Fonts**: **Instrument Serif** (display, italic-friendly editorial headlines) + **Geist** (body sans), both loaded from Google Fonts in `__root.tsx`. Body defaults to Geist; `font-display` utility opts into Instrument Serif.
+- **Fonts**: **Poppins only**, loaded from Google Fonts in `__root.tsx` (weights 300/400/500/600/700/800). Both `--font-display` and `--font-body` resolve to Poppins. NO serif, NO italic, NO secondary family.
 
-## Visual System (post-redesign, 2026-05)
-- **Surfaces are pure `#FFFFFF` only.** No grays, no off-whites, no shadows. Hierarchy comes from typography weight/size, hairline soft borders, and the single accent colour.
-- **Borders are soft.** `--color-mm-line` = `rgba(10,10,10,0.08)`, `--color-mm-line-strong` = `rgba(10,10,10,0.14)`. No `border-black` anywhere — always reference the line tokens.
-- **Ink is `#0A0A0A`, body muted is `#1A1A1A`.** Accent is **deep teal `#0D4F40`**, used only for italic display emphasis, active selections, primary-button hover, and the verified pill.
-- **Squircle corners** via utilities `squircle-xs/sm/md/lg/xl` (10/14/22/36/50px) — never use `rounded-*` for surfaces.
-- **Editorial helpers in `styles.css`**: `.eyebrow` (uppercase tracked label), `.numeral` (display-serif numerals), `.hairline` / `.hairline-v` (soft divider rules), `.tick` (square bullet), `.link-underline`.
-- **Imagery**: hero/section images live in `public/img/` (copied from `attached_assets/{generated_images,stock_images}/`). Generated AI heroes for the home page; stock photos for shelves, vials, courier, doctor, aid worker, supply, warehouse, handoff.
-- **Primitives** (`button`, `input`, `textarea`, `card`, `badge`, `separator`, `label`) all use the line tokens; `Button.primary` is ink-on-white-bg with teal hover; `Button.secondary/outline` are soft-bordered. `Input` is an underline field, never boxed.
+## Visual System (Airbnb-style, 2026-05)
+**Hard rules — do not violate without explicit user permission:**
+- **Poppins only.** No serif, no italic display, no second family.
+- **Squircle corners only.** Use `squircle / squircle-lg / -md / -sm / -xs` (50/36/22/14/10 px). The single approved `rounded-full` exception is the sign-up role-selector check dot.
+- **Pure `#FFFFFF` surfaces.** No translucent fills (`bg-white/95`, `/80` etc), no gradients, no `backdrop-blur`, no glassmorphism. Modal overlays may keep `bg-black/40` (no blur) for backdrop dim.
+- **No shadows.** Tokens enforced via `.no-shadow` helper; surfaces separate via soft borders.
+- **Soft ink-tinted borders.** `--color-mm-line` = `rgba(17,17,17,0.08)`, `--color-mm-line-strong` = `rgba(17,17,17,0.16)`. Never `border-black`.
+- **Ink `#111`, muted `#2a2a2a`, subtle `#565656`.** Accent is **deep teal `#0d4f40`**, used for primary buttons, active sidebar item, the CTA banner background, and small accent dots/badges.
+- **Photo-forward.** Heroes and section blocks lean on imagery from `public/img/` (3 generated heroes + 7 stock photos: shelves, doctor, warehouse, aid, supply, courier, vials).
+- **Helpers in `styles.css`:** `.eyebrow` (sentence-case 13px label), `.hairline` / `.hairline-v` (soft dividers), `.tick` (small teal dot), `.photo-card` (border + scale hover, no shadow).
+- **Primitives**: `button` (squircle-sm, teal primary, dark variant), `input`/`textarea` (boxed squircle-sm, teal focus ring), `card` (squircle-md), `badge` (squircle pill), `label` (sentence case, no uppercase tracking).
 - **Auth**: Better Auth (email/password) with `inferAdditionalFields` plugin for `role` + `organizationName`
 - **Database**: Replit Postgres via `DATABASE_URL`
 - **ORM**: Drizzle ORM (`postgres-js` driver) + `drizzle-kit` for schema push
@@ -30,7 +33,7 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
 
 ## Project Structure
 - `src/routes/` - File-based routes (TanStack Router, flat convention)
-  - `__root.tsx` - Root layout (HTML shell, Poppins font, devtools)
+  - `__root.tsx` - Root layout (HTML shell, Poppins font from Google Fonts, devtools)
   - `index.tsx` - Home / landing page
   - `sign-in.tsx`, `sign-up.tsx` - Auth pages (sign-up exposes `org_owner` / `org_staff` / `logistics_staff` only)
   - `dashboard.tsx` - Universal post-login redirect to role-specific console

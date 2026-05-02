@@ -11,7 +11,7 @@ export const AlertDialogContent = React.forwardRef<
 >(function AlertDialogContent({ className, ...rest }, ref) {
   return (
     <AlertDialogPrimitive.Portal>
-      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
+      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
       <AlertDialogPrimitive.Content
         ref={ref}
         className={cn(
