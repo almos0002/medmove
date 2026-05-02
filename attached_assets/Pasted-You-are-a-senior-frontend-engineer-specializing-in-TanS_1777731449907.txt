@@ -1,0 +1,76 @@
+You are a senior frontend engineer specializing in TanStack Start, TanStack Router, React, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, TanStack Table, and SaaS dashboard architecture.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flow are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Role system has been revised.
+
+Important role/capability model:
+User roles:
+- SUPER_ADMIN
+- ADMIN
+- ORG_OWNER
+- ORG_STAFF
+- LOGISTICS_STAFF
+
+Organization types:
+- PHARMACY
+- CLINIC
+- HOSPITAL
+- NGO
+- DISTRIBUTOR
+- LOGISTICS_PARTNER
+
+Organization capabilities:
+- can_list_medicine
+- can_request_medicine
+- can_deliver_medicine
+
+Important product rules:
+- This is NOT a public medicine marketplace.
+- Only verified organizations can list/request/deliver medicine.
+- Admin approves organizations, listings, and transfer requests.
+- No expired medicine can be listed.
+- No opened/unsealed medicine can be listed.
+- No controlled/restricted drugs in MVP.
+- No cold-chain/refrigerated medicine in MVP.
+- Server-side permission checks already exist.
+- Frontend route protection is only for UX, not security.
+
+Now create the frontend route structure and dashboard layout plan.
+
+Give me:
+
+1. Recommended TanStack Start route structure
+2. Public routes
+3. Auth routes
+4. Admin routes
+5. Organization dashboard routes
+6. Logistics routes
+7. Shared dashboard layout structure
+8. Sidebar navigation design
+9. Header/topbar design
+10. Role/capability-based sidebar items
+11. Route protection examples using beforeLoad
+12. Layout file structure
+13. Component folder structure
+14. Page-by-page frontend plan
+15. Empty state design for each major page
+16. Loading and error states
+17. Mobile responsive behavior
+18. Recommended shadcn/ui components to use
+19. Which pages should use TanStack Table
+20. Development order for frontend screens
+
+Important:
+- Do not write full page code yet.
+- Focus on route architecture, layouts, and dashboard navigation.
+- Use practical TanStack Start/TanStack Router examples.
+- Keep the MVP clean and professional.
+- Do not expose medicine listings publicly.
+- Buyer/seller should not be used as route names.
+- Use organization capability-based navigation instead.
