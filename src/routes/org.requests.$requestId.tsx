@@ -199,7 +199,13 @@ function OrgRequestDetailPage() {
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3">
-          <Link to={viewerIsSeller ? '/org/requests/incoming' : '/org/requests'}>
+          <Link
+            to={
+              viewerIsSeller
+                ? '/org/requests/incoming'
+                : '/org/requests/outgoing'
+            }
+          >
             <ArrowLeft className="h-4 w-4" />
             {viewerIsSeller ? 'Back to incoming requests' : 'Back to my requests'}
           </Link>

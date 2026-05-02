@@ -59,63 +59,105 @@ type NavItem = {
   to: string
   label: string
   icon: LucideIcon
+  /** Use exact-match for the active highlight (default: false). */
+  exact?: boolean
   show?: (s: SessionShape) => boolean
 }
 
-const APP_NAV: NavItem[] = [
-  { to: '/org', label: 'Overview', icon: LayoutDashboard },
-  { to: '/org/inventory', label: 'Inventory', icon: Boxes },
-  { to: '/org/listings', label: 'Listings', icon: Tags },
+type NavSection = {
+  /** Optional header. When omitted, items render flush with no label. */
+  title?: string
+  /** Hide the entire section (and its header) when this returns false. */
+  show?: (s: SessionShape) => boolean
+  items: NavItem[]
+}
+
+/**
+ * Sidebar groups the org workspace by *which hat you're wearing* so the
+ * lifecycle stages don't look like duplicates:
+ *
+ *   - "Selling" surfaces the seller's own goods + the inbox of buyer
+ *     requests + outbound shipments leaving their warehouse.
+ *   - "Buying" surfaces the marketplace + the outbox of requests they've
+ *     sent + inbound shipments arriving at their warehouse.
+ *
+ * A single transfer flows through both stages: a seller's *Incoming
+ * request* becomes their *Outgoing delivery* once accepted; a buyer's
+ * *My request* becomes their *Incoming delivery* once shipped.
+ */
+const APP_NAV_SECTIONS: NavSection[] = [
   {
-    to: '/org/marketplace',
-    label: 'Marketplace',
-    icon: ShoppingBag,
-    // Show to all orgs that can request medicine — the page itself surfaces an
-    // "unverified" banner so the verification flow is discoverable from here.
-    show: (s) => !!s.primaryOrg?.canRequestMedicine,
+    items: [{ to: '/org', label: 'Overview', icon: LayoutDashboard, exact: true }],
   },
   {
-    to: '/org/requests',
-    label: 'Outgoing requests',
-    icon: Inbox,
-    show: (s) => !!s.primaryOrg?.canRequestMedicine,
-  },
-  {
-    to: '/org/requests/incoming',
-    label: 'Incoming requests',
-    icon: Inbox,
+    title: 'Selling',
     show: (s) => !!s.primaryOrg?.canListMedicine,
+    items: [
+      { to: '/org/inventory', label: 'Inventory', icon: Boxes },
+      { to: '/org/listings', label: 'My listings', icon: Tags },
+      {
+        to: '/org/requests/incoming',
+        label: 'Incoming requests',
+        icon: Inbox,
+      },
+      {
+        to: '/org/deliveries/outgoing',
+        label: 'Outgoing deliveries',
+        icon: Truck,
+      },
+    ],
   },
   {
-    to: '/org/deliveries/outgoing',
-    label: 'Outgoing deliveries',
-    icon: Truck,
-    show: (s) => !!s.primaryOrg?.canListMedicine,
-  },
-  {
-    to: '/org/deliveries/incoming',
-    label: 'Incoming deliveries',
-    icon: Truck,
+    title: 'Buying',
     show: (s) => !!s.primaryOrg?.canRequestMedicine,
+    items: [
+      { to: '/org/marketplace', label: 'Marketplace', icon: ShoppingBag },
+      { to: '/org/requests/outgoing', label: 'My requests', icon: Inbox },
+      {
+        to: '/org/deliveries/incoming',
+        label: 'Incoming deliveries',
+        icon: Truck,
+      },
+    ],
   },
-  { to: '/org/profile', label: 'Organization', icon: Building2 },
-  { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
-  { to: '/org/activity', label: 'Activity', icon: Activity },
-  { to: '/org/settings', label: 'Settings', icon: Settings },
+  {
+    title: 'Organization',
+    items: [
+      { to: '/org/profile', label: 'Profile', icon: Building2 },
+      { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
+      { to: '/org/activity', label: 'Activity', icon: Activity },
+      { to: '/org/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ]
-const ADMIN_NAV: NavItem[] = [
-  { to: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
-  { to: '/admin/medicines', label: 'Medicines', icon: Pill },
-  { to: '/admin/listings', label: 'Listings', icon: Tags },
-  { to: '/admin/requests', label: 'Transfers', icon: Inbox },
-  { to: '/admin/deliveries', label: 'Deliveries', icon: Truck },
-  { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/admin/audit-logs', label: 'Audit logs', icon: ScrollText },
-  { to: '/admin/settings', label: 'Platform settings', icon: Settings },
+
+const ADMIN_NAV_SECTIONS: NavSection[] = [
+  {
+    items: [
+      { to: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
+      { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
+      { to: '/admin/medicines', label: 'Medicines', icon: Pill },
+      { to: '/admin/listings', label: 'Listings', icon: Tags },
+      { to: '/admin/requests', label: 'Transfers', icon: Inbox },
+      { to: '/admin/deliveries', label: 'Deliveries', icon: Truck },
+      { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+      { to: '/admin/audit-logs', label: 'Audit logs', icon: ScrollText },
+      { to: '/admin/settings', label: 'Platform settings', icon: Settings },
+    ],
+  },
 ]
-const LOGISTICS_NAV: NavItem[] = [
-  { to: '/logistics', label: 'Assigned deliveries', icon: Truck },
+
+const LOGISTICS_NAV_SECTIONS: NavSection[] = [
+  {
+    items: [
+      {
+        to: '/logistics',
+        label: 'Assigned deliveries',
+        icon: Truck,
+        exact: true,
+      },
+    ],
+  },
 ]
 
 const SECTION_TITLE: Record<ShellSection, string> = {
@@ -134,13 +176,22 @@ export function AppShell({
   children: React.ReactNode
 }) {
   const navigate = useNavigate()
-  const navItems =
+  const navSections =
     section === 'admin'
-      ? ADMIN_NAV
+      ? ADMIN_NAV_SECTIONS
       : section === 'logistics'
-        ? LOGISTICS_NAV
-        : APP_NAV
-  const filtered = navItems.filter((n) => n.show?.(session) ?? true)
+        ? LOGISTICS_NAV_SECTIONS
+        : APP_NAV_SECTIONS
+  // Filter section-by-section: drop the whole section if its `show` returns
+  // false, then drop individual items by their own `show`. Sections that end
+  // up empty are dropped too so we don't render an orphan header.
+  const visibleSections = navSections
+    .filter((sec) => sec.show?.(session) ?? true)
+    .map((sec) => ({
+      ...sec,
+      items: sec.items.filter((it) => it.show?.(session) ?? true),
+    }))
+    .filter((sec) => sec.items.length > 0)
 
   const handleSignOut = React.useCallback(async () => {
     await signOut()
@@ -167,36 +218,40 @@ export function AppShell({
           </div>
         </Link>
 
-        <nav className="px-3 py-4 flex-1 app-scroll overflow-y-auto min-h-0">
-          <ul className="space-y-1">
-            {filtered.map((item) => {
-              const Icon = item.icon
-              return (
-                <li key={item.to}>
-                  <Link
-                    to={item.to}
-                    activeOptions={{
-                      exact:
-                        item.to === '/org' ||
-                        item.to === '/admin' ||
-                        item.to === '/logistics',
-                    }}
-                    activeProps={{
-                      className:
-                        'bg-[var(--color-mm-accent)] text-white border-[var(--color-mm-accent)] hover:bg-[var(--color-mm-accent)]',
-                    }}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium text-[var(--color-mm-ink)] squircle-sm border border-transparent transition-colors',
-                      'hover:bg-black/[0.04]',
-                    )}
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={1.7} />
-                    {item.label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+        <nav className="px-3 py-4 flex-1 app-scroll overflow-y-auto min-h-0 space-y-5">
+          {visibleSections.map((sec, secIdx) => (
+            <div key={sec.title ?? `sec-${secIdx}`}>
+              {sec.title && (
+                <div className="px-3 mb-1.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--color-mm-subtle)] font-semibold">
+                  {sec.title}
+                </div>
+              )}
+              <ul className="space-y-1">
+                {sec.items.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <li key={item.to}>
+                      <Link
+                        to={item.to}
+                        activeOptions={{ exact: item.exact ?? false }}
+                        activeProps={{
+                          className:
+                            'bg-[var(--color-mm-accent)] text-white border-[var(--color-mm-accent)] hover:bg-[var(--color-mm-accent)]',
+                        }}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium text-[var(--color-mm-ink)] squircle-sm border border-transparent transition-colors',
+                          'hover:bg-black/[0.04]',
+                        )}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={1.7} />
+                        {item.label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-[var(--color-mm-line)] p-3 shrink-0">
