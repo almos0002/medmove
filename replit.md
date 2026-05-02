@@ -38,6 +38,8 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
   - `sign-in.tsx`, `sign-up.tsx` - Auth pages (sign-up exposes `org_owner` / `org_staff` / `logistics_staff` only)
   - `dashboard.tsx` - Universal post-login redirect to role-specific console
   - `admin.tsx` + `admin.index.tsx` - Admin/super_admin layout + index (guarded)
+  - `admin.medicines.tsx` / `admin.medicines.new.tsx` / `admin.medicines.$medicineId.tsx` - Catalog list, create, edit (admin-only)
+  - `org.inventory.tsx` / `org.inventory.new.tsx` / `org.inventory.$batchId.tsx` - Inventory list (TanStack Table + filters), add batch, batch detail (org members + admins)
   - `org.tsx` + `org.index.tsx` - **Unified** console for `org_owner` and `org_staff`. UI is the same for both roles — capability flags on the org row decide which actions render.
   - `logistics.tsx` + `logistics.index.tsx` - Logistics layout + index (guarded; admins allowed)
   - `api/auth/$.ts` - Splat route forwarding all `/api/auth/*` to Better Auth handler
@@ -101,6 +103,24 @@ End-to-end flow shipped:
 - TanStack Query **mutations only** for writes; on success, `await router.invalidate()` then route navigations / toasts.
 - All toast feedback via `sonner` (Toaster mounted in `__root.tsx`).
 - All error rendering through `PageError`, which parses `{code, message}` envelopes from `toClientError`.
+
+## Step 7: medicine catalog & inventory batch UI
+
+End-to-end CRUD shipped on top of the Step-3 backend:
+
+- **Admin catalog (`/admin/medicines`)** — server-loader fed list with name/generic/manufacturer search and active/inactive toggle (URL-driven via `validateSearch`). Shows status pill, form, manufacturer per row.
+- **Create medicine (`/admin/medicines/new`)** — RHF + Zod (`medicineFormSchema`), required `name` / `strength` / `form`; controlled + cold-chain are server-blocked at catalog edge so the UI doesn't expose them.
+- **Edit medicine (`/admin/medicines/$medicineId`)** — same form + `Switch` to soft-disable (`isActive`). New server fns added: `updateMedicine`, `getMedicine` (audit-logged before/after).
+- **Org inventory (`/org/inventory`)** — TanStack Table render with five columns (medicine / batch # / quantity / expiry / sealed / storage), filter bar (medicine search, batch number, `expiryStatus`, `sealedStatus`, `storageType`), URL-driven; admins bypass org membership for support reads. Verification + capability banners gate the "Add batch" button.
+- **Add batch (`/org/inventory/new`)** — gated by `verified && canListMedicine`. Searchable catalog picker (`useQuery` against `listMedicines`). Form-level Zod `superRefine` enforces:
+  - expiry strictly in the future,
+  - manufacture ≤ expiry,
+  - `sealedStatus === 'sealed'`,
+  - `storageType !== 'refrigerated'`.
+  Server still re-checks every rule plus `requireCapability(can_list_medicine)` and refuses controlled / cold-chain medicines.
+- **Batch detail (`/org/inventory/$batchId`)** — joined fetch (`getInventoryBatch`) returns batch + medicine + organization; renders quantity / expiry / sealed / storage / notes. Admins or org members of the owning org may read.
+- **Reusable data**: `src/lib/expiry.ts` (`classifyExpiry` → `safe` / `expiring_soon` / `critical` / `expired` at 90/30/0-day breakpoints), `ExpiryStatusBadge`, `SealedStatusBadge`, `StorageTypeBadge`, `MedicineFormLabel` (with `MEDICINE_FORMS` / `STORAGE_TYPES` arrays for selects).
+- **Nav**: AppShell adds `Medicines` (admin) and `Inventory` (org) entries.
 
 ## Path Aliases (tsconfig)
 - `@/*` and `#/*` both map to `./src/*`. Do **not** use `~/*` — it is not configured.

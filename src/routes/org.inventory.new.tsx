@@ -54,23 +54,39 @@ const formSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
       .refine((v) => v > today, 'Expiry must be in the future'),
-    quantityOnHand: z.coerce.number().int().positive('Quantity must be greater than 0'),
+    quantityOnHand: z.number().int().positive('Quantity must be greater than 0'),
     unit: z.string().trim().min(1).max(40),
-    storageType: z
-      .enum(['room_temperature', 'cool_dry_place', 'refrigerated'])
-      .refine((v) => v !== 'refrigerated', 'Refrigerated storage is not supported in MVP'),
-    sealedStatus: z
-      .enum(['sealed', 'opened'])
-      .refine((v) => v === 'sealed', 'Only sealed packs can be redistributed'),
+    storageType: z.enum([
+      'room_temperature',
+      'cool_dry_place',
+      'refrigerated',
+    ]),
+    sealedStatus: z.enum(['sealed', 'opened']),
     notes: z.string().trim().max(2000).optional(),
   })
-  .refine(
-    (v) => !v.manufactureDate || v.manufactureDate <= v.expiryDate,
-    {
-      path: ['manufactureDate'],
-      message: 'Manufacture date must be before expiry',
-    },
-  )
+  .superRefine((v, ctx) => {
+    if (v.storageType === 'refrigerated') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['storageType'],
+        message: 'Refrigerated storage is not supported in MVP',
+      })
+    }
+    if (v.sealedStatus === 'opened') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sealedStatus'],
+        message: 'Only sealed packs can be redistributed',
+      })
+    }
+    if (v.manufactureDate && v.manufactureDate > v.expiryDate) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['manufactureDate'],
+        message: 'Manufacture date must be before expiry',
+      })
+    }
+  })
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -98,7 +114,7 @@ function OrgInventoryNewPage() {
       batchNumber: '',
       manufactureDate: '',
       expiryDate: '',
-      quantityOnHand: 0 as unknown as number,
+      quantityOnHand: 1,
       unit: 'pack',
       storageType: 'room_temperature',
       sealedStatus: 'sealed',
