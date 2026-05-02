@@ -1,0 +1,138 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, TanStack Query, TanStack Table, TanStack Form, Zod, Tailwind CSS, shadcn/ui, and SaaS search/filter UX.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout is done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+- Step 8: Listing creation + admin approval workflow is done.
+- Step 9: Request / claim workflow is done.
+- Step 10: Delivery / pickup tracking workflow is done.
+- Step 11: Audit logs + admin reporting dashboard is done.
+- Step 12: Notifications + expiry alerts are done.
+
+Now I want Step 13: Search, filters, and approved listings discovery page.
+
+Important correction:
+This should NOT be a public marketplace page.
+Only verified organizations with can_request_medicine can access approved listings.
+
+Important product rules:
+- This is NOT a public medicine marketplace.
+- Public users cannot browse medicine listings.
+- Only authenticated users from verified organizations can see approved active listings.
+- Organization must have can_request_medicine to browse/request listings.
+- Users should not see their own organization’s listings in the request/discovery page.
+- Only ACTIVE listings should be visible.
+- Expired listings should not be visible.
+- Rejected, draft, pending, cancelled, completed, or reserved listings should not be visible.
+- Medicine safety checks must happen on the server.
+- Frontend filters are only UX; backend must enforce access rules.
+- Search results must respect organization boundaries and permissions.
+
+Database tables involved:
+- listings
+- inventory_batches
+- medicines
+- organizations
+- transfer_requests
+- audit_logs
+
+Now build the approved listings discovery/search feature.
+
+Create:
+
+1. Approved listings discovery page
+2. Search input for medicine name/generic name
+3. Filter by medicine form:
+   - TABLET
+   - CAPSULE
+   - SYRUP
+   - INJECTION
+   - CREAM
+   - OTHER
+4. Filter by expiry window:
+   - 1 to 30 days
+   - 31 to 90 days
+   - 91+ days
+5. Filter by location/city
+6. Filter by listing type:
+   - DONATION
+   - DISCOUNTED_SALE
+7. Filter by quantity availability
+8. Sort options:
+   - nearest expiry first
+   - newest listings
+   - highest quantity
+   - nearest location placeholder
+9. Listing cards view
+10. Listing table view using TanStack Table
+11. Listing detail page for requesting organization
+12. Request medicine CTA
+13. Empty state when no listings match
+14. Loading state
+15. Error state
+16. Pagination or infinite loading
+17. URL search params for filters
+18. Reusable filter components
+19. Server-side filtered query
+20. Permission checks
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use TypeScript.
+- Use Drizzle ORM style queries.
+- Use Zod for filter/search validation.
+- Use TanStack Query for fetching.
+- Use TanStack Table for table view.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Include practical file paths.
+- Include reusable components.
+- Include route/page code.
+- Keep MVP clean and professional.
+
+Important server-side validations:
+- user must be authenticated
+- user must belong to an organization
+- organization must be VERIFIED
+- organization must have can_request_medicine
+- listing status must be ACTIVE
+- listing must not belong to requesting user’s organization
+- inventory batch must not be expired
+- inventory batch must be SEALED
+- inventory batch storage_type must be NORMAL
+- medicine must not be controlled/restricted
+- listing quantity_available must be greater than 0
+- filters must be validated with Zod
+- pagination limit must be enforced to avoid heavy queries
+
+Search behavior:
+- Search should match:
+  - medicine name
+  - generic name
+  - strength
+  - manufacturer
+  - batch number if useful
+- Search should be case-insensitive.
+- Search should be server-side.
+- Add indexes if needed for search/filter performance.
+- Keep fuzzy search optional for later.
+
+Expected output:
+- File/folder structure
+- Filter/search Zod schema
+- Server query for approved listings
+- Query hooks
+- Listing card component
+- Listing table columns
+- Filter sidebar/component
+- Discovery page route code
+- Listing detail route code
+- Permission explanation
+- UX notes for safe medicine discovery
