@@ -1,0 +1,93 @@
+You are a senior full-stack engineer specializing in TanStack Start, TypeScript, PostgreSQL, Drizzle ORM, and secure SaaS backend architecture.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+
+Now I want Step 3: Backend architecture, business rules, and server functions/API design.
+
+Product summary:
+Verified pharmacies/clinics can list safe near-expiry medicine stock. Verified hospitals/NGOs/clinics can request that stock. Admin must approve organizations, listings, and transfer requests. The platform tracks pickup/delivery manually and stores audit logs.
+
+Important MVP safety/compliance rules:
+- This is NOT a public marketplace.
+- Only verified organizations can list or request medicine.
+- No expired medicine can be listed.
+- No opened/unsealed medicine can be listed.
+- No controlled/restricted drugs in MVP.
+- No cold-chain/refrigerated medicine in MVP.
+- Admin approval is required for organizations, listings, and transfer requests.
+- Every important action must create an audit log.
+- Buyers should only see admin-approved active listings.
+- Sellers should only manage their own inventory/listings.
+- Admin can see everything.
+- All write actions must validate user role and organization status.
+- Never trust frontend validation only.
+
+My tech stack:
+- TanStack Start
+- TypeScript
+- PostgreSQL
+- Drizzle ORM
+- TanStack Router
+- TanStack Query
+- TanStack Form
+- Better Auth
+
+Database tables:
+- users
+- organizations
+- organization_documents
+- medicines
+- inventory_batches
+- listings
+- transfer_requests
+- deliveries
+- audit_logs
+
+Now design the backend layer.
+
+Give me:
+
+1. Recommended backend folder structure for TanStack Start
+2. Server functions/API route structure
+3. Auth/session helper design
+4. Role-based access control design
+5. Organization verification guard
+6. Input validation strategy using Zod
+7. Backend business rules for:
+   - creating organization
+   - uploading organization documents
+   - approving organization
+   - creating medicine
+   - creating inventory batch
+   - creating listing
+   - approving/rejecting listing
+   - buyer requesting listing
+   - approving/rejecting transfer request
+   - creating/updating delivery
+   - confirming delivery
+8. Status transition rules for:
+   - organization verification
+   - listing lifecycle
+   - transfer request lifecycle
+   - delivery lifecycle
+9. Audit logging helper design
+10. Error handling pattern
+11. Example server function for creating a listing
+12. Example server function for approving a listing
+13. Example server function for requesting medicine
+14. Example server function for confirming delivery
+
+Rules:
+- Write practical TypeScript examples.
+- Use Drizzle ORM style queries.
+- Use Zod for validation.
+- Include permission checks.
+- Include audit log creation.
+- Keep code MVP-friendly.
+- Do not build frontend yet.
+- Do not add payment system yet.
+- Do not add automated logistics yet.
