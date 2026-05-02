@@ -16,18 +16,28 @@ export const expiryStatusSchema = z.enum([
   'expired',
 ])
 
-export const createBatchSchema = z.object({
-  organizationId: uuid,
-  medicineId: uuid,
-  batchNumber: nonEmpty(80),
-  manufactureDate: isoDate.optional(),
-  expiryDate: isoDate,
-  quantityOnHand: positiveInt,
-  unit: nonEmpty(40),
-  storageType: storageTypeSchema,
-  sealedStatus: sealedStatusSchema,
-  notes: z.string().trim().max(2000).optional(),
-})
+export const createBatchSchema = z
+  .object({
+    organizationId: uuid,
+    medicineId: uuid,
+    batchNumber: nonEmpty(80),
+    manufactureDate: isoDate.optional(),
+    expiryDate: isoDate,
+    quantityOnHand: positiveInt,
+    unit: nonEmpty(40),
+    storageType: storageTypeSchema,
+    sealedStatus: sealedStatusSchema,
+    notes: z.string().trim().max(2000).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.manufactureDate && v.manufactureDate > v.expiryDate) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['manufactureDate'],
+        message: 'Manufacture date must be before expiry date',
+      })
+    }
+  })
 
 export const listBatchesSchema = z.object({
   organizationId: uuid,

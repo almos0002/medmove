@@ -8,11 +8,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
 import { ExpiryStatusBadge } from '@/components/data/ExpiryStatusBadge'
-import {
-  SealedStatusBadge,
-  StorageTypeBadge,
-  MedicineFormLabel,
-} from '@/components/data/SealedStatusBadge'
+import { SealedStatusBadge } from '@/components/data/SealedStatusBadge'
+import { StorageTypeBadge } from '@/components/data/StorageTypeBadge'
+import { MedicineFormLabel } from '@/components/data/MedicineFormLabel'
 import { formatExpiryRelative } from '@/lib/expiry'
 
 export const Route = createFileRoute('/org/inventory/$batchId')({
@@ -39,7 +37,7 @@ function OrgInventoryDetailPage() {
           description={
             <>
               Batch{' '}
-              <span className="font-mono text-[var(--color-mm-ink)]">
+              <span className="text-[var(--color-mm-ink)]">
                 {batch.batchNumber}
               </span>{' '}
               · {organization.name}
@@ -90,7 +88,7 @@ function OrgInventoryDetailPage() {
         </h2>
         <Row
           label="Batch number"
-          value={<span className="font-mono">{batch.batchNumber}</span>}
+          value={<span>{batch.batchNumber}</span>}
         />
         {batch.manufactureDate && (
           <Row

@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { MedicineFormLabel } from '@/components/data/SealedStatusBadge'
+import { MedicineFormLabel } from '@/components/data/MedicineFormLabel'
 
 const searchSchema = z.object({
   q: z.string().optional(),

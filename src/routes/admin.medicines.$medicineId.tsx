@@ -23,7 +23,7 @@ import {
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
-import { MEDICINE_FORMS } from '@/components/data/SealedStatusBadge'
+import { MEDICINE_FORMS } from '@/components/data/MedicineFormLabel'
 
 export const Route = createFileRoute('/admin/medicines/$medicineId')({
   loader: ({ params }) => getMedicine({ data: { id: params.medicineId } }),

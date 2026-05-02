@@ -24,11 +24,8 @@ import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ExpiryStatusBadge } from '@/components/data/ExpiryStatusBadge'
-import {
-  SealedStatusBadge,
-  StorageTypeBadge,
-  STORAGE_TYPES,
-} from '@/components/data/SealedStatusBadge'
+import { SealedStatusBadge } from '@/components/data/SealedStatusBadge'
+import { StorageTypeBadge, STORAGE_TYPES } from '@/components/data/StorageTypeBadge'
 import { format } from 'date-fns'
 
 const FILTERS_ALL = '__all__'
@@ -137,7 +134,7 @@ function OrgInventoryPage() {
         id: 'batchNumber',
         header: 'Batch #',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-muted)] font-mono">
+          <span className="text-sm text-[var(--color-mm-muted)]">
             {row.original.batch.batchNumber}
           </span>
         ),

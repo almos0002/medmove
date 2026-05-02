@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageLoading } from '@/components/feedback/PageLoading'
-import { MedicineFormLabel } from '@/components/data/SealedStatusBadge'
+import { MedicineFormLabel } from '@/components/data/MedicineFormLabel'
 
 const UNIT_OPTIONS = ['pack', 'strip', 'bottle', 'box', 'vial']
 

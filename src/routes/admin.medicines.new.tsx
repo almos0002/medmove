@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { MEDICINE_FORMS } from '@/components/data/SealedStatusBadge'
+import { MEDICINE_FORMS } from '@/components/data/MedicineFormLabel'
 
 export const Route = createFileRoute('/admin/medicines/new')({
   component: AdminMedicineNewPage,
