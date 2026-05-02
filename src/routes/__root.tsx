@@ -1,28 +1,29 @@
+import { useState } from 'react'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
 
 import appCss from '../styles.css?url'
+import { makeQueryClient } from '@/lib/query-client'
+import { PageError } from '@/components/feedback/PageError'
+import { NotFoundPage } from '@/components/feedback/NotFoundPage'
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'MedMove — Verified medicine redistribution' },
       {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'TanStack Start Starter',
+        name: 'description',
+        content:
+          'Verified B2B platform for redistributing surplus, in-date, sealed medicine between healthcare organizations.',
       },
     ],
     links: [
-      {
-        rel: 'preconnect',
-        href: 'https://fonts.googleapis.com',
-      },
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
         rel: 'preconnect',
         href: 'https://fonts.gstatic.com',
@@ -30,29 +31,44 @@ export const Route = createRootRoute({
       },
       {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap',
+        href: 'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap',
       },
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
+      { rel: 'stylesheet', href: appCss },
     ],
   }),
+  errorComponent: ({ error, reset }) => (
+    <PageError error={error} reset={reset} />
+  ),
+  notFoundComponent: NotFoundPage,
   shellComponent: RootDocument,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  // One QueryClient per browser instance. Server-side data is loaded via
+  // route loaders, so we don't need SSR hydration of the cache here.
+  const [queryClient] = useState(() => makeQueryClient())
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              classNames: {
+                toast:
+                  'squircle-sm bg-[var(--color-mm-surface)] border border-[var(--color-mm-line)] text-[var(--color-mm-ink)] no-shadow',
+                title: 'font-medium',
+                description: 'text-[var(--color-mm-muted)]',
+              },
+            }}
+          />
+        </QueryClientProvider>
         <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
+          config={{ position: 'bottom-right' }}
           plugins={[
             {
               name: 'Tanstack Router',

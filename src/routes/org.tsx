@@ -1,13 +1,17 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { isAdminRole, isOrgMemberRole } from '@/lib/permissions'
+import { isAdminRole, isOrgMemberRole, isOrgOwner } from '@/lib/permissions'
 import { getServerSession } from '@/server/functions/session'
+import { AppShell } from '@/components/layout/AppShell'
 
 /**
- * `/org` is the unified console for ORG_OWNER and ORG_STAFF — both roles
- * see the same workspace because business actions are gated by their org's
- * capability flags (can_list_medicine / can_request_medicine /
- * can_deliver_medicine), not by user role. Owners get extra UI for inviting
- * staff and editing the org profile (rendered conditionally inside).
+ * `/org` is the unified workspace for ORG_OWNER and ORG_STAFF — the
+ * sidebar items adapt by role/capability rather than splitting routes
+ * per role. Admins are also allowed in (as support / impersonation),
+ * with a banner reminding them that their actions are recorded under
+ * their admin account.
+ *
+ * Org owners without a primary organisation are forwarded to /onboarding
+ * so the rest of the app can assume `primaryOrg` exists.
  */
 export const Route = createFileRoute('/org')({
   beforeLoad: async () => {
@@ -21,22 +25,24 @@ export const Route = createFileRoute('/org')({
     ) {
       throw redirect({ to: '/dashboard' })
     }
+    // First-run owner without an org → onboarding.
+    if (
+      isOrgOwner(session.user.role) &&
+      !session.primaryOrg &&
+      !isAdminRole(session.user.role)
+    ) {
+      throw redirect({ to: '/onboarding' })
+    }
     return { session }
   },
   component: OrgLayout,
 })
 
 function OrgLayout() {
+  const { session } = Route.useRouteContext()
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-6 py-3">
-        <div className="max-w-6xl mx-auto text-sm font-medium text-slate-700">
-          MedMove — Organization
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <Outlet />
-      </main>
-    </div>
+    <AppShell section="app" session={session}>
+      <Outlet />
+    </AppShell>
   )
 }

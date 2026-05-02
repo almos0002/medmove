@@ -1,11 +1,11 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { ADMIN_ROLES } from '@/lib/permissions'
 import { getServerSession } from '@/server/functions/session'
+import { AppShell } from '@/components/layout/AppShell'
 
 /**
  * Layout guard for everything under /admin/*. Runs on the server during SSR
- * and on the client during navigation. Throwing `redirect()` from beforeLoad
- * is the canonical way to enforce auth in TanStack Router.
+ * and on the client during navigation.
  */
 export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
@@ -22,16 +22,10 @@ export const Route = createFileRoute('/admin')({
 })
 
 function AdminLayout() {
+  const { session } = Route.useRouteContext()
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-6 py-3">
-        <div className="max-w-6xl mx-auto text-sm font-medium text-slate-700">
-          MedMove — Admin
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <Outlet />
-      </main>
-    </div>
+    <AppShell section="admin" session={session}>
+      <Outlet />
+    </AppShell>
   )
 }

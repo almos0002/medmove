@@ -54,6 +54,41 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
   - `validators/` - Zod input schemas per domain. `organizations.ts` adds `updateOrganizationCapabilitiesSchema` (refined to require ≥1 flag).
   - `functions/` - `createServerFn` handlers; new `session.getServerSession`, new `deliveries.adminAssignDeliveryLogistics`, new `deliveries.listMyAssignedDeliveries`, new `organizations.adminUpdateOrganizationCapabilities`. `markDispatched` accepts admin OR assigned `logistics_staff` user OR member of an org with `can_deliver_medicine` (assigned logistics org if set, else seller org). `createOrganization` seeds capability flags from `defaultCapabilitiesForType(type)`.
 - `scripts/seed.ts` - Idempotent seed (re-stamps capability flags every run): super_admin + admin + 4 org_owners (pharmacy/hospital/distributor/logistics_partner) + pharmacy_staff (org_staff) + logistics_staff, four verified orgs with type-default capabilities, 10-medicine catalog, 1 demo listing.
+- `src/components/`
+  - `ui/` — primitives (`button`, `input`, `label`, `textarea`, `card`, `badge`, `separator`, `skeleton`, `switch`, `select`, `dialog`, `alert-dialog`, `tabs`). All use `squircle*` utilities, never `shadow-*`.
+  - `data/` — `StatusBadge` (org verification + doc status), `CapabilityChip(Row)`, `OrgTypeBadge`, `OrgTypeLabel`.
+  - `feedback/` — `EmptyState`, `PageError`, `PageLoading`, `NotFoundPage` (no nested `<html>` — wrapped by root `shellComponent`).
+  - `layout/` — `AppShell` (sidebar + topbar; sections `'app' | 'admin' | 'logistics'`; admin-as-support banner) and `PageHeader`.
+- `src/lib/utils.ts` — `cn()` (clsx + tailwind-merge); `src/lib/query-client.ts` — singleton TanStack Query client used in `__root.tsx`.
+- `src/lib/client/capability.ts` — pure UI helpers (`canUploadOrgDocuments`, `canManageOrgMembers`) — server fns are still the source of truth.
+
+## Step 6: organization onboarding & verification UI
+
+End-to-end flow shipped:
+
+- **Sign-up (`/sign-up`)** — refactored to the new style: split-panel layout, role selector (`org_owner` / `org_staff` / `logistics_staff`), default-cap preview removed (kept on onboarding instead). After signup: `org_owner` → `/onboarding`; everyone else → `homePathForRole(role)`.
+- **Onboarding (`/onboarding`)** — guards: signed in, `org_owner`, no existing primary org. RHF + Zod (`createOrganizationSchema`), org-type selector with live default-capability preview, full address form. Submits `createOrganization`, then routes to `/org/documents` to upload paperwork.
+- **Org workspace (`/org/*`)** — wrapped by `AppShell section="app"`. First-run owners without an org are bounced to `/onboarding`.
+  - `/org` — status banner per `verificationStatus` (pending / verified / rejected / suspended), capability summary, document counters, deep-links to profile + documents.
+  - `/org/profile` — read-only snapshot of submitted info (editing arrives in a later milestone).
+  - `/org/documents` — list with `DocStatusBadge`, upload dialog (URL + filename + MIME — actual file hosting is a future task), guidance card explaining the verification rule (≥1 approved pharmacy_license OR business_registration). Uploads are locked once the org is verified.
+- **Admin (`/admin/*`)** — wrapped by `AppShell section="admin"`. Admin-only via `ADMIN_ROLES`.
+  - `/admin` — counters + "awaiting verification" snapshot from `adminListOrganizations`.
+  - `/admin/organizations` — status filter chips + free-text search wired through `validateSearch` so URLs are shareable. Each row shows pending-doc count; rendered via `CapabilityChipRow` (disabled chips hidden on the list).
+  - `/admin/organizations/$orgId` — full review surface: profile, capability `Switch` toggles (each toggle is its own audit-logged mutation), per-doc approve / reject (Dialog with reason), org-level approve / reject / suspend / reinstate dialogs gated by current `verificationStatus` (matches `ORG_TRANSITIONS`).
+- **Logistics (`/logistics/*`)** — wrapped by `AppShell section="logistics"`. Index is an empty state until the delivery workflow ships.
+- **Dashboard (`/dashboard`)** — pure redirect: no session → `/sign-in`; org_owner without primary org → `/onboarding`; otherwise → `homePathForRole(role)`.
+
+**Style rules enforced site-wide:**
+- `squircle / squircle-lg / -md / -sm / -xs` instead of `rounded-*` (defined in `src/styles.css` via `corner-shape: squircle; border-radius: 50px`).
+- No `shadow-*` utilities — depth comes from borders + soft tinted surfaces (`mm-*-soft` tokens).
+- Warm canvas (`--color-mm-canvas`) + deep-teal accent (`--color-mm-accent`); status colours use `--color-mm-{ok,warn,bad,cool}` and matching `*-soft` tints.
+
+**Data-fetching conventions:**
+- TanStack Router **loaders** for SSR reads (`/org`, `/admin/organizations`, etc.) — never `useQuery` for initial fetches.
+- TanStack Query **mutations only** for writes; on success, `await router.invalidate()` then route navigations / toasts.
+- All toast feedback via `sonner` (Toaster mounted in `__root.tsx`).
+- All error rendering through `PageError`, which parses `{code, message}` envelopes from `toClientError`.
 
 ## Path Aliases (tsconfig)
 - `@/*` and `#/*` both map to `./src/*`. Do **not** use `~/*` — it is not configured.

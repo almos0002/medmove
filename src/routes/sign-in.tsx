@@ -1,12 +1,23 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Mail, Lock, Loader2 } from 'lucide-react'
+import { Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { signIn } from '@/lib/auth-client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-export const Route = createFileRoute('/sign-in')({ component: SignInPage })
+export const Route = createFileRoute('/sign-in')({
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => {
+    const r = s.redirect
+    if (typeof r === 'string' && r.startsWith('/')) return { redirect: r }
+    return {}
+  },
+  component: SignInPage,
+})
 
 function SignInPage() {
   const navigate = useNavigate()
+  const search = Route.useSearch()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -22,69 +33,75 @@ function SignInPage() {
       setError(err.message ?? 'Sign-in failed')
       return
     }
-    navigate({ to: '/dashboard' })
+    navigate({ to: search.redirect ?? '/dashboard' })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--color-mm-canvas)] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-slate-600">Sign in to your MedMove account.</p>
+          <div className="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center bg-[var(--color-mm-accent)] text-white squircle">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl font-semibold text-[var(--color-mm-ink)]">
+            Welcome back
+          </h1>
+          <p className="mt-1 text-sm text-[var(--color-mm-muted)]">
+            Sign in to your MedMove account.
+          </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-5"
+          className="bg-[var(--color-mm-surface)] squircle-md border border-[var(--color-mm-line)] p-6 space-y-5"
         >
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-mm-subtle)] pointer-events-none" />
+              <Input
+                id="email"
                 required
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                className="pl-9"
                 placeholder="you@example.com"
+                autoComplete="email"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                placeholder="••••••••"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              required
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="text-sm text-[var(--color-mm-bad)] bg-[var(--color-mm-bad-soft)] border border-[var(--color-mm-bad-soft)] px-3 py-2 squircle-sm">
               {error}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg transition flex items-center justify-center gap-2"
-          >
+          <Button type="submit" loading={loading} className="w-full">
+            {!loading && <span>Sign in</span>}
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Sign in
-          </button>
+          </Button>
 
-          <p className="text-center text-sm text-slate-600">
-            Don't have an account?{' '}
-            <Link to="/sign-up" className="text-indigo-600 font-medium hover:underline">
+          <p className="text-center text-sm text-[var(--color-mm-muted)]">
+            Don’t have an account?{' '}
+            <Link
+              to="/sign-up"
+              className="text-[var(--color-mm-accent)] font-medium hover:underline"
+            >
               Create one
             </Link>
           </p>

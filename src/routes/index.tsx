@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Sparkles, Zap, Palette, ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowRight, FileCheck2, Repeat, ShieldCheck } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
+import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -8,32 +9,30 @@ function Home() {
   const { data: session } = useSession()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <header className="border-b border-slate-200 bg-white/60 backdrop-blur">
+    <div className="min-h-screen bg-[var(--color-mm-canvas)]">
+      <header className="border-b border-[var(--color-mm-line)] bg-[var(--color-mm-surface)]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-indigo-600" />
-            <span className="font-semibold text-slate-900">MedMove</span>
+            <div className="h-8 w-8 inline-flex items-center justify-center bg-[var(--color-mm-accent)] text-white squircle">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+            <span className="font-semibold text-[var(--color-mm-ink)]">
+              MedMove
+            </span>
           </div>
-          <nav className="flex items-center gap-3 text-sm">
+          <nav className="flex items-center gap-2 text-sm">
             {session ? (
-              <Link
-                to="/dashboard"
-                className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
-              >
-                Go to dashboard
-              </Link>
+              <Button asChild variant="primary" size="sm">
+                <Link to="/dashboard">Go to dashboard</Link>
+              </Button>
             ) : (
               <>
-                <Link to="/sign-in" className="text-slate-700 hover:text-slate-900">
-                  Sign in
-                </Link>
-                <Link
-                  to="/sign-up"
-                  className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
-                >
-                  Get started
-                </Link>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/sign-in" search={{}}>Sign in</Link>
+                </Button>
+                <Button asChild variant="primary" size="sm">
+                  <Link to="/sign-up">Get started</Link>
+                </Button>
               </>
             )}
           </nav>
@@ -41,49 +40,82 @@ function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-16">
-        <h1 className="text-5xl font-bold tracking-tight text-slate-900">
-          Welcome to MedMove
+        <div className="inline-flex items-center gap-2 bg-[var(--color-mm-accent-soft)] text-[var(--color-mm-accent)] text-xs font-medium px-3 py-1 squircle">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Verified-only network
+        </div>
+        <h1 className="mt-4 text-5xl font-bold tracking-tight text-[var(--color-mm-ink)] max-w-3xl">
+          Verified medicine, redirected to where it’s needed.
         </h1>
-        <p className="mt-4 text-lg text-slate-600 max-w-2xl">
-          Connect pharmacies with hospitals and NGOs to redistribute near-expiry
-          medicine — reduce waste, save lives.
+        <p className="mt-4 text-lg text-[var(--color-mm-muted)] max-w-2xl">
+          MedMove connects pharmacies, clinics, hospitals, NGOs and
+          distributors so near-expiry medicine moves to the patients who
+          need it instead of going to waste.
         </p>
 
         {!session && (
-          <Link
-            to="/sign-up"
-            className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
-          >
-            Create your account <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button asChild>
+              <Link to="/sign-up">
+                Create your account
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link to="/sign-in" search={{}}>Sign in</Link>
+            </Button>
+          </div>
         )}
 
-        <div className="mt-14 grid gap-6 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <Palette className="h-8 w-8 text-indigo-600" />
-            <h2 className="mt-4 text-xl font-semibold">Tailwind v4</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Modern utility-first CSS with the new Vite plugin.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <Sparkles className="h-8 w-8 text-amber-500" />
-            <h2 className="mt-4 text-xl font-semibold">Lucide Icons</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Beautiful, consistent icons as React components.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <Zap className="h-8 w-8 text-emerald-600" />
-            <h2 className="mt-4 text-xl font-semibold">Better Auth</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Email & password auth with role-based MedMove accounts.
-            </p>
-          </div>
+        <div className="mt-16 grid gap-4 sm:grid-cols-3">
+          <FeatureCard
+            icon={ShieldCheck}
+            title="Verified organizations"
+            body="Every pharmacy, clinic, hospital, NGO, distributor and logistics partner is reviewed by MedMove before it can list, request or deliver medicine."
+          />
+          <FeatureCard
+            icon={Repeat}
+            title="Closed-loop transfers"
+            body="Listings → requests → admin approval → assigned delivery. A full audit trail at every step."
+          />
+          <FeatureCard
+            icon={FileCheck2}
+            title="Document-first onboarding"
+            body="Upload your pharmacy licence and business registration once. Capabilities unlock the moment we verify."
+          />
         </div>
       </main>
+
+      <footer className="border-t border-[var(--color-mm-line)] mt-12">
+        <div className="max-w-5xl mx-auto px-6 py-6 text-xs text-[var(--color-mm-subtle)] flex items-center justify-between">
+          <span>© {new Date().getFullYear()} MedMove</span>
+          <span>Verified-only network</span>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: typeof ShieldCheck
+  title: string
+  body: string
+}) {
+  return (
+    <div className="bg-[var(--color-mm-surface)] border border-[var(--color-mm-line)] squircle-md p-6">
+      <div className="h-10 w-10 inline-flex items-center justify-center bg-[var(--color-mm-accent-soft)] text-[var(--color-mm-accent)] squircle">
+        <Icon className="h-5 w-5" />
+      </div>
+      <h2 className="mt-4 text-lg font-semibold text-[var(--color-mm-ink)]">
+        {title}
+      </h2>
+      <p className="mt-2 text-sm text-[var(--color-mm-muted)] leading-relaxed">
+        {body}
+      </p>
     </div>
   )
 }

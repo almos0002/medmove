@@ -1,4 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Truck } from 'lucide-react'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { EmptyState } from '@/components/feedback/EmptyState'
 
 export const Route = createFileRoute('/logistics/')({
   component: LogisticsHome,
@@ -7,20 +10,24 @@ export const Route = createFileRoute('/logistics/')({
 function LogisticsHome() {
   const { session } = Route.useRouteContext()
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold text-slate-900">
-        Logistics console
-      </h1>
-      <p className="text-sm text-slate-600">
-        Signed in as{' '}
-        <span className="font-medium text-slate-900">
-          {session.user?.email}
-        </span>{' '}
-        ({session.user?.role}).
-      </p>
-      <p className="text-sm text-slate-500">
-        Assigned deliveries (read + dispatch progress) will be listed here.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Assigned deliveries"
+        description={
+          <>
+            Signed in as{' '}
+            <span className="font-medium text-[var(--color-mm-ink)]">
+              {session.user?.email}
+            </span>
+            .
+          </>
+        }
+      />
+      <EmptyState
+        icon={Truck}
+        title="No deliveries assigned"
+        description="Deliveries assigned by admin will appear here. The full delivery workflow ships in the next milestone."
+      />
     </div>
   )
 }

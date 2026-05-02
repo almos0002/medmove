@@ -5,6 +5,26 @@
     "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-sans: var(--font-poppins);
+
+  /* MedMove palette — calm, clinical, trust-forward. NOT generic SaaS indigo. */
+  --color-mm-ink: #0d1817;        /* near-black with the slightest green tint */
+  --color-mm-muted: #4a5654;
+  --color-mm-subtle: #6b7775;
+  --color-mm-line: #e3e6e3;        /* hairline border, replaces shadow */
+  --color-mm-line-strong: #c9cfcb;
+  --color-mm-canvas: #f6f5f1;      /* warm off-white app background */
+  --color-mm-surface: #ffffff;
+  --color-mm-accent: #0f5c4b;      /* deep teal — primary action */
+  --color-mm-accent-ink: #ffffff;
+  --color-mm-accent-soft: #e6f0ec;
+  --color-mm-warn: #8a4b00;
+  --color-mm-warn-soft: #fcefd6;
+  --color-mm-ok: #0e6a4d;
+  --color-mm-ok-soft: #d8efe4;
+  --color-mm-bad: #8a1f2c;
+  --color-mm-bad-soft: #fbe2e5;
+  --color-mm-cool: #3b3f4a;
+  --color-mm-cool-soft: #e8eaee;
 }
 
 * {
@@ -20,4 +40,63 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
+  background: var(--color-mm-canvas);
+  color: var(--color-mm-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+ * Squircle utilities. `corner-shape: squircle` is an emerging CSS spec
+ * (currently Safari TP only); browsers without support fall back to the
+ * `border-radius` value, which is intentionally large so the shape still
+ * reads as "smoothly rounded" rather than a stadium.
+ * ─────────────────────────────────────────────────────────────────────── */
+.squircle {
+  border-radius: 50px;
+  corner-shape: squircle;
+}
+.squircle-lg {
+  border-radius: 36px;
+  corner-shape: squircle;
+}
+.squircle-md {
+  border-radius: 22px;
+  corner-shape: squircle;
+}
+.squircle-sm {
+  border-radius: 14px;
+  corner-shape: squircle;
+}
+.squircle-xs {
+  border-radius: 10px;
+  corner-shape: squircle;
+}
+
+/* No drop shadows by design. Surfaces are separated by hairline borders
+ * and tonal contrast. This single rule suppresses Tailwind shadow utilities
+ * if anyone reaches for them by accident. */
+.no-shadow,
+.no-shadow * {
+  box-shadow: none !important;
+}
+
+/* Scrollbar tuning for the dashboard: thinner, less industrial. */
+.app-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-mm-line-strong) transparent;
+}
+.app-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.app-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-mm-line-strong);
+  border-radius: 999px;
+}
+
+/* Subtle focus ring used across primitives — reuses accent color. */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-mm-accent);
+  outline-offset: 2px;
 }

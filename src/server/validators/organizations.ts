@@ -67,6 +67,22 @@ export const rejectDocumentSchema = z.object({
  * capability must be present (otherwise the call is a no-op and almost
  * certainly a client bug).
  */
+export const listOrganizationsSchema = z.object({
+  status: z
+    .enum(['pending', 'verified', 'rejected', 'suspended'])
+    .optional(),
+  type: orgTypeSchema.optional(),
+  search: z.string().trim().max(120).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  offset: z.number().int().min(0).optional(),
+})
+export type ListOrganizationsInput = z.infer<typeof listOrganizationsSchema>
+
+export const getOrganizationSchema = z.object({
+  organizationId: uuid,
+})
+export type GetOrganizationInput = z.infer<typeof getOrganizationSchema>
+
 export const updateOrganizationCapabilitiesSchema = z
   .object({
     organizationId: uuid,

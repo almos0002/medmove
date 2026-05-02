@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   organizationDocuments,
@@ -16,6 +16,8 @@ import { requireAdmin } from '../guards/require-admin'
 import { ORG_TRANSITIONS, assertTransition } from '../transitions'
 import {
   createOrganizationSchema,
+  getOrganizationSchema,
+  listOrganizationsSchema,
   rejectDocumentSchema,
   rejectOrganizationSchema,
   reviewDocumentSchema,
@@ -533,6 +535,196 @@ export const adminSuspendOrganization = createServerFn({ method: 'POST', strict:
       })
 
       return { ok: true as const, organization: result }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+// ─── Step 6 reads — onboarding & verification UI ──────────────────────────
+
+/**
+ * Returns the current user's primary organization (the first row in
+ * organization_members for them) plus its documents. If the user has no
+ * org yet, returns `{ organization: null }` so the onboarding flow can
+ * render its empty state. Admins calling this fn get their own primary
+ * org if they have one — admins normally use `adminGetOrganizationById`
+ * to inspect a specific org.
+ */
+export const getMyOrganization = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+}).handler(async () => {
+  try {
+    const ctx = await getRequestContext()
+    const user = requireAuth(ctx)
+
+    const [membership] = await db
+      .select({
+        org: organizations,
+        memberRole: organizationMembers.role,
+      })
+      .from(organizationMembers)
+      .innerJoin(
+        organizations,
+        eq(organizations.id, organizationMembers.organizationId),
+      )
+      .where(eq(organizationMembers.userId, user.id))
+      .limit(1)
+
+    if (!membership) {
+      return { ok: true as const, organization: null, documents: [] as const }
+    }
+
+    const docs = await db
+      .select()
+      .from(organizationDocuments)
+      .where(eq(organizationDocuments.organizationId, membership.org.id))
+      .orderBy(desc(organizationDocuments.createdAt))
+
+    return {
+      ok: true as const,
+      organization: membership.org,
+      memberRole: membership.memberRole,
+      documents: docs,
+    }
+  } catch (e) {
+    throw toClientError(e)
+  }
+})
+
+/**
+ * List documents for an org. Members of that org or admins may read.
+ * Used by the org documents page and the admin org detail page.
+ */
+export const listOrganizationDocuments = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => getOrganizationSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const actor = requireAuth(ctx)
+      if (!isAdminRole(actor.role)) {
+        await requireOrgMember(ctx, data.organizationId)
+      }
+      const docs = await db
+        .select()
+        .from(organizationDocuments)
+        .where(eq(organizationDocuments.organizationId, data.organizationId))
+        .orderBy(desc(organizationDocuments.createdAt))
+      return { ok: true as const, documents: docs }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Admin-only: list organisations with optional status / type / name
+ * filters. Returns rows with each org's pending-document count so the
+ * admin queue can prioritise the ones with paperwork ready to review.
+ */
+export const adminListOrganizations = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => listOrganizationsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      requireAdmin(ctx)
+
+      const limit = data.limit ?? 50
+      const offset = data.offset ?? 0
+      const where = and(
+        data.status ? eq(organizations.verificationStatus, data.status) : undefined,
+        data.type ? eq(organizations.type, data.type) : undefined,
+        data.search
+          ? or(
+              ilike(organizations.name, `%${data.search}%`),
+              ilike(organizations.licenseNumber, `%${data.search}%`),
+              ilike(organizations.contactEmail, `%${data.search}%`),
+            )
+          : undefined,
+      )
+
+      const rows = await db
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          type: organizations.type,
+          city: organizations.city,
+          country: organizations.country,
+          contactEmail: organizations.contactEmail,
+          licenseNumber: organizations.licenseNumber,
+          verificationStatus: organizations.verificationStatus,
+          canListMedicine: organizations.canListMedicine,
+          canRequestMedicine: organizations.canRequestMedicine,
+          canDeliverMedicine: organizations.canDeliverMedicine,
+          createdAt: organizations.createdAt,
+          verifiedAt: organizations.verifiedAt,
+          rejectionReason: organizations.rejectionReason,
+          pendingDocCount: sql<number>`(
+            select count(*)::int from ${organizationDocuments}
+            where ${organizationDocuments.organizationId} = ${organizations.id}
+              and ${organizationDocuments.status} = 'pending'
+          )`,
+        })
+        .from(organizations)
+        .where(where)
+        .orderBy(desc(organizations.createdAt))
+        .limit(limit)
+        .offset(offset)
+
+      const [{ count } = { count: 0 }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(organizations)
+        .where(where)
+
+      return { ok: true as const, organizations: rows, total: count }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Admin-only: read one organisation with its documents and member count
+ * for the admin detail page.
+ */
+export const adminGetOrganizationById = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => getOrganizationSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      requireAdmin(ctx)
+
+      const [org] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, data.organizationId))
+        .limit(1)
+      if (!org) throw new AppError('NOT_FOUND', 'Organization not found')
+
+      const docs = await db
+        .select()
+        .from(organizationDocuments)
+        .where(eq(organizationDocuments.organizationId, org.id))
+        .orderBy(desc(organizationDocuments.createdAt))
+
+      const [{ count } = { count: 0 }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, org.id))
+
+      return {
+        ok: true as const,
+        organization: org,
+        documents: docs,
+        memberCount: count,
+      }
     } catch (e) {
       throw toClientError(e)
     }

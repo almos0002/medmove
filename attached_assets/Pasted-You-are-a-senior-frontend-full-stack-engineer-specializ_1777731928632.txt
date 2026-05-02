@@ -1,0 +1,112 @@
+You are a senior frontend/full-stack engineer specializing in TanStack Start, TanStack Router, React, TypeScript, Tailwind CSS, shadcn/ui, TanStack Form, Zod, TanStack Query, PostgreSQL, and Drizzle ORM.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout are done.
+
+Now I want Step 6: Build the organization onboarding and verification UI.
+
+Important model:
+User roles:
+- SUPER_ADMIN
+- ADMIN
+- ORG_OWNER
+- ORG_STAFF
+- LOGISTICS_STAFF
+
+Organization types:
+- PHARMACY
+- CLINIC
+- HOSPITAL
+- NGO
+- DISTRIBUTOR
+- LOGISTICS_PARTNER
+
+Organization capabilities:
+- can_list_medicine
+- can_request_medicine
+- can_deliver_medicine
+
+Organization verification statuses:
+- PENDING
+- VERIFIED
+- REJECTED
+- SUSPENDED
+
+Product rules:
+- Users must belong to an organization except platform admins.
+- New organizations start as PENDING.
+- Only admins can verify, reject, or suspend organizations.
+- Only verified organizations can list/request/deliver medicine.
+- Admin can enable/disable capabilities per organization.
+- A pharmacy can usually list and request medicine.
+- A clinic can usually list and request medicine.
+- A hospital can request medicine and may list if admin enables it.
+- An NGO usually requests only.
+- Distributor/logistics partner can deliver medicine.
+- Every admin verification action should create an audit log.
+- Frontend should clearly show verification status.
+
+Now build the organization onboarding + verification feature.
+
+Create:
+
+1. Organization onboarding page for new users
+2. Organization profile form
+3. Organization type selector
+4. License/document upload UI placeholder
+5. Verification pending page
+6. Rejected organization page with reason
+7. Admin organizations list page
+8. Admin organization detail page
+9. Admin approve/reject/suspend controls
+10. Admin capability toggles:
+    - can_list_medicine
+    - can_request_medicine
+    - can_deliver_medicine
+11. Status badges
+12. Empty states
+13. Loading states
+14. Error states
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use TanStack Form or React Hook Form if easier.
+- Use Zod validation.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Use TanStack Query for server state.
+- Use existing server functions from previous steps.
+- Include TypeScript types.
+- Include practical file paths.
+- Include component code.
+- Include page code.
+- Keep UI clean and professional.
+- Do not build medicine listing UI yet.
+- Do not build delivery UI yet.
+- Do not add payment.
+- Do not expose any medicine listing publicly.
+
+Expected output:
+- File/folder structure
+- Components
+- Route files
+- Forms
+- Validation schema
+- Query/mutation hooks
+- Admin verification UI
+- Notes on where backend functions are called
+
+DONOT USE THESE STYLE:
+
+- generic, ai aesthetic designs
+- donot use shadows
+- instead of rounded use squircle deisgn with .squircle{border-radius:50px, corner-shape:squircle} class
+- editorial/magazine/
+- cartoon type
+- no magazine style

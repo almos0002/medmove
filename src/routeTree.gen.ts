@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as OrgRouteImport } from './routes/org'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -19,7 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrgIndexRouteImport } from './routes/org.index'
 import { Route as LogisticsIndexRouteImport } from './routes/logistics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as OrgProfileRouteImport } from './routes/org.profile'
+import { Route as OrgDocumentsRouteImport } from './routes/org.documents'
+import { Route as AdminOrganizationsRouteImport } from './routes/admin.organizations'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AdminOrganizationsOrgIdRouteImport } from './routes/admin.organizations.$orgId'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -34,6 +39,11 @@ const SignInRoute = SignInRouteImport.update({
 const OrgRoute = OrgRouteImport.update({
   id: '/org',
   path: '/org',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogisticsRoute = LogisticsRouteImport.update({
@@ -71,10 +81,30 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const OrgProfileRoute = OrgProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => OrgRoute,
+} as any)
+const OrgDocumentsRoute = OrgDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => OrgRoute,
+} as any)
+const AdminOrganizationsRoute = AdminOrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOrganizationsOrgIdRoute = AdminOrganizationsOrgIdRouteImport.update({
+  id: '/$orgId',
+  path: '/$orgId',
+  getParentRoute: () => AdminOrganizationsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -82,22 +112,32 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/logistics': typeof LogisticsRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
+  '/org/documents': typeof OrgDocumentsRoute
+  '/org/profile': typeof OrgProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
+  '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/onboarding': typeof OnboardingRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
+  '/org/documents': typeof OrgDocumentsRoute
+  '/org/profile': typeof OrgProfileRoute
   '/admin': typeof AdminIndexRoute
   '/logistics': typeof LogisticsIndexRoute
   '/org': typeof OrgIndexRoute
+  '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -106,12 +146,17 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/logistics': typeof LogisticsRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
+  '/org/documents': typeof OrgDocumentsRoute
+  '/org/profile': typeof OrgProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
+  '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -121,22 +166,32 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/logistics'
+    | '/onboarding'
     | '/org'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/organizations'
+    | '/org/documents'
+    | '/org/profile'
     | '/admin/'
     | '/logistics/'
     | '/org/'
+    | '/admin/organizations/$orgId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
+    | '/onboarding'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/organizations'
+    | '/org/documents'
+    | '/org/profile'
     | '/admin'
     | '/logistics'
     | '/org'
+    | '/admin/organizations/$orgId'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -144,12 +199,17 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/logistics'
+    | '/onboarding'
     | '/org'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/organizations'
+    | '/org/documents'
+    | '/org/profile'
     | '/admin/'
     | '/logistics/'
     | '/org/'
+    | '/admin/organizations/$orgId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +218,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   LogisticsRoute: typeof LogisticsRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
   OrgRoute: typeof OrgRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
@@ -185,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/org'
       fullPath: '/org'
       preLoaderRoute: typeof OrgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logistics': {
@@ -236,6 +304,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/org/profile': {
+      id: '/org/profile'
+      path: '/profile'
+      fullPath: '/org/profile'
+      preLoaderRoute: typeof OrgProfileRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/org/documents': {
+      id: '/org/documents'
+      path: '/documents'
+      fullPath: '/org/documents'
+      preLoaderRoute: typeof OrgDocumentsRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/admin/organizations': {
+      id: '/admin/organizations'
+      path: '/organizations'
+      fullPath: '/admin/organizations'
+      preLoaderRoute: typeof AdminOrganizationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -243,14 +332,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/organizations/$orgId': {
+      id: '/admin/organizations/$orgId'
+      path: '/$orgId'
+      fullPath: '/admin/organizations/$orgId'
+      preLoaderRoute: typeof AdminOrganizationsOrgIdRouteImport
+      parentRoute: typeof AdminOrganizationsRoute
+    }
   }
 }
 
+interface AdminOrganizationsRouteChildren {
+  AdminOrganizationsOrgIdRoute: typeof AdminOrganizationsOrgIdRoute
+}
+
+const AdminOrganizationsRouteChildren: AdminOrganizationsRouteChildren = {
+  AdminOrganizationsOrgIdRoute: AdminOrganizationsOrgIdRoute,
+}
+
+const AdminOrganizationsRouteWithChildren =
+  AdminOrganizationsRoute._addFileChildren(AdminOrganizationsRouteChildren)
+
 interface AdminRouteChildren {
+  AdminOrganizationsRoute: typeof AdminOrganizationsRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminOrganizationsRoute: AdminOrganizationsRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -269,10 +378,14 @@ const LogisticsRouteWithChildren = LogisticsRoute._addFileChildren(
 )
 
 interface OrgRouteChildren {
+  OrgDocumentsRoute: typeof OrgDocumentsRoute
+  OrgProfileRoute: typeof OrgProfileRoute
   OrgIndexRoute: typeof OrgIndexRoute
 }
 
 const OrgRouteChildren: OrgRouteChildren = {
+  OrgDocumentsRoute: OrgDocumentsRoute,
+  OrgProfileRoute: OrgProfileRoute,
   OrgIndexRoute: OrgIndexRoute,
 }
 
@@ -283,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   LogisticsRoute: LogisticsRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
   OrgRoute: OrgRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
