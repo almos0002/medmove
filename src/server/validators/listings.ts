@@ -77,11 +77,51 @@ export const adminListAllListingsSchema = z.object({
   limit: z.number().int().positive().max(100).default(100),
 })
 
+export const medicineFormSchema = z.enum([
+  'tablet',
+  'capsule',
+  'syrup',
+  'suspension',
+  'injection',
+  'cream',
+  'ointment',
+  'drops',
+  'inhaler',
+  'patch',
+  'powder',
+  'sachet',
+  'other',
+])
+export type MedicineFormValue = z.infer<typeof medicineFormSchema>
+
+export const marketplaceSortSchema = z.enum([
+  'expiry_asc',
+  'newest',
+  'quantity_desc',
+  'location',
+])
+export type MarketplaceSort = z.infer<typeof marketplaceSortSchema>
+
+/**
+ * Discovery search/filter validator.
+ *
+ * Pagination caps:
+ *   pageSize ≤ 60 to keep joins cheap
+ *   page ≥ 1
+ */
 export const listMarketplaceListingsSchema = z.object({
   medicineSearch: z.string().trim().max(120).optional(),
   city: z.string().trim().max(120).optional(),
+  medicineForm: medicineFormSchema.optional(),
+  listingType: listingTypeSchema.optional(),
   expiryWindow: listingExpiryWindowSchema.optional(),
-  limit: z.number().int().positive().max(50).default(50),
+  minQuantity: z.number().int().positive().max(1_000_000).optional(),
+  sort: marketplaceSortSchema.default('expiry_asc'),
+  page: z.number().int().positive().default(1),
+  pageSize: z.number().int().positive().max(60).default(24),
 })
+export type ListMarketplaceListingsInput = z.infer<
+  typeof listMarketplaceListingsSchema
+>
 
 export const getMarketplaceListingSchema = z.object({ id: uuid })

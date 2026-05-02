@@ -89,3 +89,55 @@ export const LISTING_EXPIRY_WINDOW_FILTERS: ReadonlyArray<{
   { value: 'expiring_soon', label: '31–90 days' },
   { value: 'safe', label: '> 90 days' },
 ]
+
+/**
+ * Marketplace discovery filter — only positive (non-expired) windows are
+ * exposed because expired listings are always filtered out by the server.
+ */
+export const MARKETPLACE_EXPIRY_WINDOW_FILTERS: ReadonlyArray<{
+  value: Exclude<ListingExpiryWindowValue, 'expired'>
+  label: string
+}> = [
+  { value: 'critical', label: '1–30 days' },
+  { value: 'expiring_soon', label: '31–90 days' },
+  { value: 'safe', label: '91+ days' },
+]
+
+export type MarketplaceSortValue =
+  | 'expiry_asc'
+  | 'newest'
+  | 'quantity_desc'
+  | 'location'
+export const MARKETPLACE_SORT_OPTIONS: ReadonlyArray<{
+  value: MarketplaceSortValue
+  label: string
+}> = [
+  { value: 'expiry_asc', label: 'Nearest expiry' },
+  { value: 'newest', label: 'Newest listings' },
+  { value: 'quantity_desc', label: 'Highest quantity' },
+  { value: 'location', label: 'By city (A–Z)' },
+]
+
+/**
+ * Marketplace listing-type chips. The server treats listings with
+ * `pricePerUnitCents = NULL` as donations and any priced listing as a
+ * discounted sale (since regulators may forbid full-margin resale of
+ * near-expiry stock).
+ */
+export const MARKETPLACE_LISTING_TYPE_FILTERS: ReadonlyArray<{
+  value: ListingTypeValue
+  label: string
+}> = [
+  { value: 'donation', label: 'Donation' },
+  { value: 'sale', label: 'Discounted sale' },
+]
+
+export const MARKETPLACE_QUANTITY_FILTERS: ReadonlyArray<{
+  value: number
+  label: string
+}> = [
+  { value: 10, label: '10+' },
+  { value: 50, label: '50+' },
+  { value: 100, label: '100+' },
+  { value: 500, label: '500+' },
+]

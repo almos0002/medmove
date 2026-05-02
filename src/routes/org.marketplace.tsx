@@ -1,38 +1,41 @@
+import * as React from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  createFileRoute,
-  Link,
-  useNavigate,
-  redirect,
-} from '@tanstack/react-router'
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from '@tanstack/react-table'
 import {
-  Search,
-  X,
   ShoppingBag,
-  Tags,
-  MapPin,
+  ChevronLeft,
   ChevronRight,
+  LayoutGrid,
+  Rows3,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { z } from 'zod'
 import { listMarketplaceListings } from '@/server/functions/listings'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ExpiryStatusBadge } from '@/components/data/ExpiryStatusBadge'
-import { LISTING_EXPIRY_WINDOW_FILTERS } from '@/components/data/ListingStatusBadge'
+import { MedicineFormLabel } from '@/components/data/MedicineFormLabel'
+import { cn } from '@/lib/utils'
+import {
+  ListingCard,
+  PriceTag,
+  type MarketplaceListingRow,
+} from '@/components/marketplace/ListingCard'
+import {
+  MarketplaceFilters,
+  type MarketplaceFiltersValue,
+} from '@/components/marketplace/MarketplaceFilters'
 
-const FILTERS_ALL = '__all__'
+const PAGE_SIZE = 24
 
 const searchSchema = z.object({
   q: z
@@ -47,7 +50,31 @@ const searchSchema = z.object({
     .max(120)
     .transform((v) => (v.length === 0 ? undefined : v))
     .optional(),
-  expiry: z.enum(['expired', 'critical', 'expiring_soon', 'safe']).optional(),
+  form: z
+    .enum([
+      'tablet',
+      'capsule',
+      'syrup',
+      'suspension',
+      'injection',
+      'cream',
+      'ointment',
+      'drops',
+      'inhaler',
+      'patch',
+      'powder',
+      'sachet',
+      'other',
+    ])
+    .optional(),
+  type: z.enum(['donation', 'sale']).optional(),
+  expiry: z.enum(['critical', 'expiring_soon', 'safe']).optional(),
+  minQty: z.coerce.number().int().positive().max(1_000_000).optional(),
+  sort: z
+    .enum(['expiry_asc', 'newest', 'quantity_desc', 'location'])
+    .optional(),
+  view: z.enum(['cards', 'table']).optional(),
+  page: z.coerce.number().int().positive().optional(),
 })
 
 type SearchValues = z.infer<typeof searchSchema>
@@ -55,23 +82,22 @@ type SearchValues = z.infer<typeof searchSchema>
 export const Route = createFileRoute('/org/marketplace')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
-  beforeLoad: async ({ context }) => {
-    const session = (
-      context as {
-        session?: { primaryOrg?: { id: string } | null }
-      }
-    ).session
-    if (!session?.primaryOrg) {
-      throw redirect({ to: '/org' })
-    }
-    return { primaryOrgId: session.primaryOrg.id }
-  },
+  // Auth + admin/non-admin handling is done by the parent /org route
+  // (`src/routes/org.tsx`). The server fn additionally enforces verification
+  // and `can_request_medicine`, so we don't need a redirect here — admins
+  // without a primary org would otherwise be locked out by mistake.
   loader: ({ deps }) =>
     listMarketplaceListings({
       data: {
         medicineSearch: deps.q,
         city: deps.city,
+        medicineForm: deps.form,
+        listingType: deps.type,
         expiryWindow: deps.expiry,
+        minQuantity: deps.minQty,
+        sort: deps.sort ?? 'expiry_asc',
+        page: deps.page ?? 1,
+        pageSize: PAGE_SIZE,
       },
     }),
   pendingComponent: PageLoading,
@@ -81,37 +107,16 @@ export const Route = createFileRoute('/org/marketplace')({
   component: MarketplacePage,
 })
 
-type Row = {
-  listing: {
-    id: string
-    quantityAvailable: number
-    pricePerUnitCents: number | null
-    currency: string | null
-    pickupCity: string
-    pickupCountry: string
-    photoUrls: string[] | null
-    notes: string | null
-  }
-  batch: {
-    id: string
-    batchNumber: string
-    expiryDate: string
-    unit: string
-  }
-  medicine: {
-    id: string
-    name: string
-    strength: string
-    genericName: string | null
-    form: string
-  }
-  sellerOrg: { id: string; name: string; type: string }
-}
-
 function MarketplacePage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const search = Route.useSearch()
-  const data = Route.useLoaderData()
+  const data = Route.useLoaderData() as {
+    items: MarketplaceListingRow[]
+    total: number
+    page: number
+    pageSize: number
+    pageCount: number
+  }
   const { session } = Route.useRouteContext() as {
     session: {
       primaryOrg: {
@@ -124,15 +129,53 @@ function MarketplacePage() {
   const isVerified = session.primaryOrg?.verificationStatus === 'verified'
   const eligible = canRequest && isVerified
 
-  const items = (data.items ?? []) as unknown as Row[]
-  const hasFilters = !!(search.q || search.city || search.expiry)
+  const items = data.items ?? []
+  const view: 'cards' | 'table' = search.view ?? 'cards'
 
-  function setSearchKey<K extends keyof SearchValues>(
+  const filterValue: MarketplaceFiltersValue = {
+    q: search.q,
+    city: search.city,
+    form: search.form,
+    type: search.type,
+    expiry: search.expiry,
+    minQty: search.minQty,
+    sort: search.sort ?? 'expiry_asc',
+  }
+  const hasFilters = !!(
+    search.q ||
+    search.city ||
+    search.form ||
+    search.type ||
+    search.expiry ||
+    search.minQty ||
+    (search.sort && search.sort !== 'expiry_asc')
+  )
+
+  function setKey<K extends keyof SearchValues>(
     key: K,
-    value: SearchValues[K],
+    value: SearchValues[K] | undefined,
   ) {
     navigate({
-      search: (s) => ({ ...s, [key]: value || undefined }),
+      search: (s) => ({
+        ...s,
+        [key]: value === undefined || value === '' ? undefined : value,
+        // Any filter change resets pagination back to page 1.
+        page: undefined,
+      }),
+      replace: true,
+    })
+  }
+
+  function setView(v: 'cards' | 'table') {
+    navigate({
+      search: (s) => ({ ...s, view: v === 'cards' ? undefined : v }),
+      replace: true,
+    })
+  }
+
+  function setPage(p: number) {
+    navigate({
+      search: (s) => ({ ...s, page: p > 1 ? p : undefined }),
       replace: true,
     })
   }
@@ -140,18 +183,21 @@ function MarketplacePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Marketplace"
-        description={`${items.length} ${
-          items.length === 1 ? 'listing' : 'listings'
-        } available right now from verified sellers.`}
+        title="Discover medicine"
+        description={
+          isVerified && canRequest
+            ? `${data.total.toLocaleString()} approved ${
+                data.total === 1 ? 'listing' : 'listings'
+              } from verified sellers across the network.`
+            : 'Find sealed, in-date medicine offered by other verified organizations.'
+        }
       />
 
       {!isVerified && (
         <Card className="p-4 border-[var(--color-mm-warn)]">
           <p className="text-sm text-[var(--color-mm-muted)]">
-            Your organization is not yet verified. You can browse the
-            marketplace, but requests are blocked until verification is
-            approved.
+            Your organization is not yet verified. Discovery unlocks once an
+            admin approves your verification documents.
           </p>
         </Card>
       )}
@@ -164,12 +210,42 @@ function MarketplacePage() {
         </Card>
       )}
 
-      <FilterBar
-        search={search}
+      <MarketplaceFilters
+        value={filterValue}
         hasFilters={hasFilters}
-        onChange={setSearchKey}
-        onClear={() => navigate({ search: {}, replace: true })}
+        onChange={(key, value) => {
+          // Map MarketplaceFiltersValue keys → URL search keys.
+          if (key === 'q') setKey('q', value as string | undefined)
+          else if (key === 'city') setKey('city', value as string | undefined)
+          else if (key === 'form')
+            setKey('form', value as SearchValues['form'])
+          else if (key === 'type')
+            setKey('type', value as SearchValues['type'])
+          else if (key === 'expiry')
+            setKey('expiry', value as SearchValues['expiry'])
+          else if (key === 'minQty')
+            setKey('minQty', value as number | undefined)
+          else if (key === 'sort')
+            setKey('sort', value as SearchValues['sort'])
+        }}
+        onClear={() =>
+          navigate({
+            search: (s) => ({ view: s.view }),
+            replace: true,
+          })
+        }
       />
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-[var(--color-mm-subtle)]">
+          {data.total === 0
+            ? 'No listings to show'
+            : `Showing ${(data.page - 1) * data.pageSize + 1}–${
+                (data.page - 1) * data.pageSize + items.length
+              } of ${data.total.toLocaleString()}`}
+        </p>
+        <ViewToggle view={view} onChange={setView} />
+      </div>
 
       {items.length === 0 ? (
         <EmptyState
@@ -178,189 +254,274 @@ function MarketplacePage() {
           description={
             hasFilters
               ? 'Try widening your filters above to see more options.'
-              : 'Check back soon — new sealed, in-date stock is added regularly.'
+              : isVerified && canRequest
+                ? 'Check back soon — new sealed, in-date stock is added regularly.'
+                : 'Once your organization is verified and enabled to request medicine, approved listings will appear here.'
           }
           action={
             hasFilters ? (
               <Button
                 variant="secondary"
-                onClick={() => navigate({ search: {}, replace: true })}
+                onClick={() =>
+                  navigate({ search: (s) => ({ view: s.view }), replace: true })
+                }
               >
                 Clear filters
               </Button>
             ) : null
           }
         />
-      ) : (
+      ) : view === 'cards' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {items.map((row) => (
             <ListingCard key={row.listing.id} row={row} eligible={eligible} />
           ))}
         </div>
+      ) : (
+        <ListingTable items={items} />
+      )}
+
+      {data.pageCount > 1 && (
+        <Pagination
+          page={data.page}
+          pageCount={data.pageCount}
+          onPage={setPage}
+        />
       )}
     </div>
   )
 }
 
-function ListingCard({ row, eligible }: { row: Row; eligible: boolean }) {
-  const { listing, batch, medicine, sellerOrg } = row
-  const photo = Array.isArray(listing.photoUrls) ? listing.photoUrls[0] : undefined
-  return (
-    <Link
-      to="/org/marketplace/$listingId"
-      params={{ listingId: listing.id }}
-      className="block"
-    >
-      <Card className="photo-card overflow-hidden h-full flex flex-col">
-        {photo ? (
-          <div className="aspect-[4/3] bg-[var(--color-mm-canvas)] overflow-hidden border-b border-[var(--color-mm-line)]">
-            <img src={photo} alt="" className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="aspect-[4/3] bg-[var(--color-mm-canvas)] border-b border-[var(--color-mm-line)] flex items-center justify-center">
-            <Tags className="h-7 w-7 text-[var(--color-mm-subtle)]" />
-          </div>
-        )}
-        <div className="p-5 flex-1 flex flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold text-[var(--color-mm-ink)] leading-tight truncate">
-                {medicine.name}
-              </h3>
-              <div className="text-xs text-[var(--color-mm-subtle)] mt-0.5 truncate">
-                {medicine.strength}
-                {medicine.genericName ? ` · ${medicine.genericName}` : ''}
-              </div>
-            </div>
-            <PriceTag
-              cents={listing.pricePerUnitCents}
-              currency={listing.currency ?? 'USD'}
-              unit={batch.unit}
-            />
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-[var(--color-mm-subtle)]">
-            <MapPin className="h-3.5 w-3.5" />
-            {listing.pickupCity}, {listing.pickupCountry}
-          </div>
-          <div className="mt-2 text-xs text-[var(--color-mm-muted)] truncate">
-            {sellerOrg.name} ·{' '}
-            <span className="capitalize">
-              {sellerOrg.type.replace(/_/g, ' ')}
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm text-[var(--color-mm-ink)]">
-              {listing.quantityAvailable.toLocaleString()}{' '}
-              <span className="text-[var(--color-mm-subtle)] text-xs font-normal">
-                {batch.unit} available
-              </span>
-            </div>
-            <ExpiryStatusBadge expiryDate={batch.expiryDate} showDays />
-          </div>
-          <div className="mt-4 pt-3 border-t border-[var(--color-mm-line)] flex items-center justify-between">
-            <span className="text-xs text-[var(--color-mm-subtle)]">
-              Expires {format(new Date(batch.expiryDate), 'd MMM yyyy')}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-mm-accent)]">
-              {eligible ? 'Open' : 'View'}
-              <ChevronRight className="h-3.5 w-3.5" />
-            </span>
-          </div>
-        </div>
-      </Card>
-    </Link>
-  )
-}
-
-function PriceTag({
-  cents,
-  currency,
-  unit,
-}: {
-  cents: number | null
-  currency: string
-  unit: string
-}) {
-  if (cents === null) {
-    return (
-      <span className="text-xs font-semibold text-[var(--color-mm-ok)] bg-white border border-[var(--color-mm-ok)] squircle px-2 py-1 whitespace-nowrap">
-        Free
-      </span>
-    )
-  }
-  return (
-    <span className="text-sm font-semibold text-[var(--color-mm-ink)] whitespace-nowrap">
-      {(cents / 100).toFixed(2)}{' '}
-      <span className="text-[11px] text-[var(--color-mm-subtle)] font-normal">
-        {currency}/{unit}
-      </span>
-    </span>
-  )
-}
-
-function FilterBar({
-  search,
-  hasFilters,
+function ViewToggle({
+  view,
   onChange,
-  onClear,
 }: {
-  search: SearchValues
-  hasFilters: boolean
-  onChange: <K extends keyof SearchValues>(k: K, v: SearchValues[K]) => void
-  onClear: () => void
+  view: 'cards' | 'table'
+  onChange: (v: 'cards' | 'table') => void
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_auto] gap-3 items-start">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-mm-subtle)]" />
-        <Input
-          placeholder="Search medicine…"
-          defaultValue={search.q ?? ''}
-          onChange={(e) =>
-            onChange('q', e.target.value || (undefined as unknown as string))
-          }
-          className="pl-9"
-        />
-      </div>
-      <Input
-        placeholder="Pickup city…"
-        defaultValue={search.city ?? ''}
-        onChange={(e) =>
-          onChange('city', e.target.value || (undefined as unknown as string))
-        }
-      />
-      <Select
-        value={search.expiry ?? FILTERS_ALL}
-        onValueChange={(v) =>
-          onChange(
-            'expiry',
-            v === FILTERS_ALL
-              ? undefined
-              : (v as SearchValues['expiry']),
+    <div className="inline-flex border border-[var(--color-mm-line-strong)] squircle-sm overflow-hidden bg-white">
+      <button
+        type="button"
+        onClick={() => onChange('cards')}
+        className={cn(
+          'inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-colors',
+          view === 'cards'
+            ? 'bg-[var(--color-mm-ink)] text-white'
+            : 'text-[var(--color-mm-muted)] hover:bg-black/[0.04]',
+        )}
+        aria-pressed={view === 'cards'}
+      >
+        <LayoutGrid className="h-3.5 w-3.5" />
+        Cards
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('table')}
+        className={cn(
+          'inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-colors border-l border-[var(--color-mm-line-strong)]',
+          view === 'table'
+            ? 'bg-[var(--color-mm-ink)] text-white'
+            : 'text-[var(--color-mm-muted)] hover:bg-black/[0.04]',
+        )}
+        aria-pressed={view === 'table'}
+      >
+        <Rows3 className="h-3.5 w-3.5" />
+        Table
+      </button>
+    </div>
+  )
+}
+
+function ListingTable({ items }: { items: MarketplaceListingRow[] }) {
+  const columns = React.useMemo<ColumnDef<MarketplaceListingRow>[]>(
+    () => [
+      {
+        id: 'medicine',
+        header: 'Medicine',
+        cell: ({ row }) => (
+          <Link
+            to="/org/marketplace/$listingId"
+            params={{ listingId: row.original.listing.id }}
+            className="text-sm font-medium text-[var(--color-mm-ink)] hover:underline"
+          >
+            <div>{row.original.medicine.name}</div>
+            <div className="text-xs text-[var(--color-mm-subtle)] font-normal mt-0.5">
+              {row.original.medicine.strength} ·{' '}
+              <MedicineFormLabel form={row.original.medicine.form} />
+              {row.original.medicine.genericName
+                ? ` · ${row.original.medicine.genericName}`
+                : ''}
+            </div>
+          </Link>
+        ),
+      },
+      {
+        id: 'seller',
+        header: 'Seller',
+        cell: ({ row }) => (
+          <div className="text-sm text-[var(--color-mm-muted)]">
+            <div className="text-[var(--color-mm-ink)]">
+              {row.original.sellerOrg.name}
+            </div>
+            <div className="text-xs capitalize text-[var(--color-mm-subtle)]">
+              {row.original.sellerOrg.type.replace(/_/g, ' ')}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'quantity',
+        header: 'Available',
+        cell: ({ row }) => (
+          <span className="text-sm text-[var(--color-mm-ink)]">
+            {row.original.listing.quantityAvailable.toLocaleString()}
+            <span className="text-[var(--color-mm-subtle)] text-xs font-normal">
+              {' '}
+              {row.original.batch.unit}
+            </span>
+          </span>
+        ),
+      },
+      {
+        id: 'price',
+        header: 'Price',
+        cell: ({ row }) => (
+          <PriceTag
+            cents={row.original.listing.pricePerUnitCents}
+            currency={row.original.listing.currency ?? 'USD'}
+            unit={row.original.batch.unit}
+          />
+        ),
+      },
+      {
+        id: 'expiry',
+        header: 'Expiry',
+        cell: ({ row }) => {
+          const d = row.original.batch.expiryDate
+          return (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-[var(--color-mm-muted)]">
+                {format(new Date(d), 'd MMM yyyy')}
+              </span>
+              <ExpiryStatusBadge expiryDate={d} showDays />
+            </div>
           )
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Expiry" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={FILTERS_ALL}>Any expiry window</SelectItem>
-          {LISTING_EXPIRY_WINDOW_FILTERS.map((w) => (
-            <SelectItem key={w.value} value={w.value}>
-              {w.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        },
+      },
+      {
+        id: 'pickup',
+        header: 'Pickup',
+        cell: ({ row }) => (
+          <span className="text-sm text-[var(--color-mm-muted)]">
+            {row.original.listing.pickupCity},{' '}
+            {row.original.listing.pickupCountry}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <div className="text-right">
+            <Button asChild variant="secondary" size="sm">
+              <Link
+                to="/org/marketplace/$listingId"
+                params={{ listingId: row.original.listing.id }}
+              >
+                Open
+              </Link>
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  )
+
+  const table = useReactTable<MarketplaceListingRow>({
+    data: items,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            {table.getHeaderGroups().map((hg) => (
+              <tr
+                key={hg.id}
+                className="border-b border-[var(--color-mm-line)] bg-[var(--color-mm-canvas)]"
+              >
+                {hg.headers.map((h) => (
+                  <th
+                    key={h.id}
+                    className="text-left px-5 py-3 text-[11px] uppercase tracking-wide text-[var(--color-mm-subtle)] font-medium"
+                  >
+                    {h.isPlaceholder
+                      ? null
+                      : flexRender(
+                          h.column.columnDef.header,
+                          h.getContext(),
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className="border-b border-[var(--color-mm-line)] last:border-b-0"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-5 py-4 align-top">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )
+}
+
+function Pagination({
+  page,
+  pageCount,
+  onPage,
+}: {
+  page: number
+  pageCount: number
+  onPage: (p: number) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--color-mm-line)]">
       <Button
-        variant="ghost"
+        variant="secondary"
         size="sm"
-        onClick={onClear}
-        disabled={!hasFilters}
-        className="self-center"
+        onClick={() => onPage(page - 1)}
+        disabled={page <= 1}
       >
-        <X className="h-4 w-4" />
-        Clear
+        <ChevronLeft className="h-3.5 w-3.5" />
+        Previous
+      </Button>
+      <span className="text-xs text-[var(--color-mm-subtle)]">
+        Page {page} of {pageCount}
+      </span>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onPage(page + 1)}
+        disabled={page >= pageCount}
+      >
+        Next
+        <ChevronRight className="h-3.5 w-3.5" />
       </Button>
     </div>
   )

@@ -689,6 +689,23 @@ export const adminListAllListings = createServerFn({
   })
 
 /**
+ * Shared empty-page shape so the unauthorized branch and the
+ * authorized-but-no-results branch can never disagree on metadata.
+ *
+ * Empty-result contract: total = 0 ⇒ pageCount = 0, page = 1.
+ */
+function emptyMarketplacePage(pageSize: number) {
+  return {
+    ok: true as const,
+    items: [] as never[],
+    total: 0,
+    page: 1,
+    pageSize,
+    pageCount: 0,
+  }
+}
+
+/**
  * Buyer-side marketplace browse. Returns active listings with positive
  * available quantity, in-date batches, joined with medicine + sellerOrg.
  *
@@ -709,45 +726,146 @@ export const listMarketplaceListings = createServerFn({
       const ctx = await getRequestContext()
       const user = requireAuth(ctx)
 
+      // Permission gate. Only admins, OR members of a verified org with
+      // can_request_medicine, may discover approved listings. Browse-while-
+      // unverified is intentionally allowed to surface upsell banners — those
+      // callers get an empty list (never the seller-side data) so the UI can
+      // explain what's missing without leaking inventory.
       let excludeOrgId: string | null = null
-      if (!isAdminRole(user.role)) {
-        if (!ctx.primaryOrg) {
-          return { ok: true as const, items: [], total: 0 }
-        }
+      let canBrowse = false
+      if (isAdminRole(user.role)) {
+        canBrowse = true
+      } else if (ctx.primaryOrg) {
         excludeOrgId = ctx.primaryOrg.id
+        canBrowse =
+          ctx.primaryOrg.verificationStatus === 'verified' &&
+          ctx.primaryOrg.canRequestMedicine === true
+      }
+      if (!canBrowse) {
+        return emptyMarketplacePage(data.pageSize)
       }
 
+      const search = data.medicineSearch?.trim()
+      const searchLike = search ? `%${search}%` : null
+
       const where = and(
+        // Lifecycle
         eq(listings.status, 'active'),
         sql`${listings.quantityAvailable} > 0`,
+        // Batch safety: must still be in-date, sealed, and not need cold chain
         sql`${inventoryBatches.expiryDate} > CURRENT_DATE`,
+        eq(inventoryBatches.sealedStatus, 'sealed'),
+        ne(inventoryBatches.storageType, 'refrigerated'),
+        // Medicine safety: catalog must be active, not controlled, not cold-chain
+        eq(medicines.isActive, true),
+        eq(medicines.isControlled, false),
+        eq(medicines.requiresColdChain, false),
+        // Org boundary: never see your own org's listings
         excludeOrgId ? ne(listings.sellerOrgId, excludeOrgId) : undefined,
-        data.medicineSearch
+        // Filters
+        searchLike
           ? or(
-              ilike(medicines.name, `%${data.medicineSearch}%`),
-              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+              ilike(medicines.name, searchLike),
+              ilike(medicines.genericName, searchLike),
+              ilike(medicines.strength, searchLike),
+              ilike(medicines.manufacturer, searchLike),
+              ilike(inventoryBatches.batchNumber, searchLike),
             )
           : undefined,
         data.city ? ilike(listings.pickupCity, `%${data.city}%`) : undefined,
+        data.medicineForm ? eq(medicines.form, data.medicineForm) : undefined,
+        data.listingType ? listingTypeFilter(data.listingType) : undefined,
         data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
+        data.minQuantity
+          ? sql`${listings.quantityAvailable} >= ${data.minQuantity}`
+          : undefined,
       )
 
-      const rows = await db
-        .select({
-          listing: listings,
-          batch: inventoryBatches,
-          medicine: medicines,
-          sellerOrg: organizations,
-        })
+      // Tie-breaker on `listings.id` makes every sort fully deterministic so
+      // pagination doesn't shuffle rows between page loads.
+      const idTieBreaker = asc(listings.id)
+      const orderBy = (() => {
+        switch (data.sort) {
+          case 'newest':
+            // approvedAt may be NULL on legacy rows; push those to the back
+            // so freshly approved listings always lead.
+            return [
+              sql`${listings.approvedAt} DESC NULLS LAST`,
+              desc(listings.createdAt),
+              idTieBreaker,
+            ]
+          case 'quantity_desc':
+            return [
+              desc(listings.quantityAvailable),
+              asc(inventoryBatches.expiryDate),
+              idTieBreaker,
+            ]
+          case 'location':
+            // Placeholder until we add geocoding — alphabetic city sort.
+            return [
+              asc(listings.pickupCity),
+              asc(inventoryBatches.expiryDate),
+              idTieBreaker,
+            ]
+          case 'expiry_asc':
+          default:
+            return [asc(inventoryBatches.expiryDate), idTieBreaker]
+        }
+      })()
+
+      // Run the count first so we can clamp out-of-range `page` values
+      // (e.g. "?page=50" after filters narrowed the result to a single page).
+      // Without clamping the UI would render an empty page and a misleading
+      // "Showing 1201–1200 of 24" range.
+      const totalRow = await db
+        .select({ count: sql<number>`count(*)::int` })
         .from(listings)
         .innerJoin(inventoryBatches, eq(inventoryBatches.id, listings.batchId))
         .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
-        .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
         .where(where)
-        .orderBy(asc(inventoryBatches.expiryDate))
-        .limit(data.limit)
 
-      return { ok: true as const, items: rows, total: rows.length }
+      const total = totalRow[0]?.count ?? 0
+      const pageCount =
+        total === 0 ? 0 : Math.ceil(total / data.pageSize)
+      const safePage = pageCount === 0 ? 1 : Math.min(data.page, pageCount)
+      const offset = (safePage - 1) * data.pageSize
+
+      const rows =
+        total === 0
+          ? []
+          : await db
+              .select({
+                listing: listings,
+                batch: inventoryBatches,
+                medicine: medicines,
+                sellerOrg: organizations,
+              })
+              .from(listings)
+              .innerJoin(
+                inventoryBatches,
+                eq(inventoryBatches.id, listings.batchId),
+              )
+              .innerJoin(
+                medicines,
+                eq(medicines.id, inventoryBatches.medicineId),
+              )
+              .innerJoin(
+                organizations,
+                eq(organizations.id, listings.sellerOrgId),
+              )
+              .where(where)
+              .orderBy(...orderBy)
+              .limit(data.pageSize)
+              .offset(offset)
+
+      return {
+        ok: true as const,
+        items: rows,
+        total,
+        page: safePage,
+        pageSize: data.pageSize,
+        pageCount,
+      }
     } catch (e) {
       throw toClientError(e)
     }
