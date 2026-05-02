@@ -1,11 +1,10 @@
 /**
- * DEV-ONLY: Hard-coded list of seeded test accounts surfaced by the
- * sign-in page's "Test accounts" picker.
+ * Hard-coded list of seeded test accounts surfaced by the sign-in
+ * page's "Test accounts" picker.
  *
- * Must stay in sync with `scripts/seed.ts`. Imported only from the
- * sign-in page, which itself only renders the picker when
- * `import.meta.env.DEV === true` — Vite tree-shakes this module out
- * of production bundles entirely.
+ * Must stay in sync with `scripts/seed.ts`. The picker is currently
+ * left enabled in production (buildathon demo) — see `SHOW_TEST_PICKER`
+ * in `src/routes/sign-in.tsx`.
  */
 export type TestAccount = {
   email: string

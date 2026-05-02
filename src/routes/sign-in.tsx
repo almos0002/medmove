@@ -27,10 +27,11 @@ export const Route = createFileRoute('/sign-in')({
   component: SignInPage,
 })
 
-// Vite replaces `import.meta.env.DEV` with a literal at build time, so the
-// picker (and the `TEST_ACCOUNTS` import above) are tree-shaken out of
-// production bundles entirely.
-const SHOW_TEST_PICKER = import.meta.env.DEV
+// Buildathon mode: keep the test-accounts picker visible in production so
+// judges/reviewers can sign in with seeded credentials without typing them.
+// Flip back to `import.meta.env.DEV` once the project is no longer being
+// demoed publicly.
+const SHOW_TEST_PICKER = true
 
 function SignInPage() {
   const siteName = useSiteName()
