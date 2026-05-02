@@ -29,6 +29,20 @@ export const TEST_ACCOUNTS: TestAccount[] = [
     orgLabel: 'Platform',
   },
   {
+    email: 'org1-owner@medmove.dev',
+    password: 'Org1OwnerPass123!',
+    name: 'Olivia Org One Owner',
+    role: 'org_owner',
+    orgLabel: 'SwiftMove Logistics (verified)',
+  },
+  {
+    email: 'org2-owner@medmove.dev',
+    password: 'Org2OwnerPass123!',
+    name: 'Oscar Org Two Owner',
+    role: 'org_owner',
+    orgLabel: 'NorthStar Delivery (verified)',
+  },
+  {
     email: 'logistics1@medmove.dev',
     password: 'Logistics1Pass123!',
     name: 'Liam Logistics One',

@@ -1,13 +1,17 @@
 /**
  * MedMove dev seed — minimal.
  *
- * Wipes every domain + auth row and creates only:
+ * Wipes every domain + auth row and creates exactly 5 accounts:
  *   • 1 super_admin user
- *   • 2 verified organizations of type "logistics_partner" (delivery)
- *   • 2 logistics_staff users — one assigned to each org
+ *   • 2 org_owner users (one per organization)
+ *   • 2 logistics_staff users (one per organization)
+ *
+ * Plus 2 verified organizations of type "logistics_partner" (delivery):
+ *   • SwiftMove Logistics — owned by org_owner #1, staffed by logistics #1
+ *   • NorthStar Delivery — owned by org_owner #2, staffed by logistics #2
  *
  * No catalog, listings, transfers, deliveries, notifications, or audit
- * rows are created — this is a clean slate for hand-testing flows.
+ * rows are created — clean slate for hand-testing flows.
  *
  * Run:  npm run db:seed
  */
@@ -169,7 +173,7 @@ async function resetDatabase() {
 }
 
 async function main() {
-  console.log('Seeding MedMove (minimal)…')
+  console.log('Seeding MedMove (minimal — 5 accounts)…')
   console.log('Resetting all domain + auth tables…')
   await resetDatabase()
 
@@ -179,6 +183,18 @@ async function main() {
     password: 'SuperAdminPass123!',
     name: 'MedMove Super Admin',
     role: ROLES.SUPER_ADMIN,
+  })
+  const orgOwnerA = await ensureUser({
+    email: 'org1-owner@medmove.dev',
+    password: 'Org1OwnerPass123!',
+    name: 'Olivia Org One Owner',
+    role: ROLES.ORG_OWNER,
+  })
+  const orgOwnerB = await ensureUser({
+    email: 'org2-owner@medmove.dev',
+    password: 'Org2OwnerPass123!',
+    name: 'Oscar Org Two Owner',
+    role: ROLES.ORG_OWNER,
   })
   const logisticsStaffA = await ensureUser({
     email: 'logistics1@medmove.dev',
@@ -192,7 +208,7 @@ async function main() {
     name: 'Lena Logistics Two',
     role: ROLES.LOGISTICS_STAFF,
   })
-  console.log('Users ready (1 super admin + 2 logistics staff).')
+  console.log('Users ready (1 super admin + 2 org owners + 2 logistics).')
 
   // ─── Organisations (delivery / logistics_partner) ─────────────────────
   const orgA = await ensureOrg({
@@ -203,7 +219,7 @@ async function main() {
     contactPhone: '+1-555-0300',
     city: 'Boston',
     country: 'USA',
-    ownerUserId: superAdminUser.id,
+    ownerUserId: orgOwnerA.id,
   })
   const orgB = await ensureOrg({
     name: 'NorthStar Delivery',
@@ -213,7 +229,7 @@ async function main() {
     contactPhone: '+1-555-0400',
     city: 'New York',
     country: 'USA',
-    ownerUserId: superAdminUser.id,
+    ownerUserId: orgOwnerB.id,
   })
 
   // Each logistics staff joins one org as a member.
@@ -221,11 +237,20 @@ async function main() {
   await ensureMembership(orgB.id, logisticsStaffB.id, 'member')
   console.log(`Organisations ready: ${orgA.name}, ${orgB.name}`)
 
+  // Reference no-op to silence unused-var lint on superAdminUser.
+  void superAdminUser
+
   // ─── Summary ──────────────────────────────────────────────────────────
   console.log('\nDone.\n')
-  console.log('Login credentials:')
+  console.log('Login credentials (5 accounts):')
   console.log(
     '  super_admin:   super-admin@medmove.dev  / SuperAdminPass123!',
+  )
+  console.log(
+    '  org owner #1:  org1-owner@medmove.dev   / Org1OwnerPass123!  (SwiftMove Logistics)',
+  )
+  console.log(
+    '  org owner #2:  org2-owner@medmove.dev   / Org2OwnerPass123!  (NorthStar Delivery)',
   )
   console.log(
     '  logistics #1:  logistics1@medmove.dev   / Logistics1Pass123!  (SwiftMove Logistics)',
