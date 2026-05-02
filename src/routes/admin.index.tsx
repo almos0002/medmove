@@ -95,7 +95,7 @@ function AdminHome() {
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           icon={ShieldCheck}
           label="Pending orgs"
@@ -118,6 +118,15 @@ function AdminHome() {
           value={metrics.transfers.pending}
           tone={metrics.transfers.pending > 0 ? 'warn' : 'neutral'}
           to="/admin/requests"
+        />
+        <MetricCard
+          icon={Truck}
+          label="Awaiting delivery setup"
+          value={metrics.transfers.awaitingDelivery}
+          tone={metrics.transfers.awaitingDelivery > 0 ? 'warn' : 'neutral'}
+          to="/admin/requests"
+          search={{ status: 'accepted' }}
+          hint="Seller accepted — create delivery"
         />
         <MetricCard
           icon={AlertTriangle}

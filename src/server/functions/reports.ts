@@ -48,6 +48,7 @@ export const getAdminReportMetrics = createServerFn({
       pendingListings,
       pendingTransfers,
       inFlightTransfers,
+      awaitingDeliveryTransfers,
       completedTransfers,
       failedDeliveries,
       rescuedAndValue,
@@ -116,6 +117,12 @@ export const getAdminReportMetrics = createServerFn({
         db
           .select({ value: sql<number>`count(*)::int` })
           .from(transferRequests)
+          .where(eq(transferRequests.status, 'accepted')),
+      ),
+      countWhere(
+        db
+          .select({ value: sql<number>`count(*)::int` })
+          .from(transferRequests)
           .where(eq(transferRequests.status, 'completed')),
       ),
       countWhere(
@@ -172,6 +179,7 @@ export const getAdminReportMetrics = createServerFn({
       transfers: {
         pending: pendingTransfers,
         inFlight: inFlightTransfers,
+        awaitingDelivery: awaitingDeliveryTransfers,
         completed: completedTransfers,
       },
       deliveries: {
