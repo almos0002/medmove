@@ -18,7 +18,7 @@
  *
  * Run:  npm run db:seed
  */
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { db } from '../src/lib/db'
 import { auth } from '../src/lib/auth'
 import { user } from '../src/lib/auth-schema'
@@ -33,6 +33,38 @@ import {
   notifications,
   auditLogs,
 } from '../src/lib/schema'
+
+/**
+ * Per-medicine listing photos. Stable, public picsum.photos URLs keyed
+ * by a deterministic seed slug so each medicine card is visually
+ * distinct across re-seeds. Out of scope: real object-storage uploads.
+ */
+const PHOTO_URLS: Record<string, string[]> = {
+  paracetamol: [
+    'https://picsum.photos/seed/medmove-paracetamol-1/960/720',
+    'https://picsum.photos/seed/medmove-paracetamol-2/960/720',
+  ],
+  ibuprofen: [
+    'https://picsum.photos/seed/medmove-ibuprofen-1/960/720',
+    'https://picsum.photos/seed/medmove-ibuprofen-2/960/720',
+  ],
+  amoxicillin: [
+    'https://picsum.photos/seed/medmove-amoxicillin-1/960/720',
+    'https://picsum.photos/seed/medmove-amoxicillin-2/960/720',
+  ],
+  omeprazole: [
+    'https://picsum.photos/seed/medmove-omeprazole-1/960/720',
+    'https://picsum.photos/seed/medmove-omeprazole-2/960/720',
+  ],
+  metformin: [
+    'https://picsum.photos/seed/medmove-metformin-1/960/720',
+    'https://picsum.photos/seed/medmove-metformin-2/960/720',
+  ],
+  cetirizine: [
+    'https://picsum.photos/seed/medmove-cetirizine-1/960/720',
+    'https://picsum.photos/seed/medmove-cetirizine-2/960/720',
+  ],
+}
 import {
   ROLES,
   defaultCapabilitiesForType,
@@ -273,13 +305,24 @@ async function ensureListing(args: {
   createdByUserId: string
   approvedByUserId?: string
   notes?: string
+  photoUrls?: string[]
 }) {
   const existing = await db
     .select()
     .from(listings)
     .where(eq(listings.batchId, args.batchId))
     .limit(1)
-  if (existing[0]) return existing[0]
+  if (existing[0]) {
+    // Re-stamp photoUrls on every run so reseeds backfill demo images.
+    if (args.photoUrls && args.photoUrls.length > 0) {
+      await db
+        .update(listings)
+        .set({ photoUrls: args.photoUrls })
+        .where(eq(listings.id, existing[0].id))
+      return { ...existing[0], photoUrls: args.photoUrls }
+    }
+    return existing[0]
+  }
   const [row] = await db
     .insert(listings)
     .values({
@@ -287,7 +330,7 @@ async function ensureListing(args: {
       sellerOrgId: args.sellerOrgId,
       quantityListed: args.quantity,
       quantityAvailable: args.quantity,
-      photoUrls: [],
+      photoUrls: args.photoUrls ?? [],
       pickupCity: args.pickupCity,
       pickupCountry: args.pickupCountry,
       status: args.status,
@@ -460,8 +503,44 @@ async function ensureAuditDemo(args: {
   })
 }
 
+/**
+ * Wipe every domain row plus every Better Auth row so the seed is a
+ * true reset. FK-safe via TRUNCATE … CASCADE in a single statement —
+ * order of names doesn't matter, but we list them explicitly so
+ * reviewers see what gets wiped.
+ *
+ * Nothing is preserved across runs: the seed deterministically
+ * recreates the bootstrap super_admin / admin / per-org owners on
+ * every run, and Better Auth re-creates session + account rows when
+ * those users sign in next.
+ */
+async function resetDatabase() {
+  await db.execute(sql`
+    TRUNCATE TABLE
+      "notifications",
+      "audit_logs",
+      "deliveries",
+      "transfer_requests",
+      "listings",
+      "inventory_batches",
+      "medicines",
+      "organization_documents",
+      "organization_members",
+      "organizations",
+      "user_notification_preferences",
+      "platform_settings",
+      "session",
+      "account",
+      "verification",
+      "user"
+    RESTART IDENTITY CASCADE
+  `)
+}
+
 async function main() {
   console.log('Seeding MedMove…')
+  console.log('Resetting all domain + auth tables…')
+  await resetDatabase()
 
   // ─── Users ────────────────────────────────────────────────────────────
   const superAdminUser = await ensureUser({
@@ -713,6 +792,7 @@ async function main() {
     createdByUserId: pharmacyOwner.id,
     approvedByUserId: adminUser.id,
     notes: 'Approved demo listing — paracetamol surplus.',
+    photoUrls: PHOTO_URLS.paracetamol,
   })
   const _listingB = await ensureListing({
     batchId: batchB.id,
@@ -723,6 +803,7 @@ async function main() {
     status: 'pending_admin',
     createdByUserId: pharmacyOwner.id,
     notes: 'Awaiting admin review — ibuprofen surplus.',
+    photoUrls: PHOTO_URLS.ibuprofen,
   })
   const listingC = await ensureListing({
     batchId: batchC.id,
@@ -734,6 +815,7 @@ async function main() {
     createdByUserId: pharmacy2Owner.id,
     approvedByUserId: adminUser.id,
     notes: 'Approved demo listing — amoxicillin.',
+    photoUrls: PHOTO_URLS.amoxicillin,
   })
   const _listingD = await ensureListing({
     batchId: batchD.id,
@@ -744,6 +826,7 @@ async function main() {
     status: 'pending_admin',
     createdByUserId: pharmacy2Owner.id,
     notes: 'Awaiting admin review — omeprazole.',
+    photoUrls: PHOTO_URLS.omeprazole,
   })
   const listingE = await ensureListing({
     batchId: batchE.id,
@@ -755,6 +838,7 @@ async function main() {
     createdByUserId: hospitalOwner.id,
     approvedByUserId: adminUser.id,
     notes: 'Approved demo listing — metformin from hospital surplus.',
+    photoUrls: PHOTO_URLS.metformin,
   })
   const _listingF = await ensureListing({
     batchId: batchF.id,
@@ -766,6 +850,7 @@ async function main() {
     createdByUserId: hospitalOwner.id,
     approvedByUserId: adminUser.id,
     notes: 'Approved demo listing — cetirizine.',
+    photoUrls: PHOTO_URLS.cetirizine,
   })
   // batchG (clinic) is intentionally NOT listed — clinics typically request,
   // not list. It seeds inventory so the clinic can show "On hand" data.

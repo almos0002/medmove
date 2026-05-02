@@ -39,7 +39,12 @@ import { NotificationBell } from '@/components/notifications/NotificationBell'
 export type ShellSection = 'app' | 'admin' | 'logistics'
 
 type SessionShape = {
-  user: { id: string; email: string; role: AppRole } | null
+  user: {
+    id: string
+    email: string
+    role: AppRole
+    name?: string | null
+  } | null
   primaryOrg: {
     id: string
     type: string
@@ -131,12 +136,17 @@ export function AppShell({
         : APP_NAV
   const filtered = navItems.filter((n) => n.show?.(session) ?? true)
 
+  const handleSignOut = React.useCallback(async () => {
+    await signOut()
+    navigate({ to: '/sign-in', search: {} })
+  }, [navigate])
+
   return (
     <div className="min-h-screen flex bg-white">
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--color-mm-line)] bg-white">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--color-mm-line)] bg-white sticky top-0 h-screen">
         <Link
           to="/"
-          className="px-5 py-5 flex items-center gap-2.5 border-b border-[var(--color-mm-line)]"
+          className="px-5 py-5 flex items-center gap-2.5 border-b border-[var(--color-mm-line)] shrink-0"
         >
           <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-accent)] text-white squircle-sm">
             <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
@@ -151,7 +161,7 @@ export function AppShell({
           </div>
         </Link>
 
-        <nav className="px-3 py-4 flex-1 app-scroll overflow-y-auto">
+        <nav className="px-3 py-4 flex-1 app-scroll overflow-y-auto min-h-0">
           <ul className="space-y-1">
             {filtered.map((item) => {
               const Icon = item.icon
@@ -183,8 +193,8 @@ export function AppShell({
           </ul>
         </nav>
 
-        <div className="border-t border-[var(--color-mm-line)] p-3">
-          <UserCard session={session} />
+        <div className="border-t border-[var(--color-mm-line)] p-3 shrink-0">
+          <SidebarUserCard session={session} onSignOut={handleSignOut} />
         </div>
       </aside>
 
@@ -192,12 +202,9 @@ export function AppShell({
         <TopBar
           section={section}
           session={session}
-          onSignOut={async () => {
-            await signOut()
-            navigate({ to: '/sign-in', search: {} })
-          }}
+          onSignOut={handleSignOut}
         />
-        <main className="flex-1 px-5 sm:px-8 py-8 max-w-6xl w-full mx-auto">
+        <main className="flex-1 px-5 sm:px-8 py-8 w-full">
           {children}
         </main>
       </div>
@@ -250,6 +257,41 @@ function TopBar({
   )
 }
 
+/** Items shown in both the sidebar dropdown and the top-bar dropdown so
+ *  the two surfaces stay in lock-step. */
+function UserMenuItems({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <>
+      <DropdownMenuItem asChild>
+        <Link to="/profile" className="flex items-center gap-2">
+          <UserIcon className="h-4 w-4" strokeWidth={1.6} />
+          Profile
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link to="/account" className="flex items-center gap-2">
+          <KeyRound className="h-4 w-4" strokeWidth={1.6} />
+          Account & security
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link to="/account/notifications" className="flex items-center gap-2">
+          <Bell className="h-4 w-4" strokeWidth={1.6} />
+          Notification preferences
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onSelect={onSignOut}
+        className="text-[var(--color-mm-bad)]"
+      >
+        <LogOut className="h-4 w-4" strokeWidth={1.6} />
+        Sign out
+      </DropdownMenuItem>
+    </>
+  )
+}
+
 function UserMenu({
   user,
   onSignOut,
@@ -276,7 +318,18 @@ function UserMenu({
       <DropdownMenuContent align="end" className="min-w-[220px]">
         <DropdownMenuLabel>
           <div className="space-y-0.5">
-            <div className="text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
+            {user.name && (
+              <div className="text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
+                {user.name}
+              </div>
+            )}
+            <div
+              className={cn(
+                user.name
+                  ? 'text-[12px] text-[var(--color-mm-subtle)] truncate'
+                  : 'text-[13px] font-medium text-[var(--color-mm-ink)] truncate',
+              )}
+            >
               {user.email}
             </div>
             <div className="text-[11.5px] text-[var(--color-mm-subtle)] capitalize">
@@ -285,50 +338,71 @@ function UserMenu({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center gap-2">
-            <UserIcon className="h-4 w-4" strokeWidth={1.6} />
-            Profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/account" className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4" strokeWidth={1.6} />
-            Account & security
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/account/notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" strokeWidth={1.6} />
-            Notification preferences
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onSignOut} className="text-[var(--color-mm-bad)]">
-          <LogOut className="h-4 w-4" strokeWidth={1.6} />
-          Sign out
-        </DropdownMenuItem>
+        <UserMenuItems onSignOut={onSignOut} />
       </DropdownMenuContent>
     </DropdownMenu>
   )
 }
 
-function UserCard({ session }: { session: SessionShape }) {
+/** Pinned profile block at the bottom of the sidebar. Click opens the
+ *  same menu the top-bar avatar exposes so the two surfaces are in
+ *  lock-step (Profile / Account / Notifications / Sign out). */
+function SidebarUserCard({
+  session,
+  onSignOut,
+}: {
+  session: SessionShape
+  onSignOut: () => void
+}) {
   const u = session.user
   if (!u) return null
+  const displayName = u.name || u.email
   return (
-    <div className="flex items-center gap-3 p-2">
-      <div className="h-9 w-9 squircle-xs bg-[var(--color-mm-accent)] text-white inline-flex items-center justify-center text-[13px] font-semibold">
-        {(u.email[0] ?? 'U').toUpperCase()}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
-          {u.email}
-        </div>
-        <div className="text-[11.5px] text-[var(--color-mm-subtle)] mt-0.5 capitalize">
-          {u.role.replace(/_/g, ' ')}
-        </div>
-      </div>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 p-2 squircle-sm border border-transparent hover:border-[var(--color-mm-line-strong)] hover:bg-black/[0.03] focus-ring text-left transition-colors"
+          aria-label="Account menu"
+        >
+          <span className="h-9 w-9 squircle-xs bg-[var(--color-mm-accent)] text-white inline-flex items-center justify-center text-[13px] font-semibold shrink-0">
+            {(displayName[0] ?? 'U').toUpperCase()}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
+              {displayName}
+            </span>
+            <span className="block text-[11.5px] text-[var(--color-mm-subtle)] mt-0.5 capitalize truncate">
+              {u.role.replace(/_/g, ' ')}
+            </span>
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-[var(--color-mm-subtle)] shrink-0" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        side="top"
+        sideOffset={8}
+        className="min-w-[240px]"
+      >
+        <DropdownMenuLabel>
+          <div className="space-y-0.5">
+            <div className="text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
+              {displayName}
+            </div>
+            {u.name && (
+              <div className="text-[12px] text-[var(--color-mm-subtle)] truncate">
+                {u.email}
+              </div>
+            )}
+            <div className="text-[11.5px] text-[var(--color-mm-subtle)] capitalize">
+              {u.role.replace(/_/g, ' ')}
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <UserMenuItems onSignOut={onSignOut} />
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -90,7 +90,7 @@ function AdminListingDetailPage() {
   const isPending = status === 'pending_admin'
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3">
           <Link to="/admin/listings">
@@ -112,6 +112,27 @@ function AdminListingDetailPage() {
           actions={<ListingStatusBadge status={status} />}
         />
       </div>
+
+      {Array.isArray(listing.photoUrls) && listing.photoUrls.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {(listing.photoUrls as string[]).slice(0, 8).map((url) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="aspect-square overflow-hidden squircle-md border border-[var(--color-mm-line-strong)] block bg-[var(--color-mm-canvas)] photo-card"
+            >
+              <img
+                src={url}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      )}
 
       {!isPending && status !== 'rejected' && (
         <Card className="p-4 border-[var(--color-mm-line-strong)]">
@@ -247,43 +268,19 @@ function AdminListingDetailPage() {
         </div>
       </Card>
 
-      {(listing.notes ||
-        (Array.isArray(listing.photoUrls) && listing.photoUrls.length > 0)) && (
+      {listing.notes && (
         <Card className="p-6 space-y-4">
           <h2 className="font-display text-[18px] text-[var(--color-mm-ink)]">
             Listing details
           </h2>
-          {listing.notes && (
-            <Row
-              label="Notes"
-              value={
-                <p className="whitespace-pre-wrap text-[var(--color-mm-muted)]">
-                  {listing.notes}
-                </p>
-              }
-            />
-          )}
-          {Array.isArray(listing.photoUrls) && listing.photoUrls.length > 0 && (
-            <Row
-              label="Photo URLs"
-              value={
-                <ul className="space-y-1">
-                  {(listing.photoUrls as string[]).map((url) => (
-                    <li key={url}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm text-[var(--color-mm-accent)] hover:underline break-all"
-                      >
-                        {url}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              }
-            />
-          )}
+          <Row
+            label="Notes"
+            value={
+              <p className="whitespace-pre-wrap text-[var(--color-mm-muted)]">
+                {listing.notes}
+              </p>
+            }
+          />
         </Card>
       )}
 

@@ -1,10 +1,21 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ShieldCheck, FlaskConical } from 'lucide-react'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  TEST_ACCOUNTS,
+  formatRoleLabel,
+} from '@/lib/dev/test-accounts'
 
 export const Route = createFileRoute('/sign-in')({
   validateSearch: (s: Record<string, unknown>): { redirect?: string } => {
@@ -15,6 +26,11 @@ export const Route = createFileRoute('/sign-in')({
   component: SignInPage,
 })
 
+// Vite replaces `import.meta.env.DEV` with a literal at build time, so the
+// picker (and the `TEST_ACCOUNTS` import above) are tree-shaken out of
+// production bundles entirely.
+const SHOW_TEST_PICKER = import.meta.env.DEV
+
 function SignInPage() {
   const navigate = useNavigate()
   const search = Route.useSearch()
@@ -22,6 +38,7 @@ function SignInPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [pickerValue, setPickerValue] = useState<string>('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,6 +51,15 @@ function SignInPage() {
       return
     }
     navigate({ to: search.redirect ?? '/dashboard' })
+  }
+
+  function handlePickAccount(emailValue: string) {
+    const account = TEST_ACCOUNTS.find((a) => a.email === emailValue)
+    if (!account) return
+    setPickerValue(emailValue)
+    setEmail(account.email)
+    setPassword(account.password)
+    setError(null)
   }
 
   return (
@@ -72,6 +98,41 @@ function SignInPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-[var(--color-mm-line-strong)] squircle-md p-6 sm:p-8 space-y-5"
           >
+            {SHOW_TEST_PICKER && (
+              <div className="space-y-1.5 -mx-2 -mt-2 p-3 squircle-sm bg-[var(--color-mm-canvas)] border border-dashed border-[var(--color-mm-line-strong)]">
+                <Label className="flex items-center gap-1.5 text-[12px] text-[var(--color-mm-subtle)]">
+                  <FlaskConical className="h-3.5 w-3.5" />
+                  Dev only · Test accounts
+                </Label>
+                <Select
+                  value={pickerValue}
+                  onValueChange={handlePickAccount}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Pick a seeded account…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEST_ACCOUNTS.map((a) => (
+                      <SelectItem key={a.email} value={a.email}>
+                        <span className="flex flex-col gap-0.5 py-0.5">
+                          <span className="text-[13px] font-medium text-[var(--color-mm-ink)]">
+                            {a.name}
+                          </span>
+                          <span className="text-[11.5px] text-[var(--color-mm-subtle)]">
+                            {formatRoleLabel(a.role)} · {a.orgLabel}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11.5px] text-[var(--color-mm-subtle)]">
+                  Fills email + password from <code>scripts/seed.ts</code>.
+                  Hidden in production builds.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input

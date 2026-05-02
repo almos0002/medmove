@@ -167,7 +167,7 @@ function AdminRequestDetailPage() {
       : null
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3">
           <Link to="/admin/requests">

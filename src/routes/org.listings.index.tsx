@@ -105,6 +105,7 @@ type Row = {
     pickupCountry: string
     submittedAt: Date | string | null
     updatedAt: Date | string
+    photoUrls: string[] | null
   }
   batch: {
     id: string
@@ -141,6 +142,16 @@ function OrgListingsPage() {
 
   const columns = React.useMemo<ColumnDef<Row>[]>(
     () => [
+      {
+        id: 'photo',
+        header: '',
+        cell: ({ row }) => (
+          <ListingThumb
+            url={row.original.listing.photoUrls?.[0] ?? null}
+            alt={row.original.medicine.name}
+          />
+        ),
+      },
       {
         id: 'medicine',
         header: 'Medicine',
@@ -377,6 +388,38 @@ function OrgListingsPage() {
           </div>
         </Card>
       )}
+    </div>
+  )
+}
+
+function ListingThumb({
+  url,
+  alt,
+}: {
+  url: string | null
+  alt: string
+}) {
+  if (!url) {
+    return (
+      <div
+        className="h-14 w-14 squircle-xs bg-[var(--color-mm-canvas)] border border-[var(--color-mm-line)] flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <Tags
+          className="h-5 w-5 text-[var(--color-mm-subtle)]"
+          strokeWidth={1.5}
+        />
+      </div>
+    )
+  }
+  return (
+    <div className="h-14 w-14 squircle-xs overflow-hidden border border-[var(--color-mm-line)] bg-[var(--color-mm-canvas)]">
+      <img
+        src={url}
+        alt={alt}
+        loading="lazy"
+        className="w-full h-full object-cover"
+      />
     </div>
   )
 }
