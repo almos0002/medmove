@@ -33,6 +33,14 @@ export const Route = createFileRoute('/org')({
     ) {
       throw redirect({ to: '/onboarding' })
     }
+    // Suspended org → friendly read-only landing. Admins are exempt so they
+    // can still inspect the workspace from the support side.
+    if (
+      session.primaryOrg?.verificationStatus === 'suspended' &&
+      !isAdminRole(session.user.role)
+    ) {
+      throw redirect({ to: '/suspended' })
+    }
     return { session }
   },
   component: OrgLayout,

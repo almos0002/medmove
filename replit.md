@@ -1,5 +1,58 @@
 # MedMove - TanStack Start App
 
+## Step 14 — MVP polish (2026-05)
+**Goal:** ship the polish layer needed to call the platform a working MVP — settings/profile, reusable feedback + table primitives, an expanded seed, and the full operator documentation set.
+
+**New routes**
+- `/profile` — edit display name; read-only email/role/verified status.
+- `/account` — change password (revokes other sessions on success); email is read-only.
+- `/account/notifications` — toggle in-app, email, SMS, WhatsApp delivery channels.
+- `/admin/settings` — site name, support email/phone, banner, sign-up gate, grace-period days. Single-row `platform_settings` table.
+- `/org/settings` — verification status + capability flags + document counts; surfaces rejection reason if any.
+- `/suspended` — friendly read-only landing for suspended orgs (interceptor in `/org` guard, admins exempt).
+- `/unauthorized` — generic 403 surface.
+
+**New schema (Drizzle, pushed via `npm run db:push -- --force`)**
+- `user_notification_preferences` — one row per user (lazy-created on first read), booleans for `inAppEnabled` / `emailEnabled` / `smsEnabled` / `whatsappEnabled`.
+- `platform_settings` — singleton row guarded by a unique partial index on `singleton`. Contains `siteName`, `supportEmail`, `supportPhone`, `bannerMessage`, `signupsEnabled`, `graceDays`.
+
+**New server fns** (`src/server/functions/`)
+- `account.ts` — `getMyAccount`, `updateMyAccount`, `changePassword`.
+- `notificationPreferences.ts` — `getMyNotificationPreferences`, `updateMyNotificationPreferences`.
+- `platformSettings.ts` — admin `getAdminPlatformSettings` / `adminUpdatePlatformSettings`; public `getPublicPlatformSettings` (safe subset).
+All fns re-exported from `src/server/functions/index.ts`. Each ships a Zod validator in `src/lib/validators/`.
+
+**New reusable primitives**
+- `src/lib/dates.ts` — `formatDate`, `formatDateTime`, `formatRelative`; re-exports expiry helpers.
+- `src/components/feedback/UnauthorizedPage.tsx`, `SuspendedOrgPage.tsx`, `ErrorBoundary.tsx`, `SectionLoading.tsx`.
+- `src/components/dialogs/ConfirmDialog.tsx`.
+- `src/components/data/TableToolbar.tsx`.
+- `src/components/data/index.ts` — barrel for every status badge + chip + toolbar.
+
+**AppShell wiring**
+- New top-bar `UserMenu` dropdown: avatar + email + role, links to Profile / Account / Notifications, sign-out at the bottom (red).
+- `Settings` link added to admin nav (`/admin/settings`) and org nav (`/org/settings`).
+- `/org` loader bounces suspended orgs to `/suspended` (admins exempt).
+
+**Expanded dev seed** (`scripts/seed.ts`, idempotent)
+- 12 users: super_admin, admin, 2 verified-pharmacy owners, 1 pending-pharmacy owner, clinic owner, hospital owner, NGO owner, distributor owner, logistics owner, pharmacy staff, logistics staff.
+- 9 organisations covering every type + verification state.
+- 7 inventory batches across the verified orgs.
+- 6 listings (4 active + 2 pending_admin) plus 1 unlisted clinic batch.
+- 3 transfer requests in `pending_admin` / `accepted` / `completed`.
+- 3 deliveries in `pending` / `in_transit` / `delivered`.
+- 4 demo in-app notifications (org-verified, listing-approved, request-created, delivery-in-transit).
+- 3 audit log entries (uses `action` + `metadata.summary`; column names confirmed against `src/lib/schema/audit.ts`).
+
+**Documentation suite**
+- `README.md` rewritten — architecture, server-fn pattern, permissions, settings/profile catalogue, seed credentials, scripts, doc index, design language.
+- `docs/TESTING.md`, `docs/SECURITY.md`, `docs/COMPLIANCE.md`, `docs/DEPLOYMENT.md`, `docs/ENVIRONMENT.md`, `docs/MIGRATIONS.md` — each is a checklist tuned to MedMove's MVP scope (no payments, no public browsing, no cold-chain, no controlled drugs).
+
+**Notes for future work**
+- `notification_preferences` is honoured today only at the dispatch-stub layer; real channel providers remain TODO.
+- `platform_settings.bannerMessage` is rendered on the dashboard; admin updates are reflected after refresh. SSE/live-push is out of scope for MVP.
+- Seed inserts audit logs directly (not via service fns) to keep the script standalone; the format mirrors `writeAudit` so the rows render correctly in `/admin/audit-logs`.
+
 ## Overview
 MedMove is a B2B platform for redistributing near-expiry medicine between verified pharmacies, hospitals/NGOs, distributors and logistics partners, with admin verification of every donation/sale.
 Built with TanStack Start (full-stack React framework), TanStack Router for file-based routing, Tailwind CSS v4 for styling, Better Auth for authentication, Drizzle ORM with Replit Postgres for persistence, and Nitro for the server.

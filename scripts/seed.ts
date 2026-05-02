@@ -1,18 +1,24 @@
 /**
- * MedMove dev seed.
+ * MedMove dev seed — Step 14 expanded.
  *
- * Creates one user per role (super_admin, admin, org_owner ×3, org_staff,
- * logistics_staff) plus one verified org per type, with capability flags
- * derived from `defaultCapabilitiesForType`. Also populates the medicine
- * catalog and one demo listing.
+ * Idempotent. Safe to re-run after schema or capability changes.
+ *
+ * Creates:
+ *   • 1 super_admin, 1 admin
+ *   • 2 verified pharmacies, 1 pending pharmacy
+ *   • 1 verified clinic, 1 verified hospital
+ *   • 1 verified NGO, 1 verified distributor
+ *   • 1 verified logistics partner
+ *   • 10 catalog medicines
+ *   • Inventory batches per verified org
+ *   • Listings (active + pending_admin)
+ *   • Transfer requests in pending_admin / accepted / completed states
+ *   • Deliveries in pending / in_transit / delivered states
+ *   • Sample in-app notifications + audit log entries
  *
  * Run:  npm run db:seed
- *
- * Idempotent. If a user already exists with an old role string we *update*
- * their role so re-seeding after a role-model migration still produces a
- * working test set.
  */
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '../src/lib/db'
 import { auth } from '../src/lib/auth'
 import { user } from '../src/lib/auth-schema'
@@ -22,6 +28,10 @@ import {
   medicines,
   inventoryBatches,
   listings,
+  transferRequests,
+  deliveries,
+  notifications,
+  auditLogs,
 } from '../src/lib/schema'
 import {
   ROLES,
@@ -30,11 +40,16 @@ import {
   type OrgType,
 } from '../src/lib/permissions'
 
+type OrgVerificationStatusValue =
+  | 'pending'
+  | 'verified'
+  | 'rejected'
+  | 'suspended'
+
 // Trusted bootstrap path: lets the seed script create admin/super_admin users
 // despite the public-signup role allowlist enforced in src/lib/auth.ts. The
 // env var must be exported by the npm script (`npm run db:seed`) BEFORE the
-// process boots — setting it here would be too late because ES module imports
-// (above) are evaluated first.
+// process boots.
 if (process.env.MEDMOVE_TRUSTED_SIGNUP !== '1') {
   console.error(
     "Refusing to run seed without MEDMOVE_TRUSTED_SIGNUP=1 — use 'npm run db:seed'.",
@@ -89,35 +104,36 @@ async function ensureOrg(args: {
   city: string
   country: string
   ownerUserId: string
+  verificationStatus?: OrgVerificationStatusValue
+  rejectionReason?: string | null
 }) {
+  const verificationStatus = args.verificationStatus ?? 'verified'
   const existing = await db
     .select()
     .from(organizations)
     .where(eq(organizations.licenseNumber, args.licenseNumber))
     .limit(1)
   if (existing[0]) {
-    // Re-stamp capabilities every run so that a re-seed after the capability
-    // model is added/changed brings existing seed orgs back to the canonical
-    // defaults for their type.
+    // Re-stamp capabilities + verification on every run so the seed is
+    // self-healing across schema/role/capability changes.
     const caps = defaultCapabilitiesForType(args.type)
-    if (
-      existing[0].canListMedicine !== caps.canListMedicine ||
-      existing[0].canRequestMedicine !== caps.canRequestMedicine ||
-      existing[0].canDeliverMedicine !== caps.canDeliverMedicine
-    ) {
-      await db
-        .update(organizations)
-        .set({
-          canListMedicine: caps.canListMedicine,
-          canRequestMedicine: caps.canRequestMedicine,
-          canDeliverMedicine: caps.canDeliverMedicine,
-        })
-        .where(eq(organizations.id, existing[0].id))
-    }
-    return { ...existing[0], ...caps }
+    const wantsCaps = verificationStatus === 'verified'
+    await db
+      .update(organizations)
+      .set({
+        canListMedicine: wantsCaps && caps.canListMedicine,
+        canRequestMedicine: wantsCaps && caps.canRequestMedicine,
+        canDeliverMedicine: wantsCaps && caps.canDeliverMedicine,
+        verificationStatus,
+        verifiedAt: verificationStatus === 'verified' ? new Date() : null,
+        rejectionReason: args.rejectionReason ?? null,
+      })
+      .where(eq(organizations.id, existing[0].id))
+    return { ...existing[0], ...caps, verificationStatus }
   }
 
   const caps = defaultCapabilitiesForType(args.type)
+  const wantsCaps = verificationStatus === 'verified'
   const [org] = await db
     .insert(organizations)
     .values({
@@ -129,11 +145,12 @@ async function ensureOrg(args: {
       addressLine1: '123 Main Street',
       city: args.city,
       country: args.country,
-      verificationStatus: 'verified',
-      verifiedAt: new Date(),
-      canListMedicine: caps.canListMedicine,
-      canRequestMedicine: caps.canRequestMedicine,
-      canDeliverMedicine: caps.canDeliverMedicine,
+      verificationStatus,
+      verifiedAt: verificationStatus === 'verified' ? new Date() : null,
+      rejectionReason: args.rejectionReason ?? null,
+      canListMedicine: wantsCaps && caps.canListMedicine,
+      canRequestMedicine: wantsCaps && caps.canRequestMedicine,
+      canDeliverMedicine: wantsCaps && caps.canDeliverMedicine,
     })
     .returning()
 
@@ -146,14 +163,18 @@ async function ensureOrg(args: {
   return org!
 }
 
-async function ensureMembership(orgId: string, userId: string, role: 'owner' | 'member') {
+async function ensureMembership(
+  orgId: string,
+  userId: string,
+  role: 'owner' | 'member',
+) {
   const existing = await db
     .select()
     .from(organizationMembers)
     .where(eq(organizationMembers.userId, userId))
     .limit(1)
   if (existing[0]?.organizationId === orgId) return existing[0]
-  if (existing[0]) return existing[0] // user already belongs to a different org
+  if (existing[0]) return existing[0] // already in another org
   const [row] = await db
     .insert(organizationMembers)
     .values({ organizationId: orgId, userId, role })
@@ -200,9 +221,249 @@ async function ensureMedicine(m: {
   return created!
 }
 
+async function ensureBatch(args: {
+  organizationId: string
+  medicineId: string
+  batchNumber: string
+  quantityOnHand: number
+  unit: string
+  monthsToExpiry: number
+  storageType?: 'room_temperature' | 'cool_dry_place'
+  sealedStatus?: 'sealed' | 'opened'
+}) {
+  const existing = await db
+    .select()
+    .from(inventoryBatches)
+    .where(
+      and(
+        eq(inventoryBatches.organizationId, args.organizationId),
+        eq(inventoryBatches.medicineId, args.medicineId),
+        eq(inventoryBatches.batchNumber, args.batchNumber),
+      ),
+    )
+    .limit(1)
+  if (existing[0]) return existing[0]
+
+  const expiry = new Date()
+  expiry.setMonth(expiry.getMonth() + args.monthsToExpiry)
+
+  const [row] = await db
+    .insert(inventoryBatches)
+    .values({
+      organizationId: args.organizationId,
+      medicineId: args.medicineId,
+      batchNumber: args.batchNumber,
+      expiryDate: expiry.toISOString().slice(0, 10),
+      quantityOnHand: args.quantityOnHand,
+      unit: args.unit,
+      storageType: args.storageType ?? 'room_temperature',
+      sealedStatus: args.sealedStatus ?? 'sealed',
+    })
+    .returning()
+  return row!
+}
+
+async function ensureListing(args: {
+  batchId: string
+  sellerOrgId: string
+  quantity: number
+  pickupCity: string
+  pickupCountry: string
+  status: 'pending_admin' | 'active'
+  createdByUserId: string
+  approvedByUserId?: string
+  notes?: string
+}) {
+  const existing = await db
+    .select()
+    .from(listings)
+    .where(eq(listings.batchId, args.batchId))
+    .limit(1)
+  if (existing[0]) return existing[0]
+  const [row] = await db
+    .insert(listings)
+    .values({
+      batchId: args.batchId,
+      sellerOrgId: args.sellerOrgId,
+      quantityListed: args.quantity,
+      quantityAvailable: args.quantity,
+      photoUrls: [],
+      pickupCity: args.pickupCity,
+      pickupCountry: args.pickupCountry,
+      status: args.status,
+      submittedAt: new Date(),
+      approvedAt: args.status === 'active' ? new Date() : null,
+      approvedByUserId: args.status === 'active' ? args.approvedByUserId : null,
+      createdByUserId: args.createdByUserId,
+      notes: args.notes,
+    })
+    .returning()
+  return row!
+}
+
+async function ensureTransferRequest(args: {
+  listingId: string
+  requesterOrgId: string
+  requesterUserId: string
+  quantity: number
+  intendedUse: string
+  status: 'pending_admin' | 'accepted' | 'completed'
+  adminUserId: string
+  sellerUserId: string
+}) {
+  const existing = await db
+    .select()
+    .from(transferRequests)
+    .where(
+      and(
+        eq(transferRequests.listingId, args.listingId),
+        eq(transferRequests.requesterOrgId, args.requesterOrgId),
+      ),
+    )
+    .limit(1)
+  if (existing[0]) return existing[0]
+
+  const expires = new Date()
+  expires.setDate(expires.getDate() + 14)
+  const now = new Date()
+
+  const [row] = await db
+    .insert(transferRequests)
+    .values({
+      listingId: args.listingId,
+      requesterOrgId: args.requesterOrgId,
+      requesterUserId: args.requesterUserId,
+      quantityRequested: args.quantity,
+      intendedUse: args.intendedUse,
+      status: args.status,
+      expiresAt: expires,
+      adminReviewedByUserId:
+        args.status === 'accepted' || args.status === 'completed'
+          ? args.adminUserId
+          : null,
+      adminReviewedAt:
+        args.status === 'accepted' || args.status === 'completed' ? now : null,
+      sellerReviewedByUserId:
+        args.status === 'accepted' || args.status === 'completed'
+          ? args.sellerUserId
+          : null,
+      sellerReviewedAt:
+        args.status === 'accepted' || args.status === 'completed' ? now : null,
+      completedAt: args.status === 'completed' ? now : null,
+    })
+    .returning()
+  return row!
+}
+
+async function ensureDelivery(args: {
+  transferRequestId: string
+  pickupAddress: string
+  dropoffAddress: string
+  sellerContact: { name: string; phone: string }
+  buyerContact: { name: string; phone: string }
+  status: 'pending' | 'in_transit' | 'delivered'
+  receivedQuantity?: number
+}) {
+  const existing = await db
+    .select()
+    .from(deliveries)
+    .where(eq(deliveries.transferRequestId, args.transferRequestId))
+    .limit(1)
+  if (existing[0]) return existing[0]
+
+  const now = new Date()
+  const earlier = new Date(now.getTime() - 1000 * 60 * 60 * 24)
+
+  const [row] = await db
+    .insert(deliveries)
+    .values({
+      transferRequestId: args.transferRequestId,
+      dispatchMethod: 'third_party_courier',
+      pickupAddress: args.pickupAddress,
+      dropoffAddress: args.dropoffAddress,
+      sellerContactName: args.sellerContact.name,
+      sellerContactPhone: args.sellerContact.phone,
+      buyerContactName: args.buyerContact.name,
+      buyerContactPhone: args.buyerContact.phone,
+      pickupScheduledAt:
+        args.status !== 'pending' ? earlier : null,
+      pickedUpAt: args.status !== 'pending' ? earlier : null,
+      dispatchedAt: args.status !== 'pending' ? earlier : null,
+      receivedAt: args.status === 'delivered' ? now : null,
+      receivedQuantity: args.status === 'delivered' ? args.receivedQuantity : null,
+      status: args.status,
+    })
+    .returning()
+  return row!
+}
+
+async function ensureNotificationDemo(args: {
+  recipientUserId: string
+  recipientOrgId?: string
+  type:
+    | 'organization.verified'
+    | 'listing.approved'
+    | 'transfer_request.created'
+    | 'delivery.in_transit'
+  title: string
+  body: string
+  link: string
+  entityType: string
+  entityId: string
+}) {
+  await db
+    .insert(notifications)
+    .values({
+      audience: args.recipientOrgId ? 'organization' : 'user',
+      recipientUserId: args.recipientUserId,
+      recipientOrgId: args.recipientOrgId,
+      type: args.type,
+      severity: 'info',
+      title: args.title,
+      body: args.body,
+      link: args.link,
+      entityType: args.entityType,
+      entityId: args.entityId,
+    })
+    .onConflictDoNothing()
+}
+
+async function ensureAuditDemo(args: {
+  actorUserId: string
+  actorOrgId?: string
+  action: string
+  entityType: string
+  entityId: string
+  summary: string
+}) {
+  // Skip if a row with the same (action, entity) already exists for this actor.
+  const existing = await db
+    .select()
+    .from(auditLogs)
+    .where(
+      and(
+        eq(auditLogs.actorUserId, args.actorUserId),
+        eq(auditLogs.entityType, args.entityType),
+        eq(auditLogs.entityId, args.entityId),
+        eq(auditLogs.action, args.action),
+      ),
+    )
+    .limit(1)
+  if (existing[0]) return
+  await db.insert(auditLogs).values({
+    actorUserId: args.actorUserId,
+    actorOrgId: args.actorOrgId,
+    action: args.action,
+    entityType: args.entityType,
+    entityId: args.entityId,
+    metadata: { summary: args.summary, seed: true },
+  })
+}
+
 async function main() {
   console.log('Seeding MedMove…')
 
+  // ─── Users ────────────────────────────────────────────────────────────
   const superAdminUser = await ensureUser({
     email: 'super-admin@medmove.dev',
     password: 'SuperAdminPass123!',
@@ -221,10 +482,34 @@ async function main() {
     name: 'Priya Pharmacy Owner',
     role: ROLES.ORG_OWNER,
   })
+  const pharmacy2Owner = await ensureUser({
+    email: 'pharmacy2-owner@medmove.dev',
+    password: 'Pharma2Pass123!',
+    name: 'Pavel Pharmacy Two Owner',
+    role: ROLES.ORG_OWNER,
+  })
+  const pendingPharmacyOwner = await ensureUser({
+    email: 'pending-pharmacy@medmove.dev',
+    password: 'PendingPass123!',
+    name: 'Pat Pending Pharmacy',
+    role: ROLES.ORG_OWNER,
+  })
+  const clinicOwner = await ensureUser({
+    email: 'clinic-owner@medmove.dev',
+    password: 'ClinicPass123!',
+    name: 'Carla Clinic Owner',
+    role: ROLES.ORG_OWNER,
+  })
   const hospitalOwner = await ensureUser({
     email: 'hospital-owner@medmove.dev',
     password: 'HospitalPass123!',
     name: 'Henry Hospital Owner',
+    role: ROLES.ORG_OWNER,
+  })
+  const ngoOwner = await ensureUser({
+    email: 'ngo-owner@medmove.dev',
+    password: 'NgoPass123!',
+    name: 'Nora NGO Owner',
     role: ROLES.ORG_OWNER,
   })
   const distributorOwner = await ensureUser({
@@ -251,10 +536,10 @@ async function main() {
     name: 'Lena Logistics Staff',
     role: ROLES.LOGISTICS_STAFF,
   })
-  console.log(
-    `Users: super_admin=${superAdminUser.id} admin=${adminUser.id} pharmacy_owner=${pharmacyOwner.id} hospital_owner=${hospitalOwner.id} distributor_owner=${distributorOwner.id} logistics_owner=${logisticsOwner.id} pharmacy_staff=${pharmacyStaff.id} logistics_staff=${logisticsStaff.id}`,
-  )
 
+  console.log('Users ready.')
+
+  // ─── Organisations ────────────────────────────────────────────────────
   const pharmacyOrg = await ensureOrg({
     name: 'GoodHealth Pharmacy',
     type: 'pharmacy',
@@ -265,6 +550,37 @@ async function main() {
     country: 'USA',
     ownerUserId: pharmacyOwner.id,
   })
+  const pharmacy2Org = await ensureOrg({
+    name: 'CityCare Pharmacy',
+    type: 'pharmacy',
+    licenseNumber: 'PHARM-LIC-0002',
+    contactEmail: 'hello@citycare.test',
+    contactPhone: '+1-555-0150',
+    city: 'New York',
+    country: 'USA',
+    ownerUserId: pharmacy2Owner.id,
+  })
+  const pendingPharmacyOrg = await ensureOrg({
+    name: 'BrightSide Pharmacy',
+    type: 'pharmacy',
+    licenseNumber: 'PHARM-LIC-PENDING',
+    contactEmail: 'apply@brightside.test',
+    contactPhone: '+1-555-0175',
+    city: 'Austin',
+    country: 'USA',
+    ownerUserId: pendingPharmacyOwner.id,
+    verificationStatus: 'pending',
+  })
+  const clinicOrg = await ensureOrg({
+    name: 'Riverside Family Clinic',
+    type: 'clinic',
+    licenseNumber: 'CLIN-LIC-0001',
+    contactEmail: 'office@riverside.test',
+    contactPhone: '+1-555-0180',
+    city: 'Cambridge',
+    country: 'USA',
+    ownerUserId: clinicOwner.id,
+  })
   const hospitalOrg = await ensureOrg({
     name: "St Mary's Community Hospital",
     type: 'hospital',
@@ -274,6 +590,16 @@ async function main() {
     city: 'Cambridge',
     country: 'USA',
     ownerUserId: hospitalOwner.id,
+  })
+  const ngoOrg = await ensureOrg({
+    name: 'OpenHands Relief',
+    type: 'ngo',
+    licenseNumber: 'NGO-LIC-0001',
+    contactEmail: 'team@openhands.test',
+    contactPhone: '+1-555-0220',
+    city: 'Brooklyn',
+    country: 'USA',
+    ownerUserId: ngoOwner.id,
   })
   const distributorOrg = await ensureOrg({
     name: 'NorthStar Distribution',
@@ -296,14 +622,12 @@ async function main() {
     ownerUserId: logisticsOwner.id,
   })
 
-  // Add the staff users into their respective orgs.
   await ensureMembership(pharmacyOrg.id, pharmacyStaff.id, 'member')
   await ensureMembership(logisticsOrg.id, logisticsStaff.id, 'member')
 
-  console.log(
-    `Orgs: pharmacy=${pharmacyOrg.id} hospital=${hospitalOrg.id} distributor=${distributorOrg.id} logistics_partner=${logisticsOrg.id}`,
-  )
+  console.log('Organisations ready (incl. pending pharmacy + clinic + NGO).')
 
+  // ─── Catalog ──────────────────────────────────────────────────────────
   const catalog = await Promise.all([
     ensureMedicine({ name: 'Paracetamol', genericName: 'Acetaminophen', strength: '500 mg', form: 'tablet' }),
     ensureMedicine({ name: 'Ibuprofen', strength: '400 mg', form: 'tablet' }),
@@ -317,72 +641,289 @@ async function main() {
     ensureMedicine({ name: 'Cough Syrup', strength: '100 ml', form: 'syrup' }),
   ])
   console.log(`Catalog: ${catalog.length} medicines`)
+  const [paracetamol, ibuprofen, amoxicillin, , metformin, omeprazole, cetirizine, , ors] = catalog
 
-  const paracetamol = catalog[0]!
-  const inSixMonths = new Date()
-  inSixMonths.setMonth(inSixMonths.getMonth() + 6)
+  // ─── Inventory batches ────────────────────────────────────────────────
+  const batchA = await ensureBatch({
+    organizationId: pharmacyOrg.id,
+    medicineId: paracetamol!.id,
+    batchNumber: 'BATCH-DEMO-001',
+    quantityOnHand: 200,
+    unit: 'strip',
+    monthsToExpiry: 6,
+  })
+  const batchB = await ensureBatch({
+    organizationId: pharmacyOrg.id,
+    medicineId: ibuprofen!.id,
+    batchNumber: 'GH-IBU-2026A',
+    quantityOnHand: 120,
+    unit: 'strip',
+    monthsToExpiry: 8,
+  })
+  const batchC = await ensureBatch({
+    organizationId: pharmacy2Org.id,
+    medicineId: amoxicillin!.id,
+    batchNumber: 'CC-AMOX-2026A',
+    quantityOnHand: 80,
+    unit: 'box',
+    monthsToExpiry: 5,
+  })
+  const batchD = await ensureBatch({
+    organizationId: pharmacy2Org.id,
+    medicineId: omeprazole!.id,
+    batchNumber: 'CC-OMEP-2026A',
+    quantityOnHand: 60,
+    unit: 'pack',
+    monthsToExpiry: 9,
+  })
+  const batchE = await ensureBatch({
+    organizationId: hospitalOrg.id,
+    medicineId: metformin!.id,
+    batchNumber: 'STM-MET-2026A',
+    quantityOnHand: 300,
+    unit: 'pack',
+    monthsToExpiry: 4,
+  })
+  const batchF = await ensureBatch({
+    organizationId: hospitalOrg.id,
+    medicineId: cetirizine!.id,
+    batchNumber: 'STM-CET-2026A',
+    quantityOnHand: 90,
+    unit: 'strip',
+    monthsToExpiry: 11,
+  })
+  const batchG = await ensureBatch({
+    organizationId: clinicOrg.id,
+    medicineId: ors!.id,
+    batchNumber: 'RV-ORS-2026A',
+    quantityOnHand: 250,
+    unit: 'sachet',
+    monthsToExpiry: 14,
+  })
+  console.log('Inventory batches ready.')
 
-  const existingBatch = await db
-    .select()
-    .from(inventoryBatches)
-    .where(eq(inventoryBatches.batchNumber, 'BATCH-DEMO-001'))
-    .limit(1)
+  // ─── Listings (active + pending_admin) ────────────────────────────────
+  const listingA = await ensureListing({
+    batchId: batchA.id,
+    sellerOrgId: pharmacyOrg.id,
+    quantity: 200,
+    pickupCity: 'Boston',
+    pickupCountry: 'USA',
+    status: 'active',
+    createdByUserId: pharmacyOwner.id,
+    approvedByUserId: adminUser.id,
+    notes: 'Approved demo listing — paracetamol surplus.',
+  })
+  const _listingB = await ensureListing({
+    batchId: batchB.id,
+    sellerOrgId: pharmacyOrg.id,
+    quantity: 120,
+    pickupCity: 'Boston',
+    pickupCountry: 'USA',
+    status: 'pending_admin',
+    createdByUserId: pharmacyOwner.id,
+    notes: 'Awaiting admin review — ibuprofen surplus.',
+  })
+  const listingC = await ensureListing({
+    batchId: batchC.id,
+    sellerOrgId: pharmacy2Org.id,
+    quantity: 80,
+    pickupCity: 'New York',
+    pickupCountry: 'USA',
+    status: 'active',
+    createdByUserId: pharmacy2Owner.id,
+    approvedByUserId: adminUser.id,
+    notes: 'Approved demo listing — amoxicillin.',
+  })
+  const _listingD = await ensureListing({
+    batchId: batchD.id,
+    sellerOrgId: pharmacy2Org.id,
+    quantity: 60,
+    pickupCity: 'New York',
+    pickupCountry: 'USA',
+    status: 'pending_admin',
+    createdByUserId: pharmacy2Owner.id,
+    notes: 'Awaiting admin review — omeprazole.',
+  })
+  const listingE = await ensureListing({
+    batchId: batchE.id,
+    sellerOrgId: hospitalOrg.id,
+    quantity: 300,
+    pickupCity: 'Cambridge',
+    pickupCountry: 'USA',
+    status: 'active',
+    createdByUserId: hospitalOwner.id,
+    approvedByUserId: adminUser.id,
+    notes: 'Approved demo listing — metformin from hospital surplus.',
+  })
+  const _listingF = await ensureListing({
+    batchId: batchF.id,
+    sellerOrgId: hospitalOrg.id,
+    quantity: 90,
+    pickupCity: 'Cambridge',
+    pickupCountry: 'USA',
+    status: 'active',
+    createdByUserId: hospitalOwner.id,
+    approvedByUserId: adminUser.id,
+    notes: 'Approved demo listing — cetirizine.',
+  })
+  // batchG (clinic) is intentionally NOT listed — clinics typically request,
+  // not list. It seeds inventory so the clinic can show "On hand" data.
+  void batchG
+  console.log('Listings ready.')
 
-  let batchId: string
-  if (existingBatch[0]) {
-    batchId = existingBatch[0].id
-  } else {
-    const [batch] = await db
-      .insert(inventoryBatches)
-      .values({
-        organizationId: pharmacyOrg.id,
-        medicineId: paracetamol.id,
-        batchNumber: 'BATCH-DEMO-001',
-        expiryDate: inSixMonths.toISOString().slice(0, 10),
-        quantityOnHand: 200,
-        unit: 'strip',
-        storageType: 'room_temperature',
-        sealedStatus: 'sealed',
-      })
-      .returning()
-    batchId = batch!.id
-  }
+  // ─── Transfer requests ────────────────────────────────────────────────
+  const trPending = await ensureTransferRequest({
+    listingId: listingA.id,
+    requesterOrgId: clinicOrg.id,
+    requesterUserId: clinicOwner.id,
+    quantity: 40,
+    intendedUse: 'Walk-in pain relief stock for the next quarter.',
+    status: 'pending_admin',
+    adminUserId: adminUser.id,
+    sellerUserId: pharmacyOwner.id,
+  })
+  const trAccepted = await ensureTransferRequest({
+    listingId: listingC.id,
+    requesterOrgId: ngoOrg.id,
+    requesterUserId: ngoOwner.id,
+    quantity: 30,
+    intendedUse: 'Free clinic week for under-served neighbourhoods.',
+    status: 'accepted',
+    adminUserId: adminUser.id,
+    sellerUserId: pharmacy2Owner.id,
+  })
+  const trCompleted = await ensureTransferRequest({
+    listingId: listingE.id,
+    requesterOrgId: clinicOrg.id,
+    requesterUserId: clinicOwner.id,
+    quantity: 60,
+    intendedUse: 'Diabetes follow-up programme — quarterly stock.',
+    status: 'completed',
+    adminUserId: adminUser.id,
+    sellerUserId: hospitalOwner.id,
+  })
+  console.log('Transfer requests ready (pending / accepted / completed).')
 
-  const existingListing = await db
-    .select()
-    .from(listings)
-    .where(eq(listings.batchId, batchId))
-    .limit(1)
+  // ─── Deliveries ───────────────────────────────────────────────────────
+  await ensureDelivery({
+    transferRequestId: trAccepted.id,
+    pickupAddress: 'CityCare Pharmacy, New York, USA',
+    dropoffAddress: 'OpenHands Relief, Brooklyn, USA',
+    sellerContact: { name: pharmacy2Owner.name ?? 'Pavel', phone: '+1-555-0150' },
+    buyerContact: { name: ngoOwner.name ?? 'Nora', phone: '+1-555-0220' },
+    status: 'pending',
+  })
+  await ensureDelivery({
+    transferRequestId: trPending.id,
+    pickupAddress: 'GoodHealth Pharmacy, Boston, USA',
+    dropoffAddress: 'Riverside Family Clinic, Cambridge, USA',
+    sellerContact: { name: pharmacyOwner.name ?? 'Priya', phone: '+1-555-0100' },
+    buyerContact: { name: clinicOwner.name ?? 'Carla', phone: '+1-555-0180' },
+    status: 'in_transit',
+  })
+  await ensureDelivery({
+    transferRequestId: trCompleted.id,
+    pickupAddress: "St Mary's Community Hospital, Cambridge, USA",
+    dropoffAddress: 'Riverside Family Clinic, Cambridge, USA',
+    sellerContact: { name: hospitalOwner.name ?? 'Henry', phone: '+1-555-0200' },
+    buyerContact: { name: clinicOwner.name ?? 'Carla', phone: '+1-555-0180' },
+    status: 'delivered',
+    receivedQuantity: 60,
+  })
+  console.log('Deliveries ready (pending / in_transit / delivered).')
 
-  if (!existingListing[0]) {
-    await db.insert(listings).values({
-      batchId,
-      sellerOrgId: pharmacyOrg.id,
-      quantityListed: 200,
-      quantityAvailable: 200,
-      photoUrls: [],
-      pickupCity: 'Boston',
-      pickupCountry: 'USA',
-      status: 'active',
-      submittedAt: new Date(),
-      approvedAt: new Date(),
-      approvedByUserId: adminUser.id,
-      createdByUserId: pharmacyOwner.id,
-      notes: 'Demo listing for development.',
-    })
-  }
-  console.log('Demo batch + listing ready.')
+  // ─── Notifications ────────────────────────────────────────────────────
+  await ensureNotificationDemo({
+    recipientUserId: pharmacyOwner.id,
+    recipientOrgId: pharmacyOrg.id,
+    type: 'organization.verified',
+    title: 'GoodHealth Pharmacy verified',
+    body: 'Your organisation is verified. You can now list and request medicine.',
+    link: '/org',
+    entityType: 'organization',
+    entityId: pharmacyOrg.id,
+  })
+  await ensureNotificationDemo({
+    recipientUserId: pharmacyOwner.id,
+    recipientOrgId: pharmacyOrg.id,
+    type: 'listing.approved',
+    title: 'Listing approved',
+    body: 'Your paracetamol listing is now visible on the marketplace.',
+    link: `/org/listings/${listingA.id}`,
+    entityType: 'listing',
+    entityId: listingA.id,
+  })
+  await ensureNotificationDemo({
+    recipientUserId: clinicOwner.id,
+    recipientOrgId: clinicOrg.id,
+    type: 'transfer_request.created',
+    title: 'Request submitted',
+    body: 'Your request for paracetamol is awaiting admin review.',
+    link: `/org/requests/${trPending.id}`,
+    entityType: 'transfer_request',
+    entityId: trPending.id,
+  })
+  await ensureNotificationDemo({
+    recipientUserId: clinicOwner.id,
+    recipientOrgId: clinicOrg.id,
+    type: 'delivery.in_transit',
+    title: 'Delivery in transit',
+    body: 'Paracetamol from GoodHealth Pharmacy is on the way.',
+    link: `/org/deliveries/incoming`,
+    entityType: 'transfer_request',
+    entityId: trPending.id,
+  })
+  console.log('Notifications ready.')
 
+  // ─── Audit log demo entries ───────────────────────────────────────────
+  await ensureAuditDemo({
+    actorUserId: adminUser.id,
+    action: 'organization.verified',
+    entityType: 'organization',
+    entityId: pharmacyOrg.id,
+    summary: 'Verified GoodHealth Pharmacy',
+  })
+  await ensureAuditDemo({
+    actorUserId: adminUser.id,
+    action: 'listing.approved',
+    entityType: 'listing',
+    entityId: listingA.id,
+    summary: 'Approved paracetamol listing',
+  })
+  await ensureAuditDemo({
+    actorUserId: adminUser.id,
+    action: 'transfer_request.completed',
+    entityType: 'transfer_request',
+    entityId: trCompleted.id,
+    summary: 'Marked metformin transfer as completed',
+  })
+  console.log('Audit log demo entries ready.')
+
+  // ─── Summary ──────────────────────────────────────────────────────────
   console.log('\nDone.\n')
   console.log('Login credentials:')
   console.log('  super_admin:        super-admin@medmove.dev / SuperAdminPass123!')
   console.log('  admin:              admin@medmove.dev / AdminPass123!')
-  console.log('  org_owner (pharm):  pharmacy-owner@medmove.dev / PharmaPass123!')
-  console.log('  org_owner (hosp):   hospital-owner@medmove.dev / HospitalPass123!')
-  console.log('  org_owner (dist):   distributor-owner@medmove.dev / DistribPass123!')
-  console.log('  org_owner (log):    logistics-owner@medmove.dev / LogisticsPass123!')
-  console.log('  org_staff (pharm):  pharmacy-staff@medmove.dev / StaffPass123!')
-  console.log('  logistics_staff:    logistics-staff@medmove.dev / LogStaffPass123!')
+  console.log('  pharmacy 1 (verif): pharmacy-owner@medmove.dev / PharmaPass123!')
+  console.log('  pharmacy 2 (verif): pharmacy2-owner@medmove.dev / Pharma2Pass123!')
+  console.log('  pharmacy (pending): pending-pharmacy@medmove.dev / PendingPass123!')
+  console.log('  clinic (verif):     clinic-owner@medmove.dev / ClinicPass123!')
+  console.log('  hospital (verif):   hospital-owner@medmove.dev / HospitalPass123!')
+  console.log('  ngo (verif):        ngo-owner@medmove.dev / NgoPass123!')
+  console.log('  distributor:        distributor-owner@medmove.dev / DistribPass123!')
+  console.log('  logistics owner:    logistics-owner@medmove.dev / LogisticsPass123!')
+  console.log('  pharmacy staff:     pharmacy-staff@medmove.dev / StaffPass123!')
+  console.log('  logistics staff:    logistics-staff@medmove.dev / LogStaffPass123!')
+
+  // Reference no-ops to please the linter — these are intentionally seeded
+  // for hand-testing and have no further work in this script.
+  void superAdminUser
+  void distributorOrg
+  void pendingPharmacyOrg
+  void _listingB
+  void _listingD
+  void _listingF
 }
 
 main()

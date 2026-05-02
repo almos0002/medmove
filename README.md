@@ -1,204 +1,199 @@
-Welcome to your new TanStack Start app! 
+# MedMove
 
-# Getting Started
+**Verified B2B medicine redistribution platform** — connecting pharmacies, hospitals, clinics and NGOs to safely redistribute surplus, in-date, sealed medicine that would otherwise be wasted.
 
-To run this application:
+Built with TanStack Start, React, TypeScript, Drizzle ORM (PostgreSQL), Better Auth and Tailwind v4.
+
+> **MVP scope** — no payments, no public browsing, no cold-chain enforcement, no controlled substances. See [docs/COMPLIANCE.md](docs/COMPLIANCE.md) for the full safety scope.
+
+---
+
+## Quick start
 
 ```bash
 npm install
-npm run dev
+npm run db:push          # sync schema to your dev Postgres
+npm run db:seed          # seed users, orgs, catalog, listings, deliveries
+npm run dev              # workflow already configured: "Start application"
 ```
 
-# Building For Production
+The dev server runs on **port 5000**. Open the preview pane and sign in with one of the seeded accounts (see [Seed accounts](#seed-accounts)).
 
-To build this application for production:
+---
 
-```bash
-npm run build
+## What MedMove does
+
+1. **Organisations register** with their licence number and supporting documents.
+2. **Admins verify** the organisation, granting capability flags:
+   - `can_list_medicine` — pharmacies, hospitals, distributors
+   - `can_request_medicine` — pharmacies, hospitals, clinics, NGOs
+   - `can_deliver_medicine` — logistics partners
+3. **Sellers list** surplus inventory (sealed, in-date) drawn from their own batch records.
+4. **Admins approve listings** before they go live in the marketplace.
+5. **Buyers request transfers**; admin reviews → seller accepts → delivery is created.
+6. **Deliveries** progress through `pending → pickup_scheduled → picked_up → in_transit → delivered`, with logistics partners optionally assigned.
+7. **Audit logs and in-app notifications** capture every state change.
+
+---
+
+## Architecture
+
+| Layer | Tech |
+|---|---|
+| App framework | TanStack Start (file-based router, SSR) |
+| Frontend | React 19, Tailwind v4, shadcn-style components, Poppins, Lucide icons |
+| Server functions | TanStack `createServerFn` with Zod validators |
+| Auth | Better Auth (email/password, role on user, primary-org snapshot) |
+| ORM | Drizzle (PostgreSQL) |
+| State | TanStack Query, route loaders |
+| Notifications | In-app + email/SMS/WhatsApp dispatcher seam |
+
+### Source layout
+
+```
+src/
+  components/         # UI primitives + feature components
+    data/             # status badges, capability chips, table toolbar
+    dialogs/          # confirm dialogs
+    feedback/         # PageError, NotFoundPage, UnauthorizedPage, …
+    layout/           # AppShell, PageHeader
+    notifications/    # NotificationBell, dropdown
+    ui/               # Button, Input, Select, Switch, Card, …
+  lib/
+    schema/           # Drizzle table definitions
+    validators/       # Zod input validators (one file per feature)
+    permissions.ts    # RBAC + capability constants and helpers
+    auth.ts           # Better Auth server config
+    db.ts             # Drizzle client
+  server/
+    context.ts        # getRequestContext (session + primaryOrg snapshot)
+    notifications/    # in-app + channel dispatchers (email/sms/whatsapp seams)
+    functions/        # createServerFn handlers (one file per feature)
+  routes/             # TanStack Start file routes
+scripts/
+  seed.ts             # idempotent dev seed
+docs/                 # checklists for testing, security, compliance, etc.
 ```
 
-## Testing
+### Server-function pattern
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+Every server function follows the same shape:
 
-```bash
-npm run test
-```
-
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
-
-## Linting & Formatting
-
-
-This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
-
-```bash
-npm run lint
-npm run format
-npm run check
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
+```ts
+export const doThing = createServerFn({
+  method: 'POST',
+  strict: { output: false },
 })
+  .inputValidator(doThingValidator.parse)
+  .handler(async ({ data }) => {
+    return wrap(async () => {
+      const ctx = await getRequestContext()
+      requireAuth(ctx)                   // returns 401 if no user
+      requireCapability(ctx, 'can_list_medicine') // 403 if missing
+      return db.transaction(async (tx) => {
+        // … domain logic
+        await writeAudit(tx, { … })
+        return value
+      }).then((res) => {
+        dispatchNotificationsAfterCommit(res.notifications)
+        return res
+      })
+    })
+  })
 ```
 
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+`wrap` converts thrown `AppError`s into client-safe `{ message, code }` shapes; never trust raw error messages from the network on the client.
 
-## Server Functions
+---
 
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
+## Permissions model
 
-```tsx
-import { createServerFn } from '@tanstack/react-start'
+- **User roles** describe *what kind of actor* the user is: `super_admin`, `admin`, `org_owner`, `org_staff`, `logistics_staff`.
+- **Org capabilities** are booleans on the organisation row: `can_list_medicine`, `can_request_medicine`, `can_deliver_medicine`. Capabilities are only granted to **verified** orgs by admins.
+- **Server functions always re-check both**, even when the route already guarded — `getServerSession()` is request-cached and never the source of truth for authorisation.
+- **Suspended orgs** are bounced to `/suspended` by the `/org` guard. Admins are exempt.
 
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
+See `src/lib/permissions.ts` for the canonical constants.
 
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
+---
 
-## API Routes
+## Settings & profile (Step 14)
 
-You can create API routes by using the `server` property in your route definitions:
+| Route | Purpose |
+|---|---|
+| `/profile` | Edit display name; read-only email/role/verified status |
+| `/account` | Change password (revokes other sessions on success) |
+| `/account/notifications` | Toggle in-app, email, SMS, WhatsApp channels |
+| `/admin/settings` | Site name, support contacts, banner, sign-up gate, grace period |
+| `/org/settings` | Verification + capabilities snapshot, document counts |
+| `/suspended` | Friendly read-only landing for suspended orgs |
+| `/unauthorized` | Generic 403 surface |
 
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
+Notification preferences are stored in `user_notification_preferences` (one row per user, lazily created on first read). Platform settings live in a singleton `platform_settings` row.
 
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
+---
 
-## Data Fetching
+## Seed accounts
 
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
+Run `npm run db:seed` then sign in with any of:
 
-For example:
+| Role / org | Email | Password |
+|---|---|---|
+| Super admin | `super-admin@medmove.dev` | `SuperAdminPass123!` |
+| Admin | `admin@medmove.dev` | `AdminPass123!` |
+| Pharmacy 1 (verified) | `pharmacy-owner@medmove.dev` | `PharmaPass123!` |
+| Pharmacy 2 (verified) | `pharmacy2-owner@medmove.dev` | `Pharma2Pass123!` |
+| Pharmacy (pending) | `pending-pharmacy@medmove.dev` | `PendingPass123!` |
+| Clinic | `clinic-owner@medmove.dev` | `ClinicPass123!` |
+| Hospital | `hospital-owner@medmove.dev` | `HospitalPass123!` |
+| NGO | `ngo-owner@medmove.dev` | `NgoPass123!` |
+| Distributor | `distributor-owner@medmove.dev` | `DistribPass123!` |
+| Logistics owner | `logistics-owner@medmove.dev` | `LogisticsPass123!` |
+| Pharmacy staff | `pharmacy-staff@medmove.dev` | `StaffPass123!` |
+| Logistics staff | `logistics-staff@medmove.dev` | `LogStaffPass123!` |
 
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
+The seed is idempotent — re-running it heals roles, capabilities and verification statuses to the canonical defaults.
 
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
+---
 
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
+## Scripts
 
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server on port 5000 (configured workflow: **Start application**) |
+| `npm run build` | Production build |
+| `npm run start` | Production server |
+| `npm run db:push` | Apply Drizzle schema to the configured Postgres |
+| `npm run db:seed` | Seed users, orgs, catalog, listings, requests, deliveries |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
 
-# Demo files
+---
 
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
+## Documentation
 
-# Learn More
+| Doc | Purpose |
+|---|---|
+| [docs/TESTING.md](docs/TESTING.md) | Manual test checklist organised by role |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security review checklist |
+| [docs/COMPLIANCE.md](docs/COMPLIANCE.md) | Safety / regulatory scope and what we explicitly don't ship |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deploy checklist |
+| [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Required env vars and how to set them |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md) | Production schema migration runbook |
 
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+---
 
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+## Design language
+
+- **Type:** Poppins for everything — display, body, monospace fallbacks.
+- **Colour:** deep teal `#0d4f40` accent over pure white surfaces.
+- **Surfaces:** no shadows, soft borders, **squircle** corners (`squircle-xs/sm/md`).
+- **Tone:** Airbnb-style friendly density — generous whitespace, sentence-case copy, never barked at.
+
+See `src/styles.css` for tokens and `src/components/ui/` for the primitive set.
+
+---
+
+## License
+
+Proprietary — internal MVP. No part of this repository may be redistributed without written permission.

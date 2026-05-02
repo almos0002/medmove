@@ -3,12 +3,16 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Activity,
   BarChart3,
+  Bell,
   Boxes,
   Building2,
+  ChevronDown,
   Inbox,
+  KeyRound,
   LayoutDashboard,
   Pill,
   ScrollText,
+  Settings,
   ShieldCheck,
   ShoppingBag,
   Truck,
@@ -16,11 +20,19 @@ import {
   type LucideIcon,
   FileCheck2,
   Tags,
+  User as UserIcon,
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { signOut } from '@/lib/auth-client'
 import { isAdminRole, type AppRole } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { VerificationStatusBadge } from '@/components/data/StatusBadge'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 
@@ -78,6 +90,7 @@ const APP_NAV: NavItem[] = [
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
   { to: '/org/activity', label: 'Activity', icon: Activity },
+  { to: '/org/settings', label: 'Settings', icon: Settings },
 ]
 const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
@@ -88,6 +101,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/deliveries', label: 'Deliveries', icon: Truck },
   { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
   { to: '/admin/audit-logs', label: 'Audit logs', icon: ScrollText },
+  { to: '/admin/settings', label: 'Platform settings', icon: Settings },
 ]
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },
@@ -228,17 +242,74 @@ function TopBar({
         <div className="flex items-center gap-3">
           {session.user && <NotificationBell />}
           {session.user && (
-            <span className="hidden sm:block text-[13px] text-[var(--color-mm-subtle)] truncate max-w-[220px]">
-              {session.user.email}
-            </span>
+            <UserMenu user={session.user} onSignOut={onSignOut} />
           )}
-          <Button variant="ghost" size="sm" onClick={onSignOut}>
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
         </div>
       </div>
     </header>
+  )
+}
+
+function UserMenu({
+  user,
+  onSignOut,
+}: {
+  user: NonNullable<SessionShape['user']>
+  onSignOut: () => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 squircle-xs h-9 px-2.5 hover:bg-black/[0.04] focus-ring"
+        >
+          <span className="h-7 w-7 squircle-xs bg-[var(--color-mm-accent)] text-white inline-flex items-center justify-center text-[12px] font-semibold">
+            {(user.email[0] ?? 'U').toUpperCase()}
+          </span>
+          <span className="hidden sm:inline text-[13px] text-[var(--color-mm-ink)] truncate max-w-[160px]">
+            {user.email}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-[var(--color-mm-subtle)]" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[220px]">
+        <DropdownMenuLabel>
+          <div className="space-y-0.5">
+            <div className="text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
+              {user.email}
+            </div>
+            <div className="text-[11.5px] text-[var(--color-mm-subtle)] capitalize">
+              {user.role.replace(/_/g, ' ')}
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/profile" className="flex items-center gap-2">
+            <UserIcon className="h-4 w-4" strokeWidth={1.6} />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/account" className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4" strokeWidth={1.6} />
+            Account & security
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/account/notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" strokeWidth={1.6} />
+            Notification preferences
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onSignOut} className="text-[var(--color-mm-bad)]">
+          <LogOut className="h-4 w-4" strokeWidth={1.6} />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

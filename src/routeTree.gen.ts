@@ -9,18 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as SuspendedRouteImport } from './routes/suspended'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrgRouteImport } from './routes/org'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrgIndexRouteImport } from './routes/org.index'
 import { Route as LogisticsIndexRouteImport } from './routes/logistics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AccountIndexRouteImport } from './routes/account.index'
+import { Route as OrgSettingsRouteImport } from './routes/org.settings'
 import { Route as OrgRequestsRouteImport } from './routes/org.requests'
 import { Route as OrgProfileRouteImport } from './routes/org.profile'
 import { Route as OrgMarketplaceRouteImport } from './routes/org.marketplace'
@@ -29,6 +35,7 @@ import { Route as OrgInventoryRouteImport } from './routes/org.inventory'
 import { Route as OrgDocumentsRouteImport } from './routes/org.documents'
 import { Route as OrgActivityRouteImport } from './routes/org.activity'
 import { Route as LogisticsDeliveryIdRouteImport } from './routes/logistics.$deliveryId'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminOrganizationsRouteImport } from './routes/admin.organizations'
@@ -36,6 +43,7 @@ import { Route as AdminMedicinesRouteImport } from './routes/admin.medicines'
 import { Route as AdminListingsRouteImport } from './routes/admin.listings'
 import { Route as AdminDeliveriesRouteImport } from './routes/admin.deliveries'
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
+import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
 import { Route as OrgRequestsRequestIdRouteImport } from './routes/org.requests.$requestId'
 import { Route as OrgMarketplaceListingIdRouteImport } from './routes/org.marketplace.$listingId'
 import { Route as OrgListingsNewRouteImport } from './routes/org.listings.new'
@@ -53,6 +61,16 @@ import { Route as AdminMedicinesMedicineIdRouteImport } from './routes/admin.med
 import { Route as AdminListingsListingIdRouteImport } from './routes/admin.listings.$listingId'
 import { Route as AdminDeliveriesDeliveryIdRouteImport } from './routes/admin.deliveries.$deliveryId'
 
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuspendedRoute = SuspendedRouteImport.update({
+  id: '/suspended',
+  path: '/suspended',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -61,6 +79,11 @@ const SignUpRoute = SignUpRouteImport.update({
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrgRoute = OrgRouteImport.update({
@@ -93,6 +116,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -112,6 +140,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const OrgSettingsRoute = OrgSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgRequestsRoute = OrgRequestsRouteImport.update({
   id: '/requests',
@@ -153,6 +191,11 @@ const LogisticsDeliveryIdRoute = LogisticsDeliveryIdRouteImport.update({
   path: '/$deliveryId',
   getParentRoute: () => LogisticsRoute,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRequestsRoute = AdminRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -187,6 +230,11 @@ const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
   id: '/audit-logs',
   path: '/audit-logs',
   getParentRoute: () => AdminRoute,
+} as any)
+const AccountNotificationsRoute = AccountNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AccountRoute,
 } as any)
 const OrgRequestsRequestIdRoute = OrgRequestsRequestIdRouteImport.update({
   id: '/$requestId',
@@ -273,14 +321,19 @@ const AdminDeliveriesDeliveryIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/logistics': typeof LogisticsRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/suspended': typeof SuspendedRoute
+  '/unauthorized': typeof UnauthorizedRoute
+  '/account/notifications': typeof AccountNotificationsRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
   '/admin/listings': typeof AdminListingsRouteWithChildren
@@ -288,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/reports': typeof AdminReportsRoute
   '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
   '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/activity': typeof OrgActivityRoute
   '/org/documents': typeof OrgDocumentsRoute
@@ -296,6 +350,8 @@ export interface FileRoutesByFullPath {
   '/org/marketplace': typeof OrgMarketplaceRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
   '/org/requests': typeof OrgRequestsRouteWithChildren
+  '/org/settings': typeof OrgSettingsRoute
+  '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
@@ -321,8 +377,12 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
+  '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/suspended': typeof SuspendedRoute
+  '/unauthorized': typeof UnauthorizedRoute
+  '/account/notifications': typeof AccountNotificationsRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
   '/admin/listings': typeof AdminListingsRouteWithChildren
@@ -330,6 +390,7 @@ export interface FileRoutesByTo {
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/reports': typeof AdminReportsRoute
   '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
   '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/activity': typeof OrgActivityRoute
   '/org/documents': typeof OrgDocumentsRoute
@@ -338,6 +399,8 @@ export interface FileRoutesByTo {
   '/org/marketplace': typeof OrgMarketplaceRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
   '/org/requests': typeof OrgRequestsRouteWithChildren
+  '/org/settings': typeof OrgSettingsRoute
+  '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/logistics': typeof LogisticsIndexRoute
   '/org': typeof OrgIndexRoute
@@ -361,14 +424,19 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/logistics': typeof LogisticsRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/suspended': typeof SuspendedRoute
+  '/unauthorized': typeof UnauthorizedRoute
+  '/account/notifications': typeof AccountNotificationsRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
   '/admin/listings': typeof AdminListingsRouteWithChildren
@@ -376,6 +444,7 @@ export interface FileRoutesById {
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/reports': typeof AdminReportsRoute
   '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
   '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/activity': typeof OrgActivityRoute
   '/org/documents': typeof OrgDocumentsRoute
@@ -384,6 +453,8 @@ export interface FileRoutesById {
   '/org/marketplace': typeof OrgMarketplaceRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
   '/org/requests': typeof OrgRequestsRouteWithChildren
+  '/org/settings': typeof OrgSettingsRoute
+  '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
@@ -408,14 +479,19 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/admin'
     | '/dashboard'
     | '/logistics'
     | '/notifications'
     | '/onboarding'
     | '/org'
+    | '/profile'
     | '/sign-in'
     | '/sign-up'
+    | '/suspended'
+    | '/unauthorized'
+    | '/account/notifications'
     | '/admin/audit-logs'
     | '/admin/deliveries'
     | '/admin/listings'
@@ -423,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/organizations'
     | '/admin/reports'
     | '/admin/requests'
+    | '/admin/settings'
     | '/logistics/$deliveryId'
     | '/org/activity'
     | '/org/documents'
@@ -431,6 +508,8 @@ export interface FileRouteTypes {
     | '/org/marketplace'
     | '/org/profile'
     | '/org/requests'
+    | '/org/settings'
+    | '/account/'
     | '/admin/'
     | '/logistics/'
     | '/org/'
@@ -456,8 +535,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/notifications'
     | '/onboarding'
+    | '/profile'
     | '/sign-in'
     | '/sign-up'
+    | '/suspended'
+    | '/unauthorized'
+    | '/account/notifications'
     | '/admin/audit-logs'
     | '/admin/deliveries'
     | '/admin/listings'
@@ -465,6 +548,7 @@ export interface FileRouteTypes {
     | '/admin/organizations'
     | '/admin/reports'
     | '/admin/requests'
+    | '/admin/settings'
     | '/logistics/$deliveryId'
     | '/org/activity'
     | '/org/documents'
@@ -473,6 +557,8 @@ export interface FileRouteTypes {
     | '/org/marketplace'
     | '/org/profile'
     | '/org/requests'
+    | '/org/settings'
+    | '/account'
     | '/admin'
     | '/logistics'
     | '/org'
@@ -495,14 +581,19 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/admin'
     | '/dashboard'
     | '/logistics'
     | '/notifications'
     | '/onboarding'
     | '/org'
+    | '/profile'
     | '/sign-in'
     | '/sign-up'
+    | '/suspended'
+    | '/unauthorized'
+    | '/account/notifications'
     | '/admin/audit-logs'
     | '/admin/deliveries'
     | '/admin/listings'
@@ -510,6 +601,7 @@ export interface FileRouteTypes {
     | '/admin/organizations'
     | '/admin/reports'
     | '/admin/requests'
+    | '/admin/settings'
     | '/logistics/$deliveryId'
     | '/org/activity'
     | '/org/documents'
@@ -518,6 +610,8 @@ export interface FileRouteTypes {
     | '/org/marketplace'
     | '/org/profile'
     | '/org/requests'
+    | '/org/settings'
+    | '/account/'
     | '/admin/'
     | '/logistics/'
     | '/org/'
@@ -541,19 +635,37 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   LogisticsRoute: typeof LogisticsRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   OrgRoute: typeof OrgRouteWithChildren
+  ProfileRoute: typeof ProfileRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  SuspendedRoute: typeof SuspendedRoute
+  UnauthorizedRoute: typeof UnauthorizedRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/suspended': {
+      id: '/suspended'
+      path: '/suspended'
+      fullPath: '/suspended'
+      preLoaderRoute: typeof SuspendedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -566,6 +678,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/org': {
@@ -610,6 +729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -637,6 +763,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/account/': {
+      id: '/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/org/settings': {
+      id: '/org/settings'
+      path: '/settings'
+      fullPath: '/org/settings'
+      preLoaderRoute: typeof OrgSettingsRouteImport
+      parentRoute: typeof OrgRoute
     }
     '/org/requests': {
       id: '/org/requests'
@@ -694,6 +834,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogisticsDeliveryIdRouteImport
       parentRoute: typeof LogisticsRoute
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/requests': {
       id: '/admin/requests'
       path: '/requests'
@@ -742,6 +889,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/audit-logs'
       preLoaderRoute: typeof AdminAuditLogsRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/account/notifications': {
+      id: '/account/notifications'
+      path: '/notifications'
+      fullPath: '/account/notifications'
+      preLoaderRoute: typeof AccountNotificationsRouteImport
+      parentRoute: typeof AccountRoute
     }
     '/org/requests/$requestId': {
       id: '/org/requests/$requestId'
@@ -858,6 +1012,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AccountRouteChildren {
+  AccountNotificationsRoute: typeof AccountNotificationsRoute
+  AccountIndexRoute: typeof AccountIndexRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountNotificationsRoute: AccountNotificationsRoute,
+  AccountIndexRoute: AccountIndexRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
+
 interface AdminDeliveriesRouteChildren {
   AdminDeliveriesDeliveryIdRoute: typeof AdminDeliveriesDeliveryIdRoute
 }
@@ -927,6 +1094,7 @@ interface AdminRouteChildren {
   AdminOrganizationsRoute: typeof AdminOrganizationsRouteWithChildren
   AdminReportsRoute: typeof AdminReportsRoute
   AdminRequestsRoute: typeof AdminRequestsRouteWithChildren
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -938,6 +1106,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrganizationsRoute: AdminOrganizationsRouteWithChildren,
   AdminReportsRoute: AdminReportsRoute,
   AdminRequestsRoute: AdminRequestsRouteWithChildren,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -1017,6 +1186,7 @@ interface OrgRouteChildren {
   OrgMarketplaceRoute: typeof OrgMarketplaceRouteWithChildren
   OrgProfileRoute: typeof OrgProfileRoute
   OrgRequestsRoute: typeof OrgRequestsRouteWithChildren
+  OrgSettingsRoute: typeof OrgSettingsRoute
   OrgIndexRoute: typeof OrgIndexRoute
   OrgDeliveriesDeliveryIdRoute: typeof OrgDeliveriesDeliveryIdRoute
   OrgDeliveriesIncomingRoute: typeof OrgDeliveriesIncomingRoute
@@ -1031,6 +1201,7 @@ const OrgRouteChildren: OrgRouteChildren = {
   OrgMarketplaceRoute: OrgMarketplaceRouteWithChildren,
   OrgProfileRoute: OrgProfileRoute,
   OrgRequestsRoute: OrgRequestsRouteWithChildren,
+  OrgSettingsRoute: OrgSettingsRoute,
   OrgIndexRoute: OrgIndexRoute,
   OrgDeliveriesDeliveryIdRoute: OrgDeliveriesDeliveryIdRoute,
   OrgDeliveriesIncomingRoute: OrgDeliveriesIncomingRoute,
@@ -1041,14 +1212,18 @@ const OrgRouteWithChildren = OrgRoute._addFileChildren(OrgRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   LogisticsRoute: LogisticsRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   OrgRoute: OrgRouteWithChildren,
+  ProfileRoute: ProfileRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  SuspendedRoute: SuspendedRoute,
+  UnauthorizedRoute: UnauthorizedRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
