@@ -17,7 +17,7 @@ const searchSchema = z.object({
   showInactive: z.boolean().optional(),
 })
 
-export const Route = createFileRoute('/admin/medicines')({
+export const Route = createFileRoute('/admin/medicines/')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => ({ q: search.q, showInactive: search.showInactive }),
   loader: ({ deps }) =>

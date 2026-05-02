@@ -56,7 +56,7 @@ const searchSchema = z.object({
 
 type SearchValues = z.infer<typeof searchSchema>
 
-export const Route = createFileRoute('/admin/deliveries')({
+export const Route = createFileRoute('/admin/deliveries/')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) =>

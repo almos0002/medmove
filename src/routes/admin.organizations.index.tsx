@@ -32,7 +32,7 @@ const searchSchema = z.object({
   q: z.string().optional(),
 })
 
-export const Route = createFileRoute('/admin/organizations')({
+export const Route = createFileRoute('/admin/organizations/')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => ({ status: search.status, q: search.q }),
   loader: ({ deps }) =>

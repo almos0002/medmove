@@ -79,7 +79,7 @@ const searchSchema = z.object({
 
 type SearchValues = z.infer<typeof searchSchema>
 
-export const Route = createFileRoute('/org/marketplace')({
+export const Route = createFileRoute('/org/marketplace/')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
   // Auth + admin/non-admin handling is done by the parent /org route

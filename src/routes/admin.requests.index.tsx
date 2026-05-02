@@ -1,20 +1,15 @@
 import * as React from 'react'
-import {
-  createFileRoute,
-  Link,
-  useNavigate,
-  redirect,
-} from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { Tags, Plus, Search, X } from 'lucide-react'
+import { ShieldCheck, Search, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { z } from 'zod'
-import { listMyListings } from '@/server/functions/listings'
+import { adminListTransferRequests } from '@/server/functions/transfers'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -31,12 +26,11 @@ import { PageError } from '@/components/feedback/PageError'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ExpiryStatusBadge } from '@/components/data/ExpiryStatusBadge'
 import {
-  ListingStatusBadge,
-  LISTING_STATUS_FILTERS,
-  LISTING_TYPE_FILTERS,
-  LISTING_EXPIRY_WINDOW_FILTERS,
-  type ListingStatus,
-} from '@/components/data/ListingStatusBadge'
+  TransferRequestStatusBadge,
+  TRANSFER_REQUEST_STATUS_FILTERS,
+  type TransferRequestStatus,
+} from '@/components/data/TransferRequestStatusBadge'
+import { LISTING_EXPIRY_WINDOW_FILTERS } from '@/components/data/ListingStatusBadge'
 
 const FILTERS_ALL = '__all__'
 
@@ -47,64 +41,68 @@ const searchSchema = z.object({
     .max(120)
     .transform((v) => (v.length === 0 ? undefined : v))
     .optional(),
+  requester: z
+    .string()
+    .trim()
+    .max(120)
+    .transform((v) => (v.length === 0 ? undefined : v))
+    .optional(),
+  seller: z
+    .string()
+    .trim()
+    .max(120)
+    .transform((v) => (v.length === 0 ? undefined : v))
+    .optional(),
   status: z
     .enum([
-      'draft',
       'pending_admin',
-      'active',
       'rejected',
-      'sold_out',
+      'pending_seller',
+      'declined',
+      'accepted',
+      'awaiting_handoff',
+      'dispatched',
+      'completed',
       'expired',
-      'withdrawn',
+      'cancelled',
     ])
     .optional(),
-  type: z.enum(['donation', 'sale']).optional(),
   expiry: z.enum(['expired', 'critical', 'expiring_soon', 'safe']).optional(),
 })
 
 type SearchValues = z.infer<typeof searchSchema>
 
-export const Route = createFileRoute('/org/listings')({
+export const Route = createFileRoute('/admin/requests/')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
-  beforeLoad: async ({ context }) => {
-    const session = (
-      context as { session?: { primaryOrg?: { id: string } | null } }
-    ).session
-    if (!session?.primaryOrg) {
-      throw redirect({ to: '/org' })
-    }
-    return { primaryOrgId: session.primaryOrg.id }
-  },
-  loader: ({ context, deps }) => {
-    const { primaryOrgId } = context as { primaryOrgId: string }
-    return listMyListings({
+  loader: ({ deps }) =>
+    adminListTransferRequests({
       data: {
-        organizationId: primaryOrgId,
-        status: deps.status,
-        medicineSearch: deps.q && deps.q.length > 0 ? deps.q : undefined,
-        listingType: deps.type,
+        status: deps.status ?? 'pending_admin',
+        medicineSearch: deps.q,
+        requesterOrgSearch: deps.requester,
+        sellerOrgSearch: deps.seller,
         expiryWindow: deps.expiry,
       },
-    })
-  },
+    }),
   pendingComponent: PageLoading,
-  errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
-  component: OrgListingsPage,
+  errorComponent: ({ error, reset }) => (
+    <PageError error={error} reset={reset} />
+  ),
+  component: AdminRequestsPage,
 })
 
 type Row = {
+  request: {
+    id: string
+    status: TransferRequestStatus
+    quantityRequested: number
+    createdAt: string
+  }
   listing: {
     id: string
-    status: ListingStatus
-    quantityListed: number
-    quantityAvailable: number
-    pricePerUnitCents: number | null
-    currency: string | null
     pickupCity: string
     pickupCountry: string
-    submittedAt: Date | string | null
-    updatedAt: Date | string
   }
   batch: {
     id: string
@@ -118,26 +116,23 @@ type Row = {
     strength: string
     genericName: string | null
   }
+  requesterOrg: { id: string; name: string; type: string }
+  sellerOrg: { id: string; name: string; type: string }
 }
 
-function OrgListingsPage() {
+function AdminRequestsPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const search = Route.useSearch()
   const data = Route.useLoaderData()
-  const { session } = Route.useRouteContext() as {
-    session: {
-      primaryOrg: {
-        canListMedicine: boolean
-        verificationStatus: string
-      } | null
-    }
-  }
-  const canList = !!session.primaryOrg?.canListMedicine
-  const isVerified = session.primaryOrg?.verificationStatus === 'verified'
-  const canCreate = canList && isVerified
-
   const items = data.items as unknown as Row[]
-  const hasFilters = !!(search.q || search.status || search.type || search.expiry)
+  const effectiveStatus = (search.status ?? 'pending_admin') as TransferRequestStatus
+  const hasFilters = !!(
+    search.q ||
+    search.requester ||
+    search.seller ||
+    search.status ||
+    search.expiry
+  )
 
   const columns = React.useMemo<ColumnDef<Row>[]>(
     () => [
@@ -146,8 +141,8 @@ function OrgListingsPage() {
         header: 'Medicine',
         cell: ({ row }) => (
           <Link
-            to="/org/listings/$listingId"
-            params={{ listingId: row.original.listing.id }}
+            to="/admin/requests/$requestId"
+            params={{ requestId: row.original.request.id }}
             className="text-sm font-medium text-[var(--color-mm-ink)] hover:underline"
           >
             <div>{row.original.medicine.name}</div>
@@ -161,61 +156,69 @@ function OrgListingsPage() {
         ),
       },
       {
-        id: 'batch',
-        header: 'Batch',
+        id: 'requester',
+        header: 'Requester',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-muted)]">
-            {row.original.batch.batchNumber}
-          </span>
+          <div>
+            <div className="text-sm text-[var(--color-mm-ink)]">
+              {row.original.requesterOrg.name}
+            </div>
+            <div className="text-xs text-[var(--color-mm-subtle)] capitalize mt-0.5">
+              {row.original.requesterOrg.type.replace(/_/g, ' ')}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'seller',
+        header: 'Seller',
+        cell: ({ row }) => (
+          <div>
+            <div className="text-sm text-[var(--color-mm-ink)]">
+              {row.original.sellerOrg.name}
+            </div>
+            <div className="text-xs text-[var(--color-mm-subtle)] capitalize mt-0.5">
+              {row.original.sellerOrg.type.replace(/_/g, ' ')}
+            </div>
+          </div>
         ),
       },
       {
         id: 'quantity',
-        header: 'Quantity',
+        header: 'Qty',
         cell: ({ row }) => (
           <span className="text-sm text-[var(--color-mm-ink)]">
-            {row.original.listing.quantityAvailable.toLocaleString()}
+            {row.original.request.quantityRequested.toLocaleString()}{' '}
             <span className="text-[var(--color-mm-subtle)]">
-              {' '}
-              / {row.original.listing.quantityListed.toLocaleString()}{' '}
               {row.original.batch.unit}
             </span>
           </span>
         ),
       },
       {
-        id: 'price',
-        header: 'Price',
+        id: 'expiry',
+        header: 'Batch expiry',
         cell: ({ row }) => (
-          <PriceCell
-            cents={row.original.listing.pricePerUnitCents}
-            currency={row.original.listing.currency ?? 'USD'}
-            unit={row.original.batch.unit}
-          />
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-[var(--color-mm-muted)]">
+              {format(new Date(row.original.batch.expiryDate), 'd MMM yyyy')}
+            </span>
+            <ExpiryStatusBadge
+              expiryDate={row.original.batch.expiryDate}
+              showDays
+            />
+          </div>
         ),
       },
       {
-        id: 'expiry',
-        header: 'Expiry',
-        cell: ({ row }) => {
-          const d = row.original.batch.expiryDate
-          return (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[var(--color-mm-muted)]">
-                {format(new Date(d), 'd MMM yyyy')}
-              </span>
-              <ExpiryStatusBadge expiryDate={d} showDays />
-            </div>
-          )
-        },
-      },
-      {
-        id: 'pickup',
-        header: 'Pickup',
+        id: 'submitted',
+        header: 'Submitted',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-muted)]">
-            {row.original.listing.pickupCity},{' '}
-            {row.original.listing.pickupCountry}
+          <span className="text-xs text-[var(--color-mm-muted)]">
+            {format(
+              new Date(row.original.request.createdAt),
+              'd MMM yyyy, HH:mm',
+            )}
           </span>
         ),
       },
@@ -223,7 +226,7 @@ function OrgListingsPage() {
         id: 'status',
         header: 'Status',
         cell: ({ row }) => (
-          <ListingStatusBadge status={row.original.listing.status} />
+          <TransferRequestStatusBadge status={row.original.request.status} />
         ),
       },
       {
@@ -233,10 +236,10 @@ function OrgListingsPage() {
           <div className="text-right">
             <Button asChild variant="secondary" size="sm">
               <Link
-                to="/org/listings/$listingId"
-                params={{ listingId: row.original.listing.id }}
+                to="/admin/requests/$requestId"
+                params={{ requestId: row.original.request.id }}
               >
-                Open
+                Review
               </Link>
             </Button>
           </div>
@@ -262,39 +265,18 @@ function OrgListingsPage() {
     })
   }
 
+  const statusLabel =
+    TRANSFER_REQUEST_STATUS_FILTERS.find((s) => s.value === effectiveStatus)
+      ?.label ?? effectiveStatus
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Listings"
+        title="Transfer requests"
         description={`${items.length} ${
-          items.length === 1 ? 'listing' : 'listings'
-        }. Listings start as drafts and need admin approval before going live.`}
-        actions={
-          <Button asChild disabled={!canCreate}>
-            <Link to="/org/listings/new">
-              <Plus className="h-4 w-4" />
-              New listing
-            </Link>
-          </Button>
-        }
+          items.length === 1 ? 'request' : 'requests'
+        } in “${statusLabel}”. Defaults to pending admin review.`}
       />
-
-      {!isVerified && (
-        <Card className="p-4 border-[var(--color-mm-warn)]">
-          <p className="text-sm text-[var(--color-mm-muted)]">
-            Your organization is not yet verified. You can review existing
-            listings but not create new ones until verification is approved.
-          </p>
-        </Card>
-      )}
-      {isVerified && !canList && (
-        <Card className="p-4 border-[var(--color-mm-line-strong)]">
-          <p className="text-sm text-[var(--color-mm-muted)]">
-            Listing medicines isn’t enabled for this organization type. Contact
-            an admin if you believe this is in error.
-          </p>
-        </Card>
-      )}
 
       <FilterBar
         search={search}
@@ -305,27 +287,20 @@ function OrgListingsPage() {
 
       {items.length === 0 ? (
         <EmptyState
-          icon={Tags}
-          title={hasFilters ? 'No matches' : 'No listings yet'}
+          icon={ShieldCheck}
+          title={hasFilters ? 'No matches' : 'Queue is clear'}
           description={
             hasFilters
-              ? 'Try clearing the filters above to see all your listings.'
-              : 'Pick a sealed, in-date batch from your inventory to publish your first listing.'
+              ? 'Try clearing filters above to widen the search.'
+              : 'No transfer requests are awaiting admin review right now.'
           }
           action={
             hasFilters ? (
               <Button
                 variant="secondary"
-                onClick={() => navigate({ search: {} })}
+                onClick={() => navigate({ search: {}, replace: true })}
               >
                 Clear filters
-              </Button>
-            ) : canCreate ? (
-              <Button asChild>
-                <Link to="/org/listings/new">
-                  <Plus className="h-4 w-4" />
-                  Create first listing
-                </Link>
               </Button>
             ) : null
           }
@@ -381,29 +356,6 @@ function OrgListingsPage() {
   )
 }
 
-function PriceCell({
-  cents,
-  currency,
-  unit,
-}: {
-  cents: number | null
-  currency: string
-  unit: string
-}) {
-  if (cents === null) {
-    return (
-      <span className="text-sm text-[var(--color-mm-ok)] font-medium">Free</span>
-    )
-  }
-  const formatted = (cents / 100).toFixed(2)
-  return (
-    <span className="text-sm text-[var(--color-mm-ink)]">
-      {formatted} {currency}
-      <span className="text-[var(--color-mm-subtle)]">/{unit}</span>
-    </span>
-  )
-}
-
 function FilterBar({
   search,
   hasFilters,
@@ -416,7 +368,7 @@ function FilterBar({
   onClear: () => void
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.2fr_auto] gap-3 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.4fr_1.4fr_1.4fr_1fr_1fr_auto] gap-3 items-start">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-mm-subtle)]" />
         <Input
@@ -428,7 +380,26 @@ function FilterBar({
           className="pl-9"
         />
       </div>
-
+      <Input
+        placeholder="Search requester org…"
+        defaultValue={search.requester ?? ''}
+        onChange={(e) =>
+          onChange(
+            'requester',
+            e.target.value || (undefined as unknown as string),
+          )
+        }
+      />
+      <Input
+        placeholder="Search seller org…"
+        defaultValue={search.seller ?? ''}
+        onChange={(e) =>
+          onChange(
+            'seller',
+            e.target.value || (undefined as unknown as string),
+          )
+        }
+      />
       <Select
         value={search.status ?? FILTERS_ALL}
         onValueChange={(v) =>
@@ -441,46 +412,25 @@ function FilterBar({
         }
       >
         <SelectTrigger>
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder="Pending admin" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={FILTERS_ALL}>Any status</SelectItem>
-          {LISTING_STATUS_FILTERS.map((s) => (
+          <SelectItem value={FILTERS_ALL}>Pending admin (default)</SelectItem>
+          {TRANSFER_REQUEST_STATUS_FILTERS.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-
-      <Select
-        value={search.type ?? FILTERS_ALL}
-        onValueChange={(v) =>
-          onChange(
-            'type',
-            v === FILTERS_ALL ? undefined : (v as SearchValues['type']),
-          )
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={FILTERS_ALL}>Any type</SelectItem>
-          {LISTING_TYPE_FILTERS.map((t) => (
-            <SelectItem key={t.value} value={t.value}>
-              {t.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       <Select
         value={search.expiry ?? FILTERS_ALL}
         onValueChange={(v) =>
           onChange(
             'expiry',
-            v === FILTERS_ALL ? undefined : (v as SearchValues['expiry']),
+            v === FILTERS_ALL
+              ? undefined
+              : (v as SearchValues['expiry']),
           )
         }
       >
@@ -496,7 +446,6 @@ function FilterBar({
           ))}
         </SelectContent>
       </Select>
-
       <Button
         variant="ghost"
         size="sm"

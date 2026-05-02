@@ -104,10 +104,11 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
   - `sign-in.tsx`, `sign-up.tsx` - Auth pages (sign-up exposes `org_owner` / `org_staff` / `logistics_staff` only)
   - `dashboard.tsx` - Universal post-login redirect to role-specific console
   - `admin.tsx` + `admin.index.tsx` - Admin/super_admin layout + index (guarded)
-  - `admin.medicines.tsx` / `admin.medicines.new.tsx` / `admin.medicines.$medicineId.tsx` - Catalog list, create, edit (admin-only)
-  - `org.inventory.tsx` / `org.inventory.new.tsx` / `org.inventory.$batchId.tsx` - Inventory list (TanStack Table + filters), add batch, batch detail (org members + admins)
-  - `org.listings.tsx` / `org.listings.new.tsx` / `org.listings.$listingId.tsx` - Seller-side listings (TanStack Table + filters), create-from-batch form, detail page with Submit / Withdraw actions
-  - `admin.listings.tsx` / `admin.listings.$listingId.tsx` - Admin review queue (defaults to `pending_admin`, status filter widens to all) + detail with Approve / Reject dialogs
+  - `admin.medicines.index.tsx` / `admin.medicines.new.tsx` / `admin.medicines.$medicineId.tsx` - Catalog list, create, edit (admin-only)
+  - `org.inventory.index.tsx` / `org.inventory.new.tsx` / `org.inventory.$batchId.tsx` - Inventory list (TanStack Table + filters), add batch, batch detail (org members + admins)
+  - `org.listings.index.tsx` / `org.listings.new.tsx` / `org.listings.$listingId.tsx` - Seller-side listings (TanStack Table + filters), create-from-batch form, detail page with Submit / Withdraw actions
+  - `admin.listings.index.tsx` / `admin.listings.$listingId.tsx` - Admin review queue (defaults to `pending_admin`, status filter widens to all) + detail with Approve / Reject dialogs
+  - **Convention**: any list page with sibling detail/`new` routes (e.g. `org.listings`, `admin.medicines`) MUST be named `*.index.tsx`. A bare `*.tsx` file makes TanStack Router treat it as a layout route, and child detail pages will not render unless the layout file calls `<Outlet />`.
   - `org.tsx` + `org.index.tsx` - **Unified** console for `org_owner` and `org_staff`. UI is the same for both roles — capability flags on the org row decide which actions render.
   - `logistics.tsx` + `logistics.index.tsx` - Logistics layout + index (guarded; admins allowed)
   - `api/auth/$.ts` - Splat route forwarding all `/api/auth/*` to Better Auth handler

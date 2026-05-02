@@ -27,23 +27,23 @@ import { Route as LogisticsIndexRouteImport } from './routes/logistics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AccountIndexRouteImport } from './routes/account.index'
 import { Route as OrgSettingsRouteImport } from './routes/org.settings'
-import { Route as OrgRequestsRouteImport } from './routes/org.requests'
 import { Route as OrgProfileRouteImport } from './routes/org.profile'
-import { Route as OrgMarketplaceRouteImport } from './routes/org.marketplace'
-import { Route as OrgListingsRouteImport } from './routes/org.listings'
-import { Route as OrgInventoryRouteImport } from './routes/org.inventory'
 import { Route as OrgDocumentsRouteImport } from './routes/org.documents'
 import { Route as OrgActivityRouteImport } from './routes/org.activity'
 import { Route as LogisticsDeliveryIdRouteImport } from './routes/logistics.$deliveryId'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
-import { Route as AdminOrganizationsRouteImport } from './routes/admin.organizations'
-import { Route as AdminMedicinesRouteImport } from './routes/admin.medicines'
-import { Route as AdminListingsRouteImport } from './routes/admin.listings'
-import { Route as AdminDeliveriesRouteImport } from './routes/admin.deliveries'
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
+import { Route as OrgRequestsIndexRouteImport } from './routes/org.requests.index'
+import { Route as OrgMarketplaceIndexRouteImport } from './routes/org.marketplace.index'
+import { Route as OrgListingsIndexRouteImport } from './routes/org.listings.index'
+import { Route as OrgInventoryIndexRouteImport } from './routes/org.inventory.index'
+import { Route as AdminRequestsIndexRouteImport } from './routes/admin.requests.index'
+import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin.organizations.index'
+import { Route as AdminMedicinesIndexRouteImport } from './routes/admin.medicines.index'
+import { Route as AdminListingsIndexRouteImport } from './routes/admin.listings.index'
+import { Route as AdminDeliveriesIndexRouteImport } from './routes/admin.deliveries.index'
 import { Route as OrgRequestsRequestIdRouteImport } from './routes/org.requests.$requestId'
 import { Route as OrgMarketplaceListingIdRouteImport } from './routes/org.marketplace.$listingId'
 import { Route as OrgListingsNewRouteImport } from './routes/org.listings.new'
@@ -151,29 +151,9 @@ const OrgSettingsRoute = OrgSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => OrgRoute,
 } as any)
-const OrgRequestsRoute = OrgRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => OrgRoute,
-} as any)
 const OrgProfileRoute = OrgProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => OrgRoute,
-} as any)
-const OrgMarketplaceRoute = OrgMarketplaceRouteImport.update({
-  id: '/marketplace',
-  path: '/marketplace',
-  getParentRoute: () => OrgRoute,
-} as any)
-const OrgListingsRoute = OrgListingsRouteImport.update({
-  id: '/listings',
-  path: '/listings',
-  getParentRoute: () => OrgRoute,
-} as any)
-const OrgInventoryRoute = OrgInventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
   getParentRoute: () => OrgRoute,
 } as any)
 const OrgDocumentsRoute = OrgDocumentsRouteImport.update({
@@ -196,34 +176,9 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminRequestsRoute = AdminRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOrganizationsRoute = AdminOrganizationsRouteImport.update({
-  id: '/organizations',
-  path: '/organizations',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMedicinesRoute = AdminMedicinesRouteImport.update({
-  id: '/medicines',
-  path: '/medicines',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminListingsRoute = AdminListingsRouteImport.update({
-  id: '/listings',
-  path: '/listings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminDeliveriesRoute = AdminDeliveriesRouteImport.update({
-  id: '/deliveries',
-  path: '/deliveries',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
@@ -236,35 +191,80 @@ const AccountNotificationsRoute = AccountNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => AccountRoute,
 } as any)
+const OrgRequestsIndexRoute = OrgRequestsIndexRouteImport.update({
+  id: '/requests/',
+  path: '/requests/',
+  getParentRoute: () => OrgRoute,
+} as any)
+const OrgMarketplaceIndexRoute = OrgMarketplaceIndexRouteImport.update({
+  id: '/marketplace/',
+  path: '/marketplace/',
+  getParentRoute: () => OrgRoute,
+} as any)
+const OrgListingsIndexRoute = OrgListingsIndexRouteImport.update({
+  id: '/listings/',
+  path: '/listings/',
+  getParentRoute: () => OrgRoute,
+} as any)
+const OrgInventoryIndexRoute = OrgInventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
+  getParentRoute: () => OrgRoute,
+} as any)
+const AdminRequestsIndexRoute = AdminRequestsIndexRouteImport.update({
+  id: '/requests/',
+  path: '/requests/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrganizationsIndexRoute = AdminOrganizationsIndexRouteImport.update({
+  id: '/organizations/',
+  path: '/organizations/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMedicinesIndexRoute = AdminMedicinesIndexRouteImport.update({
+  id: '/medicines/',
+  path: '/medicines/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminListingsIndexRoute = AdminListingsIndexRouteImport.update({
+  id: '/listings/',
+  path: '/listings/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDeliveriesIndexRoute = AdminDeliveriesIndexRouteImport.update({
+  id: '/deliveries/',
+  path: '/deliveries/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const OrgRequestsRequestIdRoute = OrgRequestsRequestIdRouteImport.update({
-  id: '/$requestId',
-  path: '/$requestId',
-  getParentRoute: () => OrgRequestsRoute,
+  id: '/requests/$requestId',
+  path: '/requests/$requestId',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgMarketplaceListingIdRoute = OrgMarketplaceListingIdRouteImport.update({
-  id: '/$listingId',
-  path: '/$listingId',
-  getParentRoute: () => OrgMarketplaceRoute,
+  id: '/marketplace/$listingId',
+  path: '/marketplace/$listingId',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgListingsNewRoute = OrgListingsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => OrgListingsRoute,
+  id: '/listings/new',
+  path: '/listings/new',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgListingsListingIdRoute = OrgListingsListingIdRouteImport.update({
-  id: '/$listingId',
-  path: '/$listingId',
-  getParentRoute: () => OrgListingsRoute,
+  id: '/listings/$listingId',
+  path: '/listings/$listingId',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgInventoryNewRoute = OrgInventoryNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => OrgInventoryRoute,
+  id: '/inventory/new',
+  path: '/inventory/new',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgInventoryBatchIdRoute = OrgInventoryBatchIdRouteImport.update({
-  id: '/$batchId',
-  path: '/$batchId',
-  getParentRoute: () => OrgInventoryRoute,
+  id: '/inventory/$batchId',
+  path: '/inventory/$batchId',
+  getParentRoute: () => OrgRoute,
 } as any)
 const OrgDeliveriesOutgoingRoute = OrgDeliveriesOutgoingRouteImport.update({
   id: '/deliveries/outgoing',
@@ -287,36 +287,36 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRequestsRequestIdRoute = AdminRequestsRequestIdRouteImport.update({
-  id: '/$requestId',
-  path: '/$requestId',
-  getParentRoute: () => AdminRequestsRoute,
+  id: '/requests/$requestId',
+  path: '/requests/$requestId',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminOrganizationsOrgIdRoute = AdminOrganizationsOrgIdRouteImport.update({
-  id: '/$orgId',
-  path: '/$orgId',
-  getParentRoute: () => AdminOrganizationsRoute,
+  id: '/organizations/$orgId',
+  path: '/organizations/$orgId',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminMedicinesNewRoute = AdminMedicinesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AdminMedicinesRoute,
+  id: '/medicines/new',
+  path: '/medicines/new',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminMedicinesMedicineIdRoute =
   AdminMedicinesMedicineIdRouteImport.update({
-    id: '/$medicineId',
-    path: '/$medicineId',
-    getParentRoute: () => AdminMedicinesRoute,
+    id: '/medicines/$medicineId',
+    path: '/medicines/$medicineId',
+    getParentRoute: () => AdminRoute,
   } as any)
 const AdminListingsListingIdRoute = AdminListingsListingIdRouteImport.update({
-  id: '/$listingId',
-  path: '/$listingId',
-  getParentRoute: () => AdminListingsRoute,
+  id: '/listings/$listingId',
+  path: '/listings/$listingId',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminDeliveriesDeliveryIdRoute =
   AdminDeliveriesDeliveryIdRouteImport.update({
-    id: '/$deliveryId',
-    path: '/$deliveryId',
-    getParentRoute: () => AdminDeliveriesRoute,
+    id: '/deliveries/$deliveryId',
+    path: '/deliveries/$deliveryId',
+    getParentRoute: () => AdminRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -335,21 +335,12 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof UnauthorizedRoute
   '/account/notifications': typeof AccountNotificationsRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
-  '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
-  '/admin/listings': typeof AdminListingsRouteWithChildren
-  '/admin/medicines': typeof AdminMedicinesRouteWithChildren
-  '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/reports': typeof AdminReportsRoute
-  '/admin/requests': typeof AdminRequestsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/activity': typeof OrgActivityRoute
   '/org/documents': typeof OrgDocumentsRoute
-  '/org/inventory': typeof OrgInventoryRouteWithChildren
-  '/org/listings': typeof OrgListingsRouteWithChildren
-  '/org/marketplace': typeof OrgMarketplaceRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
-  '/org/requests': typeof OrgRequestsRouteWithChildren
   '/org/settings': typeof OrgSettingsRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -371,6 +362,15 @@ export interface FileRoutesByFullPath {
   '/org/listings/new': typeof OrgListingsNewRoute
   '/org/marketplace/$listingId': typeof OrgMarketplaceListingIdRoute
   '/org/requests/$requestId': typeof OrgRequestsRequestIdRoute
+  '/admin/deliveries/': typeof AdminDeliveriesIndexRoute
+  '/admin/listings/': typeof AdminListingsIndexRoute
+  '/admin/medicines/': typeof AdminMedicinesIndexRoute
+  '/admin/organizations/': typeof AdminOrganizationsIndexRoute
+  '/admin/requests/': typeof AdminRequestsIndexRoute
+  '/org/inventory/': typeof OrgInventoryIndexRoute
+  '/org/listings/': typeof OrgListingsIndexRoute
+  '/org/marketplace/': typeof OrgMarketplaceIndexRoute
+  '/org/requests/': typeof OrgRequestsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -384,21 +384,12 @@ export interface FileRoutesByTo {
   '/unauthorized': typeof UnauthorizedRoute
   '/account/notifications': typeof AccountNotificationsRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
-  '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
-  '/admin/listings': typeof AdminListingsRouteWithChildren
-  '/admin/medicines': typeof AdminMedicinesRouteWithChildren
-  '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/reports': typeof AdminReportsRoute
-  '/admin/requests': typeof AdminRequestsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/activity': typeof OrgActivityRoute
   '/org/documents': typeof OrgDocumentsRoute
-  '/org/inventory': typeof OrgInventoryRouteWithChildren
-  '/org/listings': typeof OrgListingsRouteWithChildren
-  '/org/marketplace': typeof OrgMarketplaceRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
-  '/org/requests': typeof OrgRequestsRouteWithChildren
   '/org/settings': typeof OrgSettingsRoute
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -420,6 +411,15 @@ export interface FileRoutesByTo {
   '/org/listings/new': typeof OrgListingsNewRoute
   '/org/marketplace/$listingId': typeof OrgMarketplaceListingIdRoute
   '/org/requests/$requestId': typeof OrgRequestsRequestIdRoute
+  '/admin/deliveries': typeof AdminDeliveriesIndexRoute
+  '/admin/listings': typeof AdminListingsIndexRoute
+  '/admin/medicines': typeof AdminMedicinesIndexRoute
+  '/admin/organizations': typeof AdminOrganizationsIndexRoute
+  '/admin/requests': typeof AdminRequestsIndexRoute
+  '/org/inventory': typeof OrgInventoryIndexRoute
+  '/org/listings': typeof OrgListingsIndexRoute
+  '/org/marketplace': typeof OrgMarketplaceIndexRoute
+  '/org/requests': typeof OrgRequestsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -438,21 +438,12 @@ export interface FileRoutesById {
   '/unauthorized': typeof UnauthorizedRoute
   '/account/notifications': typeof AccountNotificationsRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
-  '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
-  '/admin/listings': typeof AdminListingsRouteWithChildren
-  '/admin/medicines': typeof AdminMedicinesRouteWithChildren
-  '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/reports': typeof AdminReportsRoute
-  '/admin/requests': typeof AdminRequestsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/activity': typeof OrgActivityRoute
   '/org/documents': typeof OrgDocumentsRoute
-  '/org/inventory': typeof OrgInventoryRouteWithChildren
-  '/org/listings': typeof OrgListingsRouteWithChildren
-  '/org/marketplace': typeof OrgMarketplaceRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
-  '/org/requests': typeof OrgRequestsRouteWithChildren
   '/org/settings': typeof OrgSettingsRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -474,6 +465,15 @@ export interface FileRoutesById {
   '/org/listings/new': typeof OrgListingsNewRoute
   '/org/marketplace/$listingId': typeof OrgMarketplaceListingIdRoute
   '/org/requests/$requestId': typeof OrgRequestsRequestIdRoute
+  '/admin/deliveries/': typeof AdminDeliveriesIndexRoute
+  '/admin/listings/': typeof AdminListingsIndexRoute
+  '/admin/medicines/': typeof AdminMedicinesIndexRoute
+  '/admin/organizations/': typeof AdminOrganizationsIndexRoute
+  '/admin/requests/': typeof AdminRequestsIndexRoute
+  '/org/inventory/': typeof OrgInventoryIndexRoute
+  '/org/listings/': typeof OrgListingsIndexRoute
+  '/org/marketplace/': typeof OrgMarketplaceIndexRoute
+  '/org/requests/': typeof OrgRequestsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -493,21 +493,12 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/account/notifications'
     | '/admin/audit-logs'
-    | '/admin/deliveries'
-    | '/admin/listings'
-    | '/admin/medicines'
-    | '/admin/organizations'
     | '/admin/reports'
-    | '/admin/requests'
     | '/admin/settings'
     | '/logistics/$deliveryId'
     | '/org/activity'
     | '/org/documents'
-    | '/org/inventory'
-    | '/org/listings'
-    | '/org/marketplace'
     | '/org/profile'
-    | '/org/requests'
     | '/org/settings'
     | '/account/'
     | '/admin/'
@@ -529,6 +520,15 @@ export interface FileRouteTypes {
     | '/org/listings/new'
     | '/org/marketplace/$listingId'
     | '/org/requests/$requestId'
+    | '/admin/deliveries/'
+    | '/admin/listings/'
+    | '/admin/medicines/'
+    | '/admin/organizations/'
+    | '/admin/requests/'
+    | '/org/inventory/'
+    | '/org/listings/'
+    | '/org/marketplace/'
+    | '/org/requests/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -542,21 +542,12 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/account/notifications'
     | '/admin/audit-logs'
-    | '/admin/deliveries'
-    | '/admin/listings'
-    | '/admin/medicines'
-    | '/admin/organizations'
     | '/admin/reports'
-    | '/admin/requests'
     | '/admin/settings'
     | '/logistics/$deliveryId'
     | '/org/activity'
     | '/org/documents'
-    | '/org/inventory'
-    | '/org/listings'
-    | '/org/marketplace'
     | '/org/profile'
-    | '/org/requests'
     | '/org/settings'
     | '/account'
     | '/admin'
@@ -578,6 +569,15 @@ export interface FileRouteTypes {
     | '/org/listings/new'
     | '/org/marketplace/$listingId'
     | '/org/requests/$requestId'
+    | '/admin/deliveries'
+    | '/admin/listings'
+    | '/admin/medicines'
+    | '/admin/organizations'
+    | '/admin/requests'
+    | '/org/inventory'
+    | '/org/listings'
+    | '/org/marketplace'
+    | '/org/requests'
   id:
     | '__root__'
     | '/'
@@ -595,21 +595,12 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/account/notifications'
     | '/admin/audit-logs'
-    | '/admin/deliveries'
-    | '/admin/listings'
-    | '/admin/medicines'
-    | '/admin/organizations'
     | '/admin/reports'
-    | '/admin/requests'
     | '/admin/settings'
     | '/logistics/$deliveryId'
     | '/org/activity'
     | '/org/documents'
-    | '/org/inventory'
-    | '/org/listings'
-    | '/org/marketplace'
     | '/org/profile'
-    | '/org/requests'
     | '/org/settings'
     | '/account/'
     | '/admin/'
@@ -631,6 +622,15 @@ export interface FileRouteTypes {
     | '/org/listings/new'
     | '/org/marketplace/$listingId'
     | '/org/requests/$requestId'
+    | '/admin/deliveries/'
+    | '/admin/listings/'
+    | '/admin/medicines/'
+    | '/admin/organizations/'
+    | '/admin/requests/'
+    | '/org/inventory/'
+    | '/org/listings/'
+    | '/org/marketplace/'
+    | '/org/requests/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -778,39 +778,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSettingsRouteImport
       parentRoute: typeof OrgRoute
     }
-    '/org/requests': {
-      id: '/org/requests'
-      path: '/requests'
-      fullPath: '/org/requests'
-      preLoaderRoute: typeof OrgRequestsRouteImport
-      parentRoute: typeof OrgRoute
-    }
     '/org/profile': {
       id: '/org/profile'
       path: '/profile'
       fullPath: '/org/profile'
       preLoaderRoute: typeof OrgProfileRouteImport
-      parentRoute: typeof OrgRoute
-    }
-    '/org/marketplace': {
-      id: '/org/marketplace'
-      path: '/marketplace'
-      fullPath: '/org/marketplace'
-      preLoaderRoute: typeof OrgMarketplaceRouteImport
-      parentRoute: typeof OrgRoute
-    }
-    '/org/listings': {
-      id: '/org/listings'
-      path: '/listings'
-      fullPath: '/org/listings'
-      preLoaderRoute: typeof OrgListingsRouteImport
-      parentRoute: typeof OrgRoute
-    }
-    '/org/inventory': {
-      id: '/org/inventory'
-      path: '/inventory'
-      fullPath: '/org/inventory'
-      preLoaderRoute: typeof OrgInventoryRouteImport
       parentRoute: typeof OrgRoute
     }
     '/org/documents': {
@@ -841,46 +813,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/requests': {
-      id: '/admin/requests'
-      path: '/requests'
-      fullPath: '/admin/requests'
-      preLoaderRoute: typeof AdminRequestsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/reports': {
       id: '/admin/reports'
       path: '/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AdminReportsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/organizations': {
-      id: '/admin/organizations'
-      path: '/organizations'
-      fullPath: '/admin/organizations'
-      preLoaderRoute: typeof AdminOrganizationsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/medicines': {
-      id: '/admin/medicines'
-      path: '/medicines'
-      fullPath: '/admin/medicines'
-      preLoaderRoute: typeof AdminMedicinesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/listings': {
-      id: '/admin/listings'
-      path: '/listings'
-      fullPath: '/admin/listings'
-      preLoaderRoute: typeof AdminListingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/deliveries': {
-      id: '/admin/deliveries'
-      path: '/deliveries'
-      fullPath: '/admin/deliveries'
-      preLoaderRoute: typeof AdminDeliveriesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/audit-logs': {
@@ -897,47 +834,110 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountNotificationsRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/org/requests/': {
+      id: '/org/requests/'
+      path: '/requests'
+      fullPath: '/org/requests/'
+      preLoaderRoute: typeof OrgRequestsIndexRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/org/marketplace/': {
+      id: '/org/marketplace/'
+      path: '/marketplace'
+      fullPath: '/org/marketplace/'
+      preLoaderRoute: typeof OrgMarketplaceIndexRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/org/listings/': {
+      id: '/org/listings/'
+      path: '/listings'
+      fullPath: '/org/listings/'
+      preLoaderRoute: typeof OrgListingsIndexRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/org/inventory/': {
+      id: '/org/inventory/'
+      path: '/inventory'
+      fullPath: '/org/inventory/'
+      preLoaderRoute: typeof OrgInventoryIndexRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/admin/requests/': {
+      id: '/admin/requests/'
+      path: '/requests'
+      fullPath: '/admin/requests/'
+      preLoaderRoute: typeof AdminRequestsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/organizations/': {
+      id: '/admin/organizations/'
+      path: '/organizations'
+      fullPath: '/admin/organizations/'
+      preLoaderRoute: typeof AdminOrganizationsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/medicines/': {
+      id: '/admin/medicines/'
+      path: '/medicines'
+      fullPath: '/admin/medicines/'
+      preLoaderRoute: typeof AdminMedicinesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/listings/': {
+      id: '/admin/listings/'
+      path: '/listings'
+      fullPath: '/admin/listings/'
+      preLoaderRoute: typeof AdminListingsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/deliveries/': {
+      id: '/admin/deliveries/'
+      path: '/deliveries'
+      fullPath: '/admin/deliveries/'
+      preLoaderRoute: typeof AdminDeliveriesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/org/requests/$requestId': {
       id: '/org/requests/$requestId'
-      path: '/$requestId'
+      path: '/requests/$requestId'
       fullPath: '/org/requests/$requestId'
       preLoaderRoute: typeof OrgRequestsRequestIdRouteImport
-      parentRoute: typeof OrgRequestsRoute
+      parentRoute: typeof OrgRoute
     }
     '/org/marketplace/$listingId': {
       id: '/org/marketplace/$listingId'
-      path: '/$listingId'
+      path: '/marketplace/$listingId'
       fullPath: '/org/marketplace/$listingId'
       preLoaderRoute: typeof OrgMarketplaceListingIdRouteImport
-      parentRoute: typeof OrgMarketplaceRoute
+      parentRoute: typeof OrgRoute
     }
     '/org/listings/new': {
       id: '/org/listings/new'
-      path: '/new'
+      path: '/listings/new'
       fullPath: '/org/listings/new'
       preLoaderRoute: typeof OrgListingsNewRouteImport
-      parentRoute: typeof OrgListingsRoute
+      parentRoute: typeof OrgRoute
     }
     '/org/listings/$listingId': {
       id: '/org/listings/$listingId'
-      path: '/$listingId'
+      path: '/listings/$listingId'
       fullPath: '/org/listings/$listingId'
       preLoaderRoute: typeof OrgListingsListingIdRouteImport
-      parentRoute: typeof OrgListingsRoute
+      parentRoute: typeof OrgRoute
     }
     '/org/inventory/new': {
       id: '/org/inventory/new'
-      path: '/new'
+      path: '/inventory/new'
       fullPath: '/org/inventory/new'
       preLoaderRoute: typeof OrgInventoryNewRouteImport
-      parentRoute: typeof OrgInventoryRoute
+      parentRoute: typeof OrgRoute
     }
     '/org/inventory/$batchId': {
       id: '/org/inventory/$batchId'
-      path: '/$batchId'
+      path: '/inventory/$batchId'
       fullPath: '/org/inventory/$batchId'
       preLoaderRoute: typeof OrgInventoryBatchIdRouteImport
-      parentRoute: typeof OrgInventoryRoute
+      parentRoute: typeof OrgRoute
     }
     '/org/deliveries/outgoing': {
       id: '/org/deliveries/outgoing'
@@ -969,45 +969,45 @@ declare module '@tanstack/react-router' {
     }
     '/admin/requests/$requestId': {
       id: '/admin/requests/$requestId'
-      path: '/$requestId'
+      path: '/requests/$requestId'
       fullPath: '/admin/requests/$requestId'
       preLoaderRoute: typeof AdminRequestsRequestIdRouteImport
-      parentRoute: typeof AdminRequestsRoute
+      parentRoute: typeof AdminRoute
     }
     '/admin/organizations/$orgId': {
       id: '/admin/organizations/$orgId'
-      path: '/$orgId'
+      path: '/organizations/$orgId'
       fullPath: '/admin/organizations/$orgId'
       preLoaderRoute: typeof AdminOrganizationsOrgIdRouteImport
-      parentRoute: typeof AdminOrganizationsRoute
+      parentRoute: typeof AdminRoute
     }
     '/admin/medicines/new': {
       id: '/admin/medicines/new'
-      path: '/new'
+      path: '/medicines/new'
       fullPath: '/admin/medicines/new'
       preLoaderRoute: typeof AdminMedicinesNewRouteImport
-      parentRoute: typeof AdminMedicinesRoute
+      parentRoute: typeof AdminRoute
     }
     '/admin/medicines/$medicineId': {
       id: '/admin/medicines/$medicineId'
-      path: '/$medicineId'
+      path: '/medicines/$medicineId'
       fullPath: '/admin/medicines/$medicineId'
       preLoaderRoute: typeof AdminMedicinesMedicineIdRouteImport
-      parentRoute: typeof AdminMedicinesRoute
+      parentRoute: typeof AdminRoute
     }
     '/admin/listings/$listingId': {
       id: '/admin/listings/$listingId'
-      path: '/$listingId'
+      path: '/listings/$listingId'
       fullPath: '/admin/listings/$listingId'
       preLoaderRoute: typeof AdminListingsListingIdRouteImport
-      parentRoute: typeof AdminListingsRoute
+      parentRoute: typeof AdminRoute
     }
     '/admin/deliveries/$deliveryId': {
       id: '/admin/deliveries/$deliveryId'
-      path: '/$deliveryId'
+      path: '/deliveries/$deliveryId'
       fullPath: '/admin/deliveries/$deliveryId'
       preLoaderRoute: typeof AdminDeliveriesDeliveryIdRouteImport
-      parentRoute: typeof AdminDeliveriesRoute
+      parentRoute: typeof AdminRoute
     }
   }
 }
@@ -1025,89 +1025,40 @@ const AccountRouteChildren: AccountRouteChildren = {
 const AccountRouteWithChildren =
   AccountRoute._addFileChildren(AccountRouteChildren)
 
-interface AdminDeliveriesRouteChildren {
-  AdminDeliveriesDeliveryIdRoute: typeof AdminDeliveriesDeliveryIdRoute
-}
-
-const AdminDeliveriesRouteChildren: AdminDeliveriesRouteChildren = {
-  AdminDeliveriesDeliveryIdRoute: AdminDeliveriesDeliveryIdRoute,
-}
-
-const AdminDeliveriesRouteWithChildren = AdminDeliveriesRoute._addFileChildren(
-  AdminDeliveriesRouteChildren,
-)
-
-interface AdminListingsRouteChildren {
-  AdminListingsListingIdRoute: typeof AdminListingsListingIdRoute
-}
-
-const AdminListingsRouteChildren: AdminListingsRouteChildren = {
-  AdminListingsListingIdRoute: AdminListingsListingIdRoute,
-}
-
-const AdminListingsRouteWithChildren = AdminListingsRoute._addFileChildren(
-  AdminListingsRouteChildren,
-)
-
-interface AdminMedicinesRouteChildren {
-  AdminMedicinesMedicineIdRoute: typeof AdminMedicinesMedicineIdRoute
-  AdminMedicinesNewRoute: typeof AdminMedicinesNewRoute
-}
-
-const AdminMedicinesRouteChildren: AdminMedicinesRouteChildren = {
-  AdminMedicinesMedicineIdRoute: AdminMedicinesMedicineIdRoute,
-  AdminMedicinesNewRoute: AdminMedicinesNewRoute,
-}
-
-const AdminMedicinesRouteWithChildren = AdminMedicinesRoute._addFileChildren(
-  AdminMedicinesRouteChildren,
-)
-
-interface AdminOrganizationsRouteChildren {
-  AdminOrganizationsOrgIdRoute: typeof AdminOrganizationsOrgIdRoute
-}
-
-const AdminOrganizationsRouteChildren: AdminOrganizationsRouteChildren = {
-  AdminOrganizationsOrgIdRoute: AdminOrganizationsOrgIdRoute,
-}
-
-const AdminOrganizationsRouteWithChildren =
-  AdminOrganizationsRoute._addFileChildren(AdminOrganizationsRouteChildren)
-
-interface AdminRequestsRouteChildren {
-  AdminRequestsRequestIdRoute: typeof AdminRequestsRequestIdRoute
-}
-
-const AdminRequestsRouteChildren: AdminRequestsRouteChildren = {
-  AdminRequestsRequestIdRoute: AdminRequestsRequestIdRoute,
-}
-
-const AdminRequestsRouteWithChildren = AdminRequestsRoute._addFileChildren(
-  AdminRequestsRouteChildren,
-)
-
 interface AdminRouteChildren {
   AdminAuditLogsRoute: typeof AdminAuditLogsRoute
-  AdminDeliveriesRoute: typeof AdminDeliveriesRouteWithChildren
-  AdminListingsRoute: typeof AdminListingsRouteWithChildren
-  AdminMedicinesRoute: typeof AdminMedicinesRouteWithChildren
-  AdminOrganizationsRoute: typeof AdminOrganizationsRouteWithChildren
   AdminReportsRoute: typeof AdminReportsRoute
-  AdminRequestsRoute: typeof AdminRequestsRouteWithChildren
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminDeliveriesDeliveryIdRoute: typeof AdminDeliveriesDeliveryIdRoute
+  AdminListingsListingIdRoute: typeof AdminListingsListingIdRoute
+  AdminMedicinesMedicineIdRoute: typeof AdminMedicinesMedicineIdRoute
+  AdminMedicinesNewRoute: typeof AdminMedicinesNewRoute
+  AdminOrganizationsOrgIdRoute: typeof AdminOrganizationsOrgIdRoute
+  AdminRequestsRequestIdRoute: typeof AdminRequestsRequestIdRoute
+  AdminDeliveriesIndexRoute: typeof AdminDeliveriesIndexRoute
+  AdminListingsIndexRoute: typeof AdminListingsIndexRoute
+  AdminMedicinesIndexRoute: typeof AdminMedicinesIndexRoute
+  AdminOrganizationsIndexRoute: typeof AdminOrganizationsIndexRoute
+  AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAuditLogsRoute: AdminAuditLogsRoute,
-  AdminDeliveriesRoute: AdminDeliveriesRouteWithChildren,
-  AdminListingsRoute: AdminListingsRouteWithChildren,
-  AdminMedicinesRoute: AdminMedicinesRouteWithChildren,
-  AdminOrganizationsRoute: AdminOrganizationsRouteWithChildren,
   AdminReportsRoute: AdminReportsRoute,
-  AdminRequestsRoute: AdminRequestsRouteWithChildren,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminDeliveriesDeliveryIdRoute: AdminDeliveriesDeliveryIdRoute,
+  AdminListingsListingIdRoute: AdminListingsListingIdRoute,
+  AdminMedicinesMedicineIdRoute: AdminMedicinesMedicineIdRoute,
+  AdminMedicinesNewRoute: AdminMedicinesNewRoute,
+  AdminOrganizationsOrgIdRoute: AdminOrganizationsOrgIdRoute,
+  AdminRequestsRequestIdRoute: AdminRequestsRequestIdRoute,
+  AdminDeliveriesIndexRoute: AdminDeliveriesIndexRoute,
+  AdminListingsIndexRoute: AdminListingsIndexRoute,
+  AdminMedicinesIndexRoute: AdminMedicinesIndexRoute,
+  AdminOrganizationsIndexRoute: AdminOrganizationsIndexRoute,
+  AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1126,86 +1077,46 @@ const LogisticsRouteWithChildren = LogisticsRoute._addFileChildren(
   LogisticsRouteChildren,
 )
 
-interface OrgInventoryRouteChildren {
-  OrgInventoryBatchIdRoute: typeof OrgInventoryBatchIdRoute
-  OrgInventoryNewRoute: typeof OrgInventoryNewRoute
-}
-
-const OrgInventoryRouteChildren: OrgInventoryRouteChildren = {
-  OrgInventoryBatchIdRoute: OrgInventoryBatchIdRoute,
-  OrgInventoryNewRoute: OrgInventoryNewRoute,
-}
-
-const OrgInventoryRouteWithChildren = OrgInventoryRoute._addFileChildren(
-  OrgInventoryRouteChildren,
-)
-
-interface OrgListingsRouteChildren {
-  OrgListingsListingIdRoute: typeof OrgListingsListingIdRoute
-  OrgListingsNewRoute: typeof OrgListingsNewRoute
-}
-
-const OrgListingsRouteChildren: OrgListingsRouteChildren = {
-  OrgListingsListingIdRoute: OrgListingsListingIdRoute,
-  OrgListingsNewRoute: OrgListingsNewRoute,
-}
-
-const OrgListingsRouteWithChildren = OrgListingsRoute._addFileChildren(
-  OrgListingsRouteChildren,
-)
-
-interface OrgMarketplaceRouteChildren {
-  OrgMarketplaceListingIdRoute: typeof OrgMarketplaceListingIdRoute
-}
-
-const OrgMarketplaceRouteChildren: OrgMarketplaceRouteChildren = {
-  OrgMarketplaceListingIdRoute: OrgMarketplaceListingIdRoute,
-}
-
-const OrgMarketplaceRouteWithChildren = OrgMarketplaceRoute._addFileChildren(
-  OrgMarketplaceRouteChildren,
-)
-
-interface OrgRequestsRouteChildren {
-  OrgRequestsRequestIdRoute: typeof OrgRequestsRequestIdRoute
-}
-
-const OrgRequestsRouteChildren: OrgRequestsRouteChildren = {
-  OrgRequestsRequestIdRoute: OrgRequestsRequestIdRoute,
-}
-
-const OrgRequestsRouteWithChildren = OrgRequestsRoute._addFileChildren(
-  OrgRequestsRouteChildren,
-)
-
 interface OrgRouteChildren {
   OrgActivityRoute: typeof OrgActivityRoute
   OrgDocumentsRoute: typeof OrgDocumentsRoute
-  OrgInventoryRoute: typeof OrgInventoryRouteWithChildren
-  OrgListingsRoute: typeof OrgListingsRouteWithChildren
-  OrgMarketplaceRoute: typeof OrgMarketplaceRouteWithChildren
   OrgProfileRoute: typeof OrgProfileRoute
-  OrgRequestsRoute: typeof OrgRequestsRouteWithChildren
   OrgSettingsRoute: typeof OrgSettingsRoute
   OrgIndexRoute: typeof OrgIndexRoute
   OrgDeliveriesDeliveryIdRoute: typeof OrgDeliveriesDeliveryIdRoute
   OrgDeliveriesIncomingRoute: typeof OrgDeliveriesIncomingRoute
   OrgDeliveriesOutgoingRoute: typeof OrgDeliveriesOutgoingRoute
+  OrgInventoryBatchIdRoute: typeof OrgInventoryBatchIdRoute
+  OrgInventoryNewRoute: typeof OrgInventoryNewRoute
+  OrgListingsListingIdRoute: typeof OrgListingsListingIdRoute
+  OrgListingsNewRoute: typeof OrgListingsNewRoute
+  OrgMarketplaceListingIdRoute: typeof OrgMarketplaceListingIdRoute
+  OrgRequestsRequestIdRoute: typeof OrgRequestsRequestIdRoute
+  OrgInventoryIndexRoute: typeof OrgInventoryIndexRoute
+  OrgListingsIndexRoute: typeof OrgListingsIndexRoute
+  OrgMarketplaceIndexRoute: typeof OrgMarketplaceIndexRoute
+  OrgRequestsIndexRoute: typeof OrgRequestsIndexRoute
 }
 
 const OrgRouteChildren: OrgRouteChildren = {
   OrgActivityRoute: OrgActivityRoute,
   OrgDocumentsRoute: OrgDocumentsRoute,
-  OrgInventoryRoute: OrgInventoryRouteWithChildren,
-  OrgListingsRoute: OrgListingsRouteWithChildren,
-  OrgMarketplaceRoute: OrgMarketplaceRouteWithChildren,
   OrgProfileRoute: OrgProfileRoute,
-  OrgRequestsRoute: OrgRequestsRouteWithChildren,
   OrgSettingsRoute: OrgSettingsRoute,
   OrgIndexRoute: OrgIndexRoute,
   OrgDeliveriesDeliveryIdRoute: OrgDeliveriesDeliveryIdRoute,
   OrgDeliveriesIncomingRoute: OrgDeliveriesIncomingRoute,
   OrgDeliveriesOutgoingRoute: OrgDeliveriesOutgoingRoute,
+  OrgInventoryBatchIdRoute: OrgInventoryBatchIdRoute,
+  OrgInventoryNewRoute: OrgInventoryNewRoute,
+  OrgListingsListingIdRoute: OrgListingsListingIdRoute,
+  OrgListingsNewRoute: OrgListingsNewRoute,
+  OrgMarketplaceListingIdRoute: OrgMarketplaceListingIdRoute,
+  OrgRequestsRequestIdRoute: OrgRequestsRequestIdRoute,
+  OrgInventoryIndexRoute: OrgInventoryIndexRoute,
+  OrgListingsIndexRoute: OrgListingsIndexRoute,
+  OrgMarketplaceIndexRoute: OrgMarketplaceIndexRoute,
+  OrgRequestsIndexRoute: OrgRequestsIndexRoute,
 }
 
 const OrgRouteWithChildren = OrgRoute._addFileChildren(OrgRouteChildren)
