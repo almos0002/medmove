@@ -79,10 +79,27 @@ export const transferRequestStatusEnum = pgEnum('transfer_request_status', [
   'cancelled',
 ])
 
+/**
+ * Delivery lifecycle (Step 10):
+ *   pending           — admin created the delivery, no pickup booked yet
+ *   pickup_scheduled  — admin booked a pickup window with the seller
+ *   picked_up         — courier collected the goods from the seller
+ *   in_transit        — package en route to the receiver
+ *   delivered         — receiver confirmed receipt (request → completed)
+ *   failed            — pickup or in-transit attempt aborted permanently
+ *   cancelled         — delivery cancelled before pickup
+ *   disputed          — receiver rejected/contested receipt
+ *   scheduled         — legacy alias retained for any historical rows
+ */
 export const deliveryStatusEnum = pgEnum('delivery_status', [
+  'pending',
+  'pickup_scheduled',
+  'picked_up',
   'scheduled',
   'in_transit',
   'delivered',
+  'failed',
+  'cancelled',
   'disputed',
 ])
 

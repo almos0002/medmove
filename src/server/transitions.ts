@@ -31,9 +31,15 @@ export const TRANSFER_TRANSITIONS = {
 } as const
 
 export const DELIVERY_TRANSITIONS = {
-  scheduled: ['in_transit'],
-  in_transit: ['delivered', 'disputed'],
+  pending: ['pickup_scheduled', 'cancelled'],
+  pickup_scheduled: ['picked_up', 'cancelled'],
+  picked_up: ['in_transit', 'failed'],
+  // Legacy state retained for any historical rows; new flow does not enter it.
+  scheduled: ['in_transit', 'cancelled'],
+  in_transit: ['delivered', 'failed', 'disputed'],
   delivered: ['disputed'],
+  failed: [],
+  cancelled: [],
   disputed: [],
 } as const
 

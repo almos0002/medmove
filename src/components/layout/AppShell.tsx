@@ -59,6 +59,18 @@ const APP_NAV: NavItem[] = [
     icon: Inbox,
     show: (s) => !!s.primaryOrg?.canRequestMedicine,
   },
+  {
+    to: '/org/deliveries/outgoing',
+    label: 'Outgoing deliveries',
+    icon: Truck,
+    show: (s) => !!s.primaryOrg?.canListMedicine,
+  },
+  {
+    to: '/org/deliveries/incoming',
+    label: 'Incoming deliveries',
+    icon: Truck,
+    show: (s) => !!s.primaryOrg?.canRequestMedicine,
+  },
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
 ]
@@ -68,6 +80,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/medicines', label: 'Medicines', icon: Pill },
   { to: '/admin/listings', label: 'Listings', icon: Tags },
   { to: '/admin/requests', label: 'Transfers', icon: Inbox },
+  { to: '/admin/deliveries', label: 'Deliveries', icon: Truck },
 ]
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },

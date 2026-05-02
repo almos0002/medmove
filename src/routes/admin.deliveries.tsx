@@ -6,11 +6,12 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Truck, X } from 'lucide-react'
+import { Search, X, Truck } from 'lucide-react'
 import { format } from 'date-fns'
 import { z } from 'zod'
-import { listMyAssignedDeliveries } from '@/server/functions/deliveries'
+import { adminListDeliveries } from '@/server/functions/deliveries'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -32,6 +33,12 @@ import {
 const FILTERS_ALL = '__all__'
 
 const searchSchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .max(120)
+    .transform((v) => (v.length === 0 ? undefined : v))
+    .optional(),
   status: z
     .enum([
       'pending',
@@ -49,16 +56,16 @@ const searchSchema = z.object({
 
 type SearchValues = z.infer<typeof searchSchema>
 
-export const Route = createFileRoute('/logistics/')({
+export const Route = createFileRoute('/admin/deliveries')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) =>
-    listMyAssignedDeliveries({ data: { status: deps.status } }),
+    adminListDeliveries({ data: { search: deps.q, status: deps.status } }),
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
-  component: LogisticsHome,
+  component: AdminDeliveriesPage,
 })
 
 type Row = {
@@ -66,22 +73,26 @@ type Row = {
     id: string
     status: DeliveryStatus
     dispatchMethod: string
-    pickupScheduledAt: string | Date | null
     createdAt: string | Date
+    pickupScheduledAt: string | Date | null
+    pickedUpAt: string | Date | null
+    dispatchedAt: string | Date | null
+    receivedAt: string | Date | null
   }
-  request: { quantityRequested: number }
+  request: { id: string; quantityRequested: number }
   batch: { unit: string }
-  medicine: { name: string; strength: string }
-  sellerOrg: { name: string; type: string }
-  requesterOrg: { name: string; type: string }
+  medicine: { id: string; name: string; strength: string }
+  sellerOrg: { id: string; name: string; type: string }
+  requesterOrg: { id: string; name: string; type: string }
+  logisticsOrg: { id: string; name: string } | null
 }
 
-function LogisticsHome() {
+function AdminDeliveriesPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const search = Route.useSearch()
   const data = Route.useLoaderData()
   const items = data.items as unknown as Row[]
-  const { session } = Route.useRouteContext()
+  const hasFilters = !!(search.q || search.status)
 
   const columns = React.useMemo<ColumnDef<Row>[]>(
     () => [
@@ -90,7 +101,7 @@ function LogisticsHome() {
         header: 'Medicine',
         cell: ({ row }) => (
           <Link
-            to="/logistics/$deliveryId"
+            to="/admin/deliveries/$deliveryId"
             params={{ deliveryId: row.original.delivery.id }}
             className="text-sm font-medium text-[var(--color-mm-ink)] hover:underline"
           >
@@ -105,38 +116,61 @@ function LogisticsHome() {
       },
       {
         id: 'seller',
-        header: 'From',
+        header: 'Seller',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-ink)]">
-            {row.original.sellerOrg.name}
-          </span>
+          <div>
+            <div className="text-sm text-[var(--color-mm-ink)]">
+              {row.original.sellerOrg.name}
+            </div>
+            <div className="text-xs text-[var(--color-mm-subtle)] capitalize mt-0.5">
+              {row.original.sellerOrg.type.replace(/_/g, ' ')}
+            </div>
+          </div>
         ),
       },
       {
         id: 'receiver',
-        header: 'To',
+        header: 'Receiver',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-ink)]">
-            {row.original.requesterOrg.name}
+          <div>
+            <div className="text-sm text-[var(--color-mm-ink)]">
+              {row.original.requesterOrg.name}
+            </div>
+            <div className="text-xs text-[var(--color-mm-subtle)] capitalize mt-0.5">
+              {row.original.requesterOrg.type.replace(/_/g, ' ')}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'logistics',
+        header: 'Logistics',
+        cell: ({ row }) => (
+          <span className="text-sm text-[var(--color-mm-muted)]">
+            {row.original.logisticsOrg?.name ?? '—'}
           </span>
         ),
       },
       {
-        id: 'pickup',
-        header: 'Pickup',
-        cell: ({ row }) =>
-          row.original.delivery.pickupScheduledAt ? (
-            <span className="text-xs text-[var(--color-mm-muted)]">
-              {format(
-                new Date(row.original.delivery.pickupScheduledAt),
-                'd MMM yyyy, HH:mm',
-              )}
-            </span>
-          ) : (
-            <span className="text-xs text-[var(--color-mm-subtle)]">
-              Not scheduled
-            </span>
-          ),
+        id: 'method',
+        header: 'Method',
+        cell: ({ row }) => (
+          <span className="text-xs text-[var(--color-mm-muted)] capitalize">
+            {row.original.delivery.dispatchMethod.replace(/_/g, ' ')}
+          </span>
+        ),
+      },
+      {
+        id: 'created',
+        header: 'Created',
+        cell: ({ row }) => (
+          <span className="text-xs text-[var(--color-mm-muted)]">
+            {format(
+              new Date(row.original.delivery.createdAt),
+              'd MMM yyyy, HH:mm',
+            )}
+          </span>
+        ),
       },
       {
         id: 'status',
@@ -152,7 +186,7 @@ function LogisticsHome() {
           <div className="text-right">
             <Button asChild variant="secondary" size="sm">
               <Link
-                to="/logistics/$deliveryId"
+                to="/admin/deliveries/$deliveryId"
                 params={{ deliveryId: row.original.delivery.id }}
               >
                 Open
@@ -171,34 +205,49 @@ function LogisticsHome() {
     getCoreRowModel: getCoreRowModel(),
   })
 
+  function setSearchKey<TKey extends keyof SearchValues>(
+    key: TKey,
+    value: SearchValues[TKey],
+  ) {
+    navigate({
+      search: (s) => ({ ...s, [key]: value || undefined }),
+      replace: true,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Assigned deliveries"
-        description={
-          <>
-            Signed in as{' '}
-            <span className="font-medium text-[var(--color-mm-ink)]">
-              {session.user?.email}
-            </span>
-            .
-          </>
-        }
+        title="Deliveries"
+        description={`${items.length} ${
+          items.length === 1 ? 'delivery' : 'deliveries'
+        } across the platform.`}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_auto] gap-3 items-start max-w-md">
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_1.4fr_auto] gap-3 items-start">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-mm-subtle)]" />
+          <Input
+            placeholder="Search medicine, seller or receiver…"
+            defaultValue={search.q ?? ''}
+            onChange={(e) =>
+              setSearchKey(
+                'q',
+                e.target.value || (undefined as unknown as string),
+              )
+            }
+            className="pl-9"
+          />
+        </div>
         <Select
           value={search.status ?? FILTERS_ALL}
           onValueChange={(v) =>
-            navigate({
-              search: () => ({
-                status:
-                  v === FILTERS_ALL
-                    ? undefined
-                    : (v as SearchValues['status']),
-              }),
-              replace: true,
-            })
+            setSearchKey(
+              'status',
+              v === FILTERS_ALL
+                ? undefined
+                : (v as SearchValues['status']),
+            )
           }
         >
           <SelectTrigger>
@@ -216,8 +265,8 @@ function LogisticsHome() {
         <Button
           variant="ghost"
           size="sm"
-          disabled={!search.status}
           onClick={() => navigate({ search: {}, replace: true })}
+          disabled={!hasFilters}
           className="self-center"
         >
           <X className="h-4 w-4" />
@@ -228,11 +277,11 @@ function LogisticsHome() {
       {items.length === 0 ? (
         <EmptyState
           icon={Truck}
-          title={search.status ? 'No matches' : 'No deliveries assigned'}
+          title={hasFilters ? 'No matches' : 'No deliveries yet'}
           description={
-            search.status
-              ? 'Try a different status filter.'
-              : 'Deliveries assigned by an admin will appear here.'
+            hasFilters
+              ? 'Try widening your filters above.'
+              : 'Deliveries are created from accepted transfer requests on the request detail page.'
           }
         />
       ) : (

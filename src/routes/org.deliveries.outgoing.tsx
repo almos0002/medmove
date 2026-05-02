@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  redirect,
+} from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   flexRender,
@@ -9,7 +14,7 @@ import {
 import { Truck, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { z } from 'zod'
-import { listMyAssignedDeliveries } from '@/server/functions/deliveries'
+import { listOutgoingDeliveries } from '@/server/functions/deliveries'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -49,16 +54,27 @@ const searchSchema = z.object({
 
 type SearchValues = z.infer<typeof searchSchema>
 
-export const Route = createFileRoute('/logistics/')({
+export const Route = createFileRoute('/org/deliveries/outgoing')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
-  loader: ({ deps }) =>
-    listMyAssignedDeliveries({ data: { status: deps.status } }),
+  beforeLoad: async ({ context }) => {
+    const session = (
+      context as { session?: { primaryOrg?: { id: string } | null } }
+    ).session
+    if (!session?.primaryOrg) throw redirect({ to: '/org' })
+    return { primaryOrgId: session.primaryOrg.id }
+  },
+  loader: ({ context, deps }) => {
+    const { primaryOrgId } = context as { primaryOrgId: string }
+    return listOutgoingDeliveries({
+      data: { organizationId: primaryOrgId, status: deps.status },
+    })
+  },
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
-  component: LogisticsHome,
+  component: OrgOutgoingDeliveriesPage,
 })
 
 type Row = {
@@ -66,22 +82,20 @@ type Row = {
     id: string
     status: DeliveryStatus
     dispatchMethod: string
-    pickupScheduledAt: string | Date | null
     createdAt: string | Date
+    pickupScheduledAt: string | Date | null
   }
-  request: { quantityRequested: number }
+  request: { id: string; quantityRequested: number }
   batch: { unit: string }
   medicine: { name: string; strength: string }
-  sellerOrg: { name: string; type: string }
-  requesterOrg: { name: string; type: string }
+  requesterOrg: { id: string; name: string; type: string }
 }
 
-function LogisticsHome() {
+function OrgOutgoingDeliveriesPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const search = Route.useSearch()
   const data = Route.useLoaderData()
   const items = data.items as unknown as Row[]
-  const { session } = Route.useRouteContext()
 
   const columns = React.useMemo<ColumnDef<Row>[]>(
     () => [
@@ -90,7 +104,7 @@ function LogisticsHome() {
         header: 'Medicine',
         cell: ({ row }) => (
           <Link
-            to="/logistics/$deliveryId"
+            to="/org/deliveries/$deliveryId"
             params={{ deliveryId: row.original.delivery.id }}
             className="text-sm font-medium text-[var(--color-mm-ink)] hover:underline"
           >
@@ -104,26 +118,31 @@ function LogisticsHome() {
         ),
       },
       {
-        id: 'seller',
-        header: 'From',
+        id: 'receiver',
+        header: 'Receiver',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-ink)]">
-            {row.original.sellerOrg.name}
-          </span>
+          <div>
+            <div className="text-sm text-[var(--color-mm-ink)]">
+              {row.original.requesterOrg.name}
+            </div>
+            <div className="text-xs text-[var(--color-mm-subtle)] capitalize mt-0.5">
+              {row.original.requesterOrg.type.replace(/_/g, ' ')}
+            </div>
+          </div>
         ),
       },
       {
-        id: 'receiver',
-        header: 'To',
+        id: 'method',
+        header: 'Method',
         cell: ({ row }) => (
-          <span className="text-sm text-[var(--color-mm-ink)]">
-            {row.original.requesterOrg.name}
+          <span className="text-xs text-[var(--color-mm-muted)] capitalize">
+            {row.original.delivery.dispatchMethod.replace(/_/g, ' ')}
           </span>
         ),
       },
       {
         id: 'pickup',
-        header: 'Pickup',
+        header: 'Pickup window',
         cell: ({ row }) =>
           row.original.delivery.pickupScheduledAt ? (
             <span className="text-xs text-[var(--color-mm-muted)]">
@@ -139,6 +158,18 @@ function LogisticsHome() {
           ),
       },
       {
+        id: 'created',
+        header: 'Created',
+        cell: ({ row }) => (
+          <span className="text-xs text-[var(--color-mm-muted)]">
+            {format(
+              new Date(row.original.delivery.createdAt),
+              'd MMM yyyy, HH:mm',
+            )}
+          </span>
+        ),
+      },
+      {
         id: 'status',
         header: 'Status',
         cell: ({ row }) => (
@@ -152,7 +183,7 @@ function LogisticsHome() {
           <div className="text-right">
             <Button asChild variant="secondary" size="sm">
               <Link
-                to="/logistics/$deliveryId"
+                to="/org/deliveries/$deliveryId"
                 params={{ deliveryId: row.original.delivery.id }}
               >
                 Open
@@ -174,16 +205,10 @@ function LogisticsHome() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Assigned deliveries"
-        description={
-          <>
-            Signed in as{' '}
-            <span className="font-medium text-[var(--color-mm-ink)]">
-              {session.user?.email}
-            </span>
-            .
-          </>
-        }
+        title="Outgoing deliveries"
+        description={`${items.length} ${
+          items.length === 1 ? 'delivery' : 'deliveries'
+        } leaving your organization.`}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[1.4fr_auto] gap-3 items-start max-w-md">
@@ -228,11 +253,11 @@ function LogisticsHome() {
       {items.length === 0 ? (
         <EmptyState
           icon={Truck}
-          title={search.status ? 'No matches' : 'No deliveries assigned'}
+          title={search.status ? 'No matches' : 'No outgoing deliveries'}
           description={
             search.status
               ? 'Try a different status filter.'
-              : 'Deliveries assigned by an admin will appear here.'
+              : 'Once an admin creates a delivery from one of your accepted requests it will appear here.'
           }
         />
       ) : (

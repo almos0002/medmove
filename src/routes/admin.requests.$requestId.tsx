@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter, useNavigate } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Clock,
   Building2,
   MapPin,
+  Truck,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -17,18 +18,25 @@ import {
   adminApproveTransfer,
   adminRejectTransfer,
 } from '@/server/functions/transfers'
+import { adminCreateDelivery } from '@/server/functions/deliveries'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
 import { ExpiryStatusBadge } from '@/components/data/ExpiryStatusBadge'
-import {
-  TransferRequestStatusBadge,
-  type TransferRequestStatus,
-} from '@/components/data/TransferRequestStatusBadge'
+import type { TransferRequestStatus } from '@/components/data/TransferRequestStatusBadge'
+import { TransferRequestStatusBadge } from '@/components/data/TransferRequestStatusBadge'
 import {
   Dialog,
   DialogContent,
@@ -51,6 +59,7 @@ export const Route = createFileRoute('/admin/requests/$requestId')({
 
 function AdminRequestDetailPage() {
   const router = useRouter()
+  const navigate = useNavigate()
   const data = Route.useLoaderData()
   const { request, listing, batch, medicine, sellerOrg, requesterOrg } =
     data as unknown as {
@@ -151,6 +160,7 @@ function AdminRequestDetailPage() {
   })
 
   const isPending = status === 'pending_admin'
+  const canCreateDelivery = status === 'accepted'
   const totalCents =
     listing.pricePerUnitCents !== null
       ? listing.pricePerUnitCents * request.quantityRequested
@@ -397,6 +407,33 @@ function AdminRequestDetailPage() {
         />
       </Card>
 
+      {canCreateDelivery && (
+        <Card className="p-6 space-y-3 border-[var(--color-mm-accent)]">
+          <div className="flex items-start gap-3">
+            <Truck className="h-5 w-5 text-[var(--color-mm-accent)] shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h2 className="font-display text-[16px] text-[var(--color-mm-ink)] mb-1">
+                Ready to dispatch
+              </h2>
+              <p className="text-sm text-[var(--color-mm-muted)]">
+                The seller has accepted and reserved the quantity. Create a
+                delivery to coordinate pickup and drop-off.
+              </p>
+            </div>
+            <CreateDeliveryDialog
+              transferRequestId={request.id}
+              defaultPickupAddress={`${listing.pickupCity}, ${listing.pickupCountry}`}
+              onCreated={(deliveryId) => {
+                navigate({
+                  to: '/admin/deliveries/$deliveryId',
+                  params: { deliveryId },
+                })
+              }}
+            />
+          </div>
+        </Card>
+      )}
+
       {isPending && (
         <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
           <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
@@ -506,6 +543,221 @@ function AdminRequestDetailPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function CreateDeliveryDialog({
+  transferRequestId,
+  defaultPickupAddress,
+  onCreated,
+}: {
+  transferRequestId: string
+  defaultPickupAddress: string
+  onCreated: (deliveryId: string) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const [dispatchMethod, setDispatchMethod] = React.useState<
+    'buyer_pickup' | 'seller_drop_off' | 'third_party_courier'
+  >('third_party_courier')
+  const [pickupAddress, setPickupAddress] = React.useState(defaultPickupAddress)
+  const [dropoffAddress, setDropoffAddress] = React.useState('')
+  const [sellerContactName, setSellerContactName] = React.useState('')
+  const [sellerContactPhone, setSellerContactPhone] = React.useState('')
+  const [buyerContactName, setBuyerContactName] = React.useState('')
+  const [buyerContactPhone, setBuyerContactPhone] = React.useState('')
+  const [courierReference, setCourierReference] = React.useState('')
+  const [dispatchNotes, setDispatchNotes] = React.useState('')
+  const [error, setError] = React.useState<string | null>(null)
+
+  const create = useMutation({
+    mutationFn: () =>
+      adminCreateDelivery({
+        data: {
+          transferRequestId,
+          dispatchMethod,
+          pickupAddress: pickupAddress.trim(),
+          dropoffAddress: dropoffAddress.trim(),
+          sellerContactName: sellerContactName.trim(),
+          sellerContactPhone: sellerContactPhone.trim(),
+          buyerContactName: buyerContactName.trim(),
+          buyerContactPhone: buyerContactPhone.trim(),
+          courierReference: courierReference.trim() || undefined,
+          dispatchNotes: dispatchNotes.trim() || undefined,
+        },
+      }),
+    onSuccess: (res) => {
+      toast.success('Delivery created')
+      setOpen(false)
+      onCreated((res as { delivery: { id: string } }).delivery.id)
+    },
+    onError: (err: unknown) =>
+      toast.error(err instanceof Error ? err.message : 'Could not create'),
+  })
+
+  function validate(): string | null {
+    if (!pickupAddress.trim()) return 'Pickup address is required.'
+    if (!dropoffAddress.trim()) return 'Drop-off address is required.'
+    if (!sellerContactName.trim()) return 'Seller contact name is required.'
+    if (!sellerContactPhone.trim()) return 'Seller contact phone is required.'
+    if (!buyerContactName.trim()) return 'Receiver contact name is required.'
+    if (!buyerContactPhone.trim()) return 'Receiver contact phone is required.'
+    return null
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Truck className="h-4 w-4" />
+          Create delivery
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create delivery</DialogTitle>
+          <DialogDescription>
+            Sets up the delivery record and moves the transfer request to
+            “awaiting handoff”.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>
+              Method <span className="text-[var(--color-mm-bad)]">*</span>
+            </Label>
+            <Select
+              value={dispatchMethod}
+              onValueChange={(v) =>
+                setDispatchMethod(v as typeof dispatchMethod)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="third_party_courier">
+                  Third-party courier
+                </SelectItem>
+                <SelectItem value="seller_drop_off">Seller drop-off</SelectItem>
+                <SelectItem value="buyer_pickup">Buyer pickup</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>
+                Pickup address{' '}
+                <span className="text-[var(--color-mm-bad)]">*</span>
+              </Label>
+              <Textarea
+                rows={2}
+                value={pickupAddress}
+                onChange={(e) => setPickupAddress(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Drop-off address{' '}
+                <span className="text-[var(--color-mm-bad)]">*</span>
+              </Label>
+              <Textarea
+                rows={2}
+                value={dropoffAddress}
+                onChange={(e) => setDropoffAddress(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>
+                Seller contact name{' '}
+                <span className="text-[var(--color-mm-bad)]">*</span>
+              </Label>
+              <Input
+                value={sellerContactName}
+                onChange={(e) => setSellerContactName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Seller contact phone{' '}
+                <span className="text-[var(--color-mm-bad)]">*</span>
+              </Label>
+              <Input
+                value={sellerContactPhone}
+                onChange={(e) => setSellerContactPhone(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Receiver contact name{' '}
+                <span className="text-[var(--color-mm-bad)]">*</span>
+              </Label>
+              <Input
+                value={buyerContactName}
+                onChange={(e) => setBuyerContactName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Receiver contact phone{' '}
+                <span className="text-[var(--color-mm-bad)]">*</span>
+              </Label>
+              <Input
+                value={buyerContactPhone}
+                onChange={(e) => setBuyerContactPhone(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Courier reference (optional)</Label>
+            <Input
+              value={courierReference}
+              onChange={(e) => setCourierReference(e.target.value)}
+              placeholder="Tracking / waybill number"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes (optional)</Label>
+            <Textarea
+              rows={3}
+              value={dispatchNotes}
+              onChange={(e) => setDispatchNotes(e.target.value)}
+            />
+          </div>
+
+          {error && (
+            <p className="text-xs text-[var(--color-mm-bad)]">{error}</p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            onClick={() => setOpen(false)}
+            disabled={create.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              const v = validate()
+              if (v) {
+                setError(v)
+                return
+              }
+              setError(null)
+              create.mutate()
+            }}
+            disabled={create.isPending}
+          >
+            {create.isPending ? 'Creating…' : 'Create delivery'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

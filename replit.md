@@ -78,6 +78,41 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
 - `src/lib/utils.ts` — `cn()` (clsx + tailwind-merge); `src/lib/query-client.ts` — singleton TanStack Query client used in `__root.tsx`.
 - `src/lib/client/capability.ts` — pure UI helpers (`canUploadOrgDocuments`, `canManageOrgMembers`) — server fns are still the source of truth.
 
+## Step 10: delivery / pickup tracking workflow
+
+End-to-end delivery lifecycle layered on top of the Step-9 transfer-request loop:
+
+- **Schema + transitions** — `delivery_status` enum extended with `pending`, `pickup_scheduled`, `picked_up`, `failed`, `cancelled` (legacy `scheduled` retained as alias). New `deliveries` columns: `pickupScheduledAt`, `pickedUpAt/ByUserId`, `failedAt/ByUserId/failureReason`, `cancelledAt/ByUserId/cancellationReason`. Default `status` is `pending`. `DELIVERY_TRANSITIONS` covers `pending → pickup_scheduled | cancelled`, `pickup_scheduled → picked_up | cancelled`, `picked_up → in_transit | failed`, `in_transit → delivered | failed | disputed`, `delivered → disputed`.
+- **Server fns** (`functions/deliveries.ts`):
+  - `adminCreateDelivery` — admin-only; only on `accepted` requests; transitions request → `awaiting_handoff`; captures pickup/dropoff addresses, both contacts, dispatch method, optional courier reference + notes.
+  - `adminAssignDeliveryLogistics` — admin assigns a logistics user (must be `LOGISTICS_STAFF` and a member of a verified `logistics_partner` / `distributor` org with `can_deliver_medicine`); allowed in `pending` / `pickup_scheduled`.
+  - `schedulePickup` — admin, `pending → pickup_scheduled`.
+  - `markPickedUp` — admin **or** the assigned logistics user (membership re-checked at action time), `pickup_scheduled → picked_up`.
+  - `markInTransit` — admin or assigned logistics; `picked_up → in_transit`; cascades transfer request `awaiting_handoff → dispatched`; can update courier reference + dispatch notes.
+  - `confirmDelivery` — receiver-org member only; `in_transit → delivered`; cascades request → `completed`; **enforces `receivedQuantity === request.quantityRequested`** (mismatch must use dispute); decrements `inventoryBatches.quantityOnHand` and writes a `dispatch_to_buyer` `inventoryAdjustments` row.
+  - `markDeliveryFailed` — admin or assigned logistics; `picked_up | in_transit → failed`; does **not** auto-cancel the request (admin can cancel separately).
+  - `cancelDelivery` — admin only; `pending | pickup_scheduled → cancelled`; cascades request `awaiting_handoff → cancelled` and restores `listing.quantityAvailable` (reopening the listing if it was `sold_out`).
+  - `disputeDelivery` — receiver; `in_transit | delivered → disputed`; reason ≥ 5 chars.
+  - `getDelivery` — admin / sender / receiver / assigned logistics; full join (delivery + request + listing + batch + medicine + sellerOrg + requesterOrg + logisticsOrg + logisticsUser, aliased).
+  - List fns: `adminListDeliveries` (search across medicine/seller/receiver, status filter), `listOutgoingDeliveries`, `listIncomingDeliveries`, `listMyAssignedDeliveries`, `adminListLogisticsCandidates` (verified `logistics_partner` / `distributor` orgs with `can_deliver_medicine` × their `LOGISTICS_STAFF` members).
+  - All transitions wrapped in `db.transaction` with `writeAudit` rows and `assertTransition` against `DELIVERY_TRANSITIONS`.
+- **Validators** (`validators/deliveries.ts`): `adminCreateDeliverySchema`, `schedulePickupSchema` (datetime ≥ now − 5 min), `markPickedUpSchema`, `markInTransitSchema`, `markDeliveryFailedSchema` (reason ≥ 5), `cancelDeliverySchema` (reason ≥ 5), `confirmDeliverySchema`, `disputeDeliverySchema`, `assignDeliveryLogisticsSchema` (allows `pending` / `pickup_scheduled`), `getDeliverySchema`, `adminListDeliveriesSchema`, `listOrgDeliveriesSchema`, `listLogisticsCandidatesSchema`. Tuple-spread used for `inArray` casts.
+- **Components**:
+  - `DeliveryStatusBadge` — covers all 9 statuses (`pending / pickup_scheduled / picked_up / scheduled / in_transit / delivered / failed / cancelled / disputed`) with consistent tone + icon. `DELIVERY_STATUS_FILTERS` for selects.
+  - `DeliveryTimeline` — vertical timeline rendering the ordered events (created / assigned / pickup_scheduled / picked_up / in_transit / delivered / failed / cancelled). `DELIVERY_TIMELINE_ICONS` exports the icon map. Skips events that haven't happened yet.
+- **Routes**:
+  - `/admin/deliveries` — TanStack Table list with search + status filter.
+  - `/admin/deliveries/$deliveryId` — full detail surface; pickup + drop-off cards, courier card, failure / cancellation banners, timeline, linked records, and inline dialogs for **schedule pickup**, **mark picked up**, **mark in transit**, **mark failed**, **cancel delivery**, **assign / reassign logistics** (candidates loaded on dialog open via `useQuery`).
+  - `/org/deliveries/outgoing` — sender list (`canListMedicine`).
+  - `/org/deliveries/incoming` — receiver list (`canRequestMedicine`).
+  - `/org/deliveries/$deliveryId` — status-aware banners, party cards, timeline, linked records. Receiver actions: **confirm delivery** dialog (qty defaults to `request.quantityRequested`; explanatory copy nudges users to dispute if mismatched) and **raise dispute** dialog.
+  - `/logistics` rewritten — assigned-deliveries list with status filter.
+  - `/logistics/$deliveryId` — courier surface; **mark picked up**, **mark in transit**, **mark failed** dialogs.
+- **Cross-link**: on `/admin/requests/$requestId`, an `accepted` request gets a `Ready to dispatch` accent card with an inline `Create delivery` dialog. Submission calls `adminCreateDelivery` and navigates to the new `/admin/deliveries/$deliveryId`.
+- **Nav**: `ADMIN_NAV` adds `Deliveries` (`Truck`). `APP_NAV` adds `Outgoing deliveries` (gated by `canListMedicine`) and `Incoming deliveries` (gated by `canRequestMedicine`). Logistics nav is unchanged.
+- **Authorization recap**: state-changing fns use `requireAdmin` or the new `requireDeliveryCourier` helper (admin OR per-row assigned logistics user with re-checked role + org membership at action time). Receiver actions check `requesterOrgId` membership; sender views check `sellerOrgId` membership. **Read paths also re-check membership**: `getDelivery` only honours the assigned-logistics access path when the actor is still a current member of `assignedLogisticsOrgId` (so removed couriers cannot keep enumerating addresses / contacts), and `listMyAssignedDeliveries` filters by `assignedLogisticsOrgId IN (current memberships)`.
+- **Validator constraints**: `schedulePickupSchema.pickupScheduledAt` enforces `>= now − 5 min`. `markDeliveryFailedSchema`, `cancelDeliverySchema`, and `disputeDeliverySchema` require `reason.trim().length >= 5`.
+
 ## Step 6: organization onboarding & verification UI
 
 End-to-end flow shipped:

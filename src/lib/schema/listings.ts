@@ -161,6 +161,15 @@ export const deliveries = pgTable(
     buyerContactName: text('buyer_contact_name').notNull(),
     buyerContactPhone: text('buyer_contact_phone').notNull(),
     courierReference: text('courier_reference'),
+    pickupScheduledAt: timestamp('pickup_scheduled_at'),
+    pickupScheduledByUserId: text('pickup_scheduled_by_user_id').references(
+      () => user.id,
+      { onDelete: 'set null' },
+    ),
+    pickedUpAt: timestamp('picked_up_at'),
+    pickedUpByUserId: text('picked_up_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
     dispatchedAt: timestamp('dispatched_at'),
     dispatchedByUserId: text('dispatched_by_user_id').references(() => user.id, {
       onDelete: 'set null',
@@ -172,6 +181,16 @@ export const deliveries = pgTable(
     }),
     receiptNotes: text('receipt_notes'),
     receivedQuantity: integer('received_quantity'),
+    failedAt: timestamp('failed_at'),
+    failedByUserId: text('failed_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    failureReason: text('failure_reason'),
+    cancelledAt: timestamp('cancelled_at'),
+    cancelledByUserId: text('cancelled_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    cancellationReason: text('cancellation_reason'),
     // Optional logistics assignment. Set when an admin routes a delivery to a
     // verified logistics-org user; that user can then progress dispatch state.
     assignedLogisticsUserId: text('assigned_logistics_user_id').references(
@@ -186,7 +205,7 @@ export const deliveries = pgTable(
     assignedByUserId: text('assigned_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
-    status: deliveryStatusEnum('status').notNull().default('scheduled'),
+    status: deliveryStatusEnum('status').notNull().default('pending'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

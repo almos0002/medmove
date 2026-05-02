@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { nonEmpty, nonNegativeInt, uuid } from './_shared'
+import { nonEmpty, positiveInt, uuid } from './_shared'
 
 export const dispatchMethodSchema = z.enum([
   'buyer_pickup',
@@ -7,7 +7,21 @@ export const dispatchMethodSchema = z.enum([
   'third_party_courier',
 ])
 
-export const scheduleDeliverySchema = z.object({
+export const deliveryStatusSchema = z.enum([
+  'pending',
+  'pickup_scheduled',
+  'picked_up',
+  'scheduled',
+  'in_transit',
+  'delivered',
+  'failed',
+  'cancelled',
+  'disputed',
+])
+export type DeliveryStatusValue = z.infer<typeof deliveryStatusSchema>
+
+/** Admin creates a delivery from an `accepted` transfer request. */
+export const adminCreateDeliverySchema = z.object({
   transferRequestId: uuid,
   dispatchMethod: dispatchMethodSchema,
   pickupAddress: nonEmpty(500),
@@ -20,7 +34,24 @@ export const scheduleDeliverySchema = z.object({
   dispatchNotes: z.string().trim().max(2000).optional(),
 })
 
-export const markDispatchedSchema = z.object({
+export const schedulePickupSchema = z.object({
+  deliveryId: uuid,
+  pickupScheduledAt: z.coerce
+    .date()
+    .refine((d) => !Number.isNaN(d.valueOf()), 'Invalid date')
+    .refine(
+      (d) => d.getTime() >= Date.now() - 5 * 60 * 1000,
+      'Pickup time must be in the future',
+    ),
+  notes: z.string().trim().max(2000).optional(),
+})
+
+export const markPickedUpSchema = z.object({
+  deliveryId: uuid,
+  notes: z.string().trim().max(2000).optional(),
+})
+
+export const markInTransitSchema = z.object({
   deliveryId: uuid,
   courierReference: z.string().trim().max(200).optional(),
   dispatchNotes: z.string().trim().max(2000).optional(),
@@ -28,13 +59,23 @@ export const markDispatchedSchema = z.object({
 
 export const confirmDeliverySchema = z.object({
   deliveryId: uuid,
-  receivedQuantity: nonNegativeInt,
+  receivedQuantity: positiveInt,
   receiptNotes: z.string().trim().max(2000).optional(),
+})
+
+export const markDeliveryFailedSchema = z.object({
+  deliveryId: uuid,
+  reason: z.string().trim().min(5, 'Reason must be at least 5 characters').max(1000),
+})
+
+export const cancelDeliverySchema = z.object({
+  deliveryId: uuid,
+  reason: z.string().trim().min(5, 'Reason must be at least 5 characters').max(1000),
 })
 
 export const disputeDeliverySchema = z.object({
   deliveryId: uuid,
-  reason: nonEmpty(1000),
+  reason: z.string().trim().min(5, 'Reason must be at least 5 characters').max(1000),
 })
 
 export const assignDeliveryLogisticsSchema = z.object({
@@ -44,6 +85,28 @@ export const assignDeliveryLogisticsSchema = z.object({
   notes: z.string().trim().max(1000).optional(),
 })
 
+export const getDeliverySchema = z.object({
+  deliveryId: uuid,
+})
+
+export const adminListDeliveriesSchema = z.object({
+  status: deliveryStatusSchema.optional(),
+  search: z.string().trim().max(120).optional(),
+  limit: z.number().int().min(1).max(200).default(100),
+})
+
+export const listOrgDeliveriesSchema = z.object({
+  organizationId: uuid,
+  status: deliveryStatusSchema.optional(),
+  limit: z.number().int().min(1).max(200).default(100),
+})
+
 export const listAssignedDeliveriesSchema = z.object({
-  limit: z.number().int().min(1).max(200).default(50),
+  status: deliveryStatusSchema.optional(),
+  limit: z.number().int().min(1).max(200).default(100),
+})
+
+export const listLogisticsCandidatesSchema = z.object({
+  search: z.string().trim().max(120).optional(),
+  limit: z.number().int().min(1).max(200).default(100),
 })

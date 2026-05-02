@@ -26,22 +26,28 @@ import { Route as OrgMarketplaceRouteImport } from './routes/org.marketplace'
 import { Route as OrgListingsRouteImport } from './routes/org.listings'
 import { Route as OrgInventoryRouteImport } from './routes/org.inventory'
 import { Route as OrgDocumentsRouteImport } from './routes/org.documents'
+import { Route as LogisticsDeliveryIdRouteImport } from './routes/logistics.$deliveryId'
 import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
 import { Route as AdminOrganizationsRouteImport } from './routes/admin.organizations'
 import { Route as AdminMedicinesRouteImport } from './routes/admin.medicines'
 import { Route as AdminListingsRouteImport } from './routes/admin.listings'
+import { Route as AdminDeliveriesRouteImport } from './routes/admin.deliveries'
 import { Route as OrgRequestsRequestIdRouteImport } from './routes/org.requests.$requestId'
 import { Route as OrgMarketplaceListingIdRouteImport } from './routes/org.marketplace.$listingId'
 import { Route as OrgListingsNewRouteImport } from './routes/org.listings.new'
 import { Route as OrgListingsListingIdRouteImport } from './routes/org.listings.$listingId'
 import { Route as OrgInventoryNewRouteImport } from './routes/org.inventory.new'
 import { Route as OrgInventoryBatchIdRouteImport } from './routes/org.inventory.$batchId'
+import { Route as OrgDeliveriesOutgoingRouteImport } from './routes/org.deliveries.outgoing'
+import { Route as OrgDeliveriesIncomingRouteImport } from './routes/org.deliveries.incoming'
+import { Route as OrgDeliveriesDeliveryIdRouteImport } from './routes/org.deliveries.$deliveryId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminRequestsRequestIdRouteImport } from './routes/admin.requests.$requestId'
 import { Route as AdminOrganizationsOrgIdRouteImport } from './routes/admin.organizations.$orgId'
 import { Route as AdminMedicinesNewRouteImport } from './routes/admin.medicines.new'
 import { Route as AdminMedicinesMedicineIdRouteImport } from './routes/admin.medicines.$medicineId'
 import { Route as AdminListingsListingIdRouteImport } from './routes/admin.listings.$listingId'
+import { Route as AdminDeliveriesDeliveryIdRouteImport } from './routes/admin.deliveries.$deliveryId'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -128,6 +134,11 @@ const OrgDocumentsRoute = OrgDocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => OrgRoute,
 } as any)
+const LogisticsDeliveryIdRoute = LogisticsDeliveryIdRouteImport.update({
+  id: '/$deliveryId',
+  path: '/$deliveryId',
+  getParentRoute: () => LogisticsRoute,
+} as any)
 const AdminRequestsRoute = AdminRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -146,6 +157,11 @@ const AdminMedicinesRoute = AdminMedicinesRouteImport.update({
 const AdminListingsRoute = AdminListingsRouteImport.update({
   id: '/listings',
   path: '/listings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDeliveriesRoute = AdminDeliveriesRouteImport.update({
+  id: '/deliveries',
+  path: '/deliveries',
   getParentRoute: () => AdminRoute,
 } as any)
 const OrgRequestsRequestIdRoute = OrgRequestsRequestIdRouteImport.update({
@@ -178,6 +194,21 @@ const OrgInventoryBatchIdRoute = OrgInventoryBatchIdRouteImport.update({
   path: '/$batchId',
   getParentRoute: () => OrgInventoryRoute,
 } as any)
+const OrgDeliveriesOutgoingRoute = OrgDeliveriesOutgoingRouteImport.update({
+  id: '/deliveries/outgoing',
+  path: '/deliveries/outgoing',
+  getParentRoute: () => OrgRoute,
+} as any)
+const OrgDeliveriesIncomingRoute = OrgDeliveriesIncomingRouteImport.update({
+  id: '/deliveries/incoming',
+  path: '/deliveries/incoming',
+  getParentRoute: () => OrgRoute,
+} as any)
+const OrgDeliveriesDeliveryIdRoute = OrgDeliveriesDeliveryIdRouteImport.update({
+  id: '/deliveries/$deliveryId',
+  path: '/deliveries/$deliveryId',
+  getParentRoute: () => OrgRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -209,6 +240,12 @@ const AdminListingsListingIdRoute = AdminListingsListingIdRouteImport.update({
   path: '/$listingId',
   getParentRoute: () => AdminListingsRoute,
 } as any)
+const AdminDeliveriesDeliveryIdRoute =
+  AdminDeliveriesDeliveryIdRouteImport.update({
+    id: '/$deliveryId',
+    path: '/$deliveryId',
+    getParentRoute: () => AdminDeliveriesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -219,10 +256,12 @@ export interface FileRoutesByFullPath {
   '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
   '/admin/listings': typeof AdminListingsRouteWithChildren
   '/admin/medicines': typeof AdminMedicinesRouteWithChildren
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/documents': typeof OrgDocumentsRoute
   '/org/inventory': typeof OrgInventoryRouteWithChildren
   '/org/listings': typeof OrgListingsRouteWithChildren
@@ -232,12 +271,16 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
+  '/admin/deliveries/$deliveryId': typeof AdminDeliveriesDeliveryIdRoute
   '/admin/listings/$listingId': typeof AdminListingsListingIdRoute
   '/admin/medicines/$medicineId': typeof AdminMedicinesMedicineIdRoute
   '/admin/medicines/new': typeof AdminMedicinesNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/requests/$requestId': typeof AdminRequestsRequestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/org/deliveries/$deliveryId': typeof OrgDeliveriesDeliveryIdRoute
+  '/org/deliveries/incoming': typeof OrgDeliveriesIncomingRoute
+  '/org/deliveries/outgoing': typeof OrgDeliveriesOutgoingRoute
   '/org/inventory/$batchId': typeof OrgInventoryBatchIdRoute
   '/org/inventory/new': typeof OrgInventoryNewRoute
   '/org/listings/$listingId': typeof OrgListingsListingIdRoute
@@ -251,10 +294,12 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
   '/admin/listings': typeof AdminListingsRouteWithChildren
   '/admin/medicines': typeof AdminMedicinesRouteWithChildren
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/documents': typeof OrgDocumentsRoute
   '/org/inventory': typeof OrgInventoryRouteWithChildren
   '/org/listings': typeof OrgListingsRouteWithChildren
@@ -264,12 +309,16 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/logistics': typeof LogisticsIndexRoute
   '/org': typeof OrgIndexRoute
+  '/admin/deliveries/$deliveryId': typeof AdminDeliveriesDeliveryIdRoute
   '/admin/listings/$listingId': typeof AdminListingsListingIdRoute
   '/admin/medicines/$medicineId': typeof AdminMedicinesMedicineIdRoute
   '/admin/medicines/new': typeof AdminMedicinesNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/requests/$requestId': typeof AdminRequestsRequestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/org/deliveries/$deliveryId': typeof OrgDeliveriesDeliveryIdRoute
+  '/org/deliveries/incoming': typeof OrgDeliveriesIncomingRoute
+  '/org/deliveries/outgoing': typeof OrgDeliveriesOutgoingRoute
   '/org/inventory/$batchId': typeof OrgInventoryBatchIdRoute
   '/org/inventory/new': typeof OrgInventoryNewRoute
   '/org/listings/$listingId': typeof OrgListingsListingIdRoute
@@ -287,10 +336,12 @@ export interface FileRoutesById {
   '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/deliveries': typeof AdminDeliveriesRouteWithChildren
   '/admin/listings': typeof AdminListingsRouteWithChildren
   '/admin/medicines': typeof AdminMedicinesRouteWithChildren
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/logistics/$deliveryId': typeof LogisticsDeliveryIdRoute
   '/org/documents': typeof OrgDocumentsRoute
   '/org/inventory': typeof OrgInventoryRouteWithChildren
   '/org/listings': typeof OrgListingsRouteWithChildren
@@ -300,12 +351,16 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
+  '/admin/deliveries/$deliveryId': typeof AdminDeliveriesDeliveryIdRoute
   '/admin/listings/$listingId': typeof AdminListingsListingIdRoute
   '/admin/medicines/$medicineId': typeof AdminMedicinesMedicineIdRoute
   '/admin/medicines/new': typeof AdminMedicinesNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/requests/$requestId': typeof AdminRequestsRequestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/org/deliveries/$deliveryId': typeof OrgDeliveriesDeliveryIdRoute
+  '/org/deliveries/incoming': typeof OrgDeliveriesIncomingRoute
+  '/org/deliveries/outgoing': typeof OrgDeliveriesOutgoingRoute
   '/org/inventory/$batchId': typeof OrgInventoryBatchIdRoute
   '/org/inventory/new': typeof OrgInventoryNewRoute
   '/org/listings/$listingId': typeof OrgListingsListingIdRoute
@@ -324,10 +379,12 @@ export interface FileRouteTypes {
     | '/org'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/deliveries'
     | '/admin/listings'
     | '/admin/medicines'
     | '/admin/organizations'
     | '/admin/requests'
+    | '/logistics/$deliveryId'
     | '/org/documents'
     | '/org/inventory'
     | '/org/listings'
@@ -337,12 +394,16 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/logistics/'
     | '/org/'
+    | '/admin/deliveries/$deliveryId'
     | '/admin/listings/$listingId'
     | '/admin/medicines/$medicineId'
     | '/admin/medicines/new'
     | '/admin/organizations/$orgId'
     | '/admin/requests/$requestId'
     | '/api/auth/$'
+    | '/org/deliveries/$deliveryId'
+    | '/org/deliveries/incoming'
+    | '/org/deliveries/outgoing'
     | '/org/inventory/$batchId'
     | '/org/inventory/new'
     | '/org/listings/$listingId'
@@ -356,10 +417,12 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/deliveries'
     | '/admin/listings'
     | '/admin/medicines'
     | '/admin/organizations'
     | '/admin/requests'
+    | '/logistics/$deliveryId'
     | '/org/documents'
     | '/org/inventory'
     | '/org/listings'
@@ -369,12 +432,16 @@ export interface FileRouteTypes {
     | '/admin'
     | '/logistics'
     | '/org'
+    | '/admin/deliveries/$deliveryId'
     | '/admin/listings/$listingId'
     | '/admin/medicines/$medicineId'
     | '/admin/medicines/new'
     | '/admin/organizations/$orgId'
     | '/admin/requests/$requestId'
     | '/api/auth/$'
+    | '/org/deliveries/$deliveryId'
+    | '/org/deliveries/incoming'
+    | '/org/deliveries/outgoing'
     | '/org/inventory/$batchId'
     | '/org/inventory/new'
     | '/org/listings/$listingId'
@@ -391,10 +458,12 @@ export interface FileRouteTypes {
     | '/org'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/deliveries'
     | '/admin/listings'
     | '/admin/medicines'
     | '/admin/organizations'
     | '/admin/requests'
+    | '/logistics/$deliveryId'
     | '/org/documents'
     | '/org/inventory'
     | '/org/listings'
@@ -404,12 +473,16 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/logistics/'
     | '/org/'
+    | '/admin/deliveries/$deliveryId'
     | '/admin/listings/$listingId'
     | '/admin/medicines/$medicineId'
     | '/admin/medicines/new'
     | '/admin/organizations/$orgId'
     | '/admin/requests/$requestId'
     | '/api/auth/$'
+    | '/org/deliveries/$deliveryId'
+    | '/org/deliveries/incoming'
+    | '/org/deliveries/outgoing'
     | '/org/inventory/$batchId'
     | '/org/inventory/new'
     | '/org/listings/$listingId'
@@ -551,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgDocumentsRouteImport
       parentRoute: typeof OrgRoute
     }
+    '/logistics/$deliveryId': {
+      id: '/logistics/$deliveryId'
+      path: '/$deliveryId'
+      fullPath: '/logistics/$deliveryId'
+      preLoaderRoute: typeof LogisticsDeliveryIdRouteImport
+      parentRoute: typeof LogisticsRoute
+    }
     '/admin/requests': {
       id: '/admin/requests'
       path: '/requests'
@@ -577,6 +657,13 @@ declare module '@tanstack/react-router' {
       path: '/listings'
       fullPath: '/admin/listings'
       preLoaderRoute: typeof AdminListingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/deliveries': {
+      id: '/admin/deliveries'
+      path: '/deliveries'
+      fullPath: '/admin/deliveries'
+      preLoaderRoute: typeof AdminDeliveriesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/org/requests/$requestId': {
@@ -621,6 +708,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgInventoryBatchIdRouteImport
       parentRoute: typeof OrgInventoryRoute
     }
+    '/org/deliveries/outgoing': {
+      id: '/org/deliveries/outgoing'
+      path: '/deliveries/outgoing'
+      fullPath: '/org/deliveries/outgoing'
+      preLoaderRoute: typeof OrgDeliveriesOutgoingRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/org/deliveries/incoming': {
+      id: '/org/deliveries/incoming'
+      path: '/deliveries/incoming'
+      fullPath: '/org/deliveries/incoming'
+      preLoaderRoute: typeof OrgDeliveriesIncomingRouteImport
+      parentRoute: typeof OrgRoute
+    }
+    '/org/deliveries/$deliveryId': {
+      id: '/org/deliveries/$deliveryId'
+      path: '/deliveries/$deliveryId'
+      fullPath: '/org/deliveries/$deliveryId'
+      preLoaderRoute: typeof OrgDeliveriesDeliveryIdRouteImport
+      parentRoute: typeof OrgRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -663,8 +771,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminListingsListingIdRouteImport
       parentRoute: typeof AdminListingsRoute
     }
+    '/admin/deliveries/$deliveryId': {
+      id: '/admin/deliveries/$deliveryId'
+      path: '/$deliveryId'
+      fullPath: '/admin/deliveries/$deliveryId'
+      preLoaderRoute: typeof AdminDeliveriesDeliveryIdRouteImport
+      parentRoute: typeof AdminDeliveriesRoute
+    }
   }
 }
+
+interface AdminDeliveriesRouteChildren {
+  AdminDeliveriesDeliveryIdRoute: typeof AdminDeliveriesDeliveryIdRoute
+}
+
+const AdminDeliveriesRouteChildren: AdminDeliveriesRouteChildren = {
+  AdminDeliveriesDeliveryIdRoute: AdminDeliveriesDeliveryIdRoute,
+}
+
+const AdminDeliveriesRouteWithChildren = AdminDeliveriesRoute._addFileChildren(
+  AdminDeliveriesRouteChildren,
+)
 
 interface AdminListingsRouteChildren {
   AdminListingsListingIdRoute: typeof AdminListingsListingIdRoute
@@ -716,6 +843,7 @@ const AdminRequestsRouteWithChildren = AdminRequestsRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminDeliveriesRoute: typeof AdminDeliveriesRouteWithChildren
   AdminListingsRoute: typeof AdminListingsRouteWithChildren
   AdminMedicinesRoute: typeof AdminMedicinesRouteWithChildren
   AdminOrganizationsRoute: typeof AdminOrganizationsRouteWithChildren
@@ -724,6 +852,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminDeliveriesRoute: AdminDeliveriesRouteWithChildren,
   AdminListingsRoute: AdminListingsRouteWithChildren,
   AdminMedicinesRoute: AdminMedicinesRouteWithChildren,
   AdminOrganizationsRoute: AdminOrganizationsRouteWithChildren,
@@ -734,10 +863,12 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface LogisticsRouteChildren {
+  LogisticsDeliveryIdRoute: typeof LogisticsDeliveryIdRoute
   LogisticsIndexRoute: typeof LogisticsIndexRoute
 }
 
 const LogisticsRouteChildren: LogisticsRouteChildren = {
+  LogisticsDeliveryIdRoute: LogisticsDeliveryIdRoute,
   LogisticsIndexRoute: LogisticsIndexRoute,
 }
 
@@ -805,6 +936,9 @@ interface OrgRouteChildren {
   OrgProfileRoute: typeof OrgProfileRoute
   OrgRequestsRoute: typeof OrgRequestsRouteWithChildren
   OrgIndexRoute: typeof OrgIndexRoute
+  OrgDeliveriesDeliveryIdRoute: typeof OrgDeliveriesDeliveryIdRoute
+  OrgDeliveriesIncomingRoute: typeof OrgDeliveriesIncomingRoute
+  OrgDeliveriesOutgoingRoute: typeof OrgDeliveriesOutgoingRoute
 }
 
 const OrgRouteChildren: OrgRouteChildren = {
@@ -815,6 +949,9 @@ const OrgRouteChildren: OrgRouteChildren = {
   OrgProfileRoute: OrgProfileRoute,
   OrgRequestsRoute: OrgRequestsRouteWithChildren,
   OrgIndexRoute: OrgIndexRoute,
+  OrgDeliveriesDeliveryIdRoute: OrgDeliveriesDeliveryIdRoute,
+  OrgDeliveriesIncomingRoute: OrgDeliveriesIncomingRoute,
+  OrgDeliveriesOutgoingRoute: OrgDeliveriesOutgoingRoute,
 }
 
 const OrgRouteWithChildren = OrgRoute._addFileChildren(OrgRouteChildren)
