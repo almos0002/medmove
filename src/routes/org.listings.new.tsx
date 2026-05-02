@@ -70,10 +70,16 @@ const formSchema = z
       .positive('Quantity must be greater than 0'),
     pricingMode: z.enum([PRICING_FREE, PRICING_PAID]),
     pricePerUnit: z
-      .number()
-      .nonnegative('Price cannot be negative')
-      .optional()
-      .or(z.literal(undefined)),
+      .union([
+        z.number().nonnegative('Price cannot be negative'),
+        z.nan(),
+        z.undefined(),
+      ])
+      .transform((v) =>
+        v === undefined || (typeof v === 'number' && Number.isNaN(v))
+          ? undefined
+          : v,
+      ),
     currency: z.string().trim().length(3, 'Use a 3-letter currency code'),
     pickupCity: z
       .string()
@@ -84,7 +90,7 @@ const formSchema = z
       .string()
       .trim()
       .min(1, 'Pickup country is required')
-      .max(120),
+      .length(2, 'Use the two-letter country code (e.g. KE, NG, IN, US)'),
     photoUrlsRaw: z.string().trim().max(2000).optional(),
     notes: z.string().trim().max(2000).optional(),
   })
@@ -496,9 +502,17 @@ function OrgListingNewPage() {
             <Field
               label="Pickup country"
               required
+              help="Two-letter country code (e.g. KE, NG, IN, US)."
               error={form.formState.errors.pickupCountry?.message}
             >
-              <Input {...form.register('pickupCountry')} />
+              <Input
+                maxLength={2}
+                placeholder="KE"
+                className="uppercase max-w-[120px]"
+                {...form.register('pickupCountry', {
+                  setValueAs: (v: string) => (v ?? '').toUpperCase(),
+                })}
+              />
             </Field>
           </div>
 
