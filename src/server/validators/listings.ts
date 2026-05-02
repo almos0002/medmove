@@ -1,6 +1,16 @@
 import { z } from 'zod'
 import { nonEmpty, positiveInt, uuid } from './_shared'
 
+export const listingStatusSchema = z.enum([
+  'draft',
+  'pending_admin',
+  'active',
+  'rejected',
+  'sold_out',
+  'expired',
+  'withdrawn',
+])
+
 export const createListingSchema = z.object({
   batchId: uuid,
   quantityListed: positiveInt,
@@ -34,4 +44,20 @@ export const listActiveListingsSchema = z.object({
 
 export const adminPendingListingsSchema = z.object({
   limit: z.number().int().positive().max(100).default(50),
+})
+
+export const getListingSchema = z.object({ id: uuid })
+
+export const listMyListingsSchema = z.object({
+  organizationId: uuid,
+  status: listingStatusSchema.optional(),
+  medicineSearch: z.string().trim().max(120).optional(),
+  limit: z.number().int().positive().max(100).default(100),
+})
+
+export const adminListAllListingsSchema = z.object({
+  status: listingStatusSchema.optional(),
+  medicineSearch: z.string().trim().max(120).optional(),
+  orgSearch: z.string().trim().max(120).optional(),
+  limit: z.number().int().positive().max(100).default(100),
 })

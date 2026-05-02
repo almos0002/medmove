@@ -10,6 +10,7 @@ import {
   LogOut,
   type LucideIcon,
   FileCheck2,
+  Tags,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import { isAdminRole, type AppRole } from '@/lib/permissions'
@@ -41,6 +42,7 @@ type NavItem = {
 const APP_NAV: NavItem[] = [
   { to: '/org', label: 'Overview', icon: LayoutDashboard },
   { to: '/org/inventory', label: 'Inventory', icon: Boxes },
+  { to: '/org/listings', label: 'Listings', icon: Tags },
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
 ]
@@ -48,6 +50,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
   { to: '/admin/medicines', label: 'Medicines', icon: Pill },
+  { to: '/admin/listings', label: 'Listings', icon: Tags },
 ]
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },
