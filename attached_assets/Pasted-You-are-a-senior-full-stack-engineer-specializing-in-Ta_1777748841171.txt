@@ -1,0 +1,148 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, SaaS product polish, testing, deployment, and production readiness.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout is done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+- Step 8: Listing creation + admin approval workflow is done.
+- Step 9: Request / claim workflow is done.
+- Step 10: Delivery / pickup tracking workflow is done.
+- Step 11: Audit logs + admin reporting dashboard is done.
+- Step 12: Notifications + expiry alerts are done.
+- Step 13: Approved listings discovery/search is done.
+
+Now I want Step 14: MVP polish, settings, seed data, testing checklist, and deployment readiness.
+
+Important product rules:
+- This is NOT a public medicine marketplace.
+- Medicine listings are only visible to verified organizations with can_request_medicine.
+- Only verified organizations with can_list_medicine can create listings.
+- Admin approval is required for organizations, listings, and transfer requests.
+- No expired, opened, cold-chain, or controlled/restricted medicine in MVP.
+- Every sensitive action must create audit logs.
+- Frontend validation is not enough; backend must enforce all rules.
+
+Now create the final MVP polish layer.
+
+Build/define:
+
+1. User profile page
+2. Organization settings page
+3. Admin platform settings page
+4. Account settings page
+5. Basic notification preferences
+6. Organization capability display
+7. Verification status display
+8. Safe empty states across dashboard
+9. Global loading states
+10. Global error boundary
+11. Not found page
+12. Unauthorized page
+13. Suspended organization page
+14. Reusable status badges
+15. Reusable confirmation dialogs
+16. Reusable table toolbar
+17. Reusable date/expiry helpers
+18. Seed data script
+19. Demo accounts
+20. Testing checklist
+21. Security checklist
+22. Compliance/safety checklist
+23. Deployment checklist
+24. Environment variables list
+25. Production database migration checklist
+26. README setup guide
+
+Seed data should include:
+- 1 SUPER_ADMIN user
+- 1 ADMIN user
+- 2 verified pharmacies
+- 1 pending pharmacy
+- 1 verified clinic
+- 1 verified hospital
+- 1 verified NGO
+- 1 logistics partner
+- sample medicines
+- sample inventory batches
+- sample pending listings
+- sample active listings
+- sample transfer requests
+- sample deliveries
+- sample audit logs
+- sample notifications
+
+Testing checklist must cover:
+- auth
+- route protection
+- organization verification
+- capability permissions
+- inventory safety rules
+- listing approval
+- request approval
+- quantity reservation
+- delivery status transitions
+- receiver delivery confirmation
+- audit log creation
+- notification visibility
+- search/listing visibility
+- organization data isolation
+- admin-only actions
+- unverified organization restrictions
+
+Security checklist must cover:
+- server-side permission checks
+- organization data leakage prevention
+- role/capability checks
+- unsafe status transitions
+- file upload safety placeholders
+- rate limiting placeholders
+- audit log immutability
+- input validation
+- pagination limits
+- transaction safety
+
+Deployment checklist must cover:
+- database URL
+- auth secrets
+- app URL
+- storage credentials placeholder
+- email provider placeholder
+- migration command
+- seed command
+- build command
+- start command
+- health check route
+- logging/error tracking placeholder
+
+Technical requirements:
+- Use TanStack Start.
+- Use TypeScript.
+- Use Drizzle ORM.
+- Use Zod where needed.
+- Use shadcn/ui.
+- Use Tailwind CSS.
+- Include practical file paths.
+- Include code where useful.
+- Keep it MVP-friendly.
+- Do not add payment.
+- Do not add public medicine browsing.
+- Do not add cold-chain logistics.
+- Do not add controlled medicine support.
+
+Expected output:
+- File/folder structure
+- Settings/profile page plan
+- Reusable UI components
+- Seed data script
+- Demo account structure
+- Testing checklist
+- Security checklist
+- Deployment checklist
+- Environment variables
+- README setup guide
