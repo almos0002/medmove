@@ -9,6 +9,13 @@ export const storageTypeSchema = z.enum([
 
 export const sealedStatusSchema = z.enum(['sealed', 'opened'])
 
+export const expiryStatusSchema = z.enum([
+  'safe',
+  'expiring_soon',
+  'critical',
+  'expired',
+])
+
 export const createBatchSchema = z.object({
   organizationId: uuid,
   medicineId: uuid,
@@ -24,4 +31,11 @@ export const createBatchSchema = z.object({
 
 export const listBatchesSchema = z.object({
   organizationId: uuid,
+  medicineSearch: z.string().trim().max(120).optional(),
+  batchNumberSearch: z.string().trim().max(80).optional(),
+  expiryStatus: expiryStatusSchema.optional(),
+  sealedStatus: sealedStatusSchema.optional(),
+  storageType: storageTypeSchema.optional(),
 })
+
+export const getBatchSchema = z.object({ id: uuid })

@@ -1,8 +1,10 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
+  Boxes,
   Building2,
   LayoutDashboard,
+  Pill,
   ShieldCheck,
   Truck,
   LogOut,
@@ -38,12 +40,14 @@ type NavItem = {
 
 const APP_NAV: NavItem[] = [
   { to: '/org', label: 'Overview', icon: LayoutDashboard },
+  { to: '/org/inventory', label: 'Inventory', icon: Boxes },
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
 ]
 const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
+  { to: '/admin/medicines', label: 'Medicines', icon: Pill },
 ]
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },

@@ -21,10 +21,16 @@ import { Route as OrgIndexRouteImport } from './routes/org.index'
 import { Route as LogisticsIndexRouteImport } from './routes/logistics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as OrgProfileRouteImport } from './routes/org.profile'
+import { Route as OrgInventoryRouteImport } from './routes/org.inventory'
 import { Route as OrgDocumentsRouteImport } from './routes/org.documents'
 import { Route as AdminOrganizationsRouteImport } from './routes/admin.organizations'
+import { Route as AdminMedicinesRouteImport } from './routes/admin.medicines'
+import { Route as OrgInventoryNewRouteImport } from './routes/org.inventory.new'
+import { Route as OrgInventoryBatchIdRouteImport } from './routes/org.inventory.$batchId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminOrganizationsOrgIdRouteImport } from './routes/admin.organizations.$orgId'
+import { Route as AdminMedicinesNewRouteImport } from './routes/admin.medicines.new'
+import { Route as AdminMedicinesMedicineIdRouteImport } from './routes/admin.medicines.$medicineId'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -86,6 +92,11 @@ const OrgProfileRoute = OrgProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => OrgRoute,
 } as any)
+const OrgInventoryRoute = OrgInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => OrgRoute,
+} as any)
 const OrgDocumentsRoute = OrgDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -95,6 +106,21 @@ const AdminOrganizationsRoute = AdminOrganizationsRouteImport.update({
   id: '/organizations',
   path: '/organizations',
   getParentRoute: () => AdminRoute,
+} as any)
+const AdminMedicinesRoute = AdminMedicinesRouteImport.update({
+  id: '/medicines',
+  path: '/medicines',
+  getParentRoute: () => AdminRoute,
+} as any)
+const OrgInventoryNewRoute = OrgInventoryNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => OrgInventoryRoute,
+} as any)
+const OrgInventoryBatchIdRoute = OrgInventoryBatchIdRouteImport.update({
+  id: '/$batchId',
+  path: '/$batchId',
+  getParentRoute: () => OrgInventoryRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -106,6 +132,17 @@ const AdminOrganizationsOrgIdRoute = AdminOrganizationsOrgIdRouteImport.update({
   path: '/$orgId',
   getParentRoute: () => AdminOrganizationsRoute,
 } as any)
+const AdminMedicinesNewRoute = AdminMedicinesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminMedicinesRoute,
+} as any)
+const AdminMedicinesMedicineIdRoute =
+  AdminMedicinesMedicineIdRouteImport.update({
+    id: '/$medicineId',
+    path: '/$medicineId',
+    getParentRoute: () => AdminMedicinesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,14 +153,20 @@ export interface FileRoutesByFullPath {
   '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/medicines': typeof AdminMedicinesRouteWithChildren
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/org/documents': typeof OrgDocumentsRoute
+  '/org/inventory': typeof OrgInventoryRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
+  '/admin/medicines/$medicineId': typeof AdminMedicinesMedicineIdRoute
+  '/admin/medicines/new': typeof AdminMedicinesNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/org/inventory/$batchId': typeof OrgInventoryBatchIdRoute
+  '/org/inventory/new': typeof OrgInventoryNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -131,14 +174,20 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/medicines': typeof AdminMedicinesRouteWithChildren
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/org/documents': typeof OrgDocumentsRoute
+  '/org/inventory': typeof OrgInventoryRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
   '/admin': typeof AdminIndexRoute
   '/logistics': typeof LogisticsIndexRoute
   '/org': typeof OrgIndexRoute
+  '/admin/medicines/$medicineId': typeof AdminMedicinesMedicineIdRoute
+  '/admin/medicines/new': typeof AdminMedicinesNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/org/inventory/$batchId': typeof OrgInventoryBatchIdRoute
+  '/org/inventory/new': typeof OrgInventoryNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,14 +199,20 @@ export interface FileRoutesById {
   '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/admin/medicines': typeof AdminMedicinesRouteWithChildren
   '/admin/organizations': typeof AdminOrganizationsRouteWithChildren
   '/org/documents': typeof OrgDocumentsRoute
+  '/org/inventory': typeof OrgInventoryRouteWithChildren
   '/org/profile': typeof OrgProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
   '/org/': typeof OrgIndexRoute
+  '/admin/medicines/$medicineId': typeof AdminMedicinesMedicineIdRoute
+  '/admin/medicines/new': typeof AdminMedicinesNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/org/inventory/$batchId': typeof OrgInventoryBatchIdRoute
+  '/org/inventory/new': typeof OrgInventoryNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,14 +225,20 @@ export interface FileRouteTypes {
     | '/org'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/medicines'
     | '/admin/organizations'
     | '/org/documents'
+    | '/org/inventory'
     | '/org/profile'
     | '/admin/'
     | '/logistics/'
     | '/org/'
+    | '/admin/medicines/$medicineId'
+    | '/admin/medicines/new'
     | '/admin/organizations/$orgId'
     | '/api/auth/$'
+    | '/org/inventory/$batchId'
+    | '/org/inventory/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -185,14 +246,20 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/medicines'
     | '/admin/organizations'
     | '/org/documents'
+    | '/org/inventory'
     | '/org/profile'
     | '/admin'
     | '/logistics'
     | '/org'
+    | '/admin/medicines/$medicineId'
+    | '/admin/medicines/new'
     | '/admin/organizations/$orgId'
     | '/api/auth/$'
+    | '/org/inventory/$batchId'
+    | '/org/inventory/new'
   id:
     | '__root__'
     | '/'
@@ -203,14 +270,20 @@ export interface FileRouteTypes {
     | '/org'
     | '/sign-in'
     | '/sign-up'
+    | '/admin/medicines'
     | '/admin/organizations'
     | '/org/documents'
+    | '/org/inventory'
     | '/org/profile'
     | '/admin/'
     | '/logistics/'
     | '/org/'
+    | '/admin/medicines/$medicineId'
+    | '/admin/medicines/new'
     | '/admin/organizations/$orgId'
     | '/api/auth/$'
+    | '/org/inventory/$batchId'
+    | '/org/inventory/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -311,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgProfileRouteImport
       parentRoute: typeof OrgRoute
     }
+    '/org/inventory': {
+      id: '/org/inventory'
+      path: '/inventory'
+      fullPath: '/org/inventory'
+      preLoaderRoute: typeof OrgInventoryRouteImport
+      parentRoute: typeof OrgRoute
+    }
     '/org/documents': {
       id: '/org/documents'
       path: '/documents'
@@ -324,6 +404,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/organizations'
       preLoaderRoute: typeof AdminOrganizationsRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/admin/medicines': {
+      id: '/admin/medicines'
+      path: '/medicines'
+      fullPath: '/admin/medicines'
+      preLoaderRoute: typeof AdminMedicinesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/org/inventory/new': {
+      id: '/org/inventory/new'
+      path: '/new'
+      fullPath: '/org/inventory/new'
+      preLoaderRoute: typeof OrgInventoryNewRouteImport
+      parentRoute: typeof OrgInventoryRoute
+    }
+    '/org/inventory/$batchId': {
+      id: '/org/inventory/$batchId'
+      path: '/$batchId'
+      fullPath: '/org/inventory/$batchId'
+      preLoaderRoute: typeof OrgInventoryBatchIdRouteImport
+      parentRoute: typeof OrgInventoryRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -339,8 +440,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrganizationsOrgIdRouteImport
       parentRoute: typeof AdminOrganizationsRoute
     }
+    '/admin/medicines/new': {
+      id: '/admin/medicines/new'
+      path: '/new'
+      fullPath: '/admin/medicines/new'
+      preLoaderRoute: typeof AdminMedicinesNewRouteImport
+      parentRoute: typeof AdminMedicinesRoute
+    }
+    '/admin/medicines/$medicineId': {
+      id: '/admin/medicines/$medicineId'
+      path: '/$medicineId'
+      fullPath: '/admin/medicines/$medicineId'
+      preLoaderRoute: typeof AdminMedicinesMedicineIdRouteImport
+      parentRoute: typeof AdminMedicinesRoute
+    }
   }
 }
+
+interface AdminMedicinesRouteChildren {
+  AdminMedicinesMedicineIdRoute: typeof AdminMedicinesMedicineIdRoute
+  AdminMedicinesNewRoute: typeof AdminMedicinesNewRoute
+}
+
+const AdminMedicinesRouteChildren: AdminMedicinesRouteChildren = {
+  AdminMedicinesMedicineIdRoute: AdminMedicinesMedicineIdRoute,
+  AdminMedicinesNewRoute: AdminMedicinesNewRoute,
+}
+
+const AdminMedicinesRouteWithChildren = AdminMedicinesRoute._addFileChildren(
+  AdminMedicinesRouteChildren,
+)
 
 interface AdminOrganizationsRouteChildren {
   AdminOrganizationsOrgIdRoute: typeof AdminOrganizationsOrgIdRoute
@@ -354,11 +483,13 @@ const AdminOrganizationsRouteWithChildren =
   AdminOrganizationsRoute._addFileChildren(AdminOrganizationsRouteChildren)
 
 interface AdminRouteChildren {
+  AdminMedicinesRoute: typeof AdminMedicinesRouteWithChildren
   AdminOrganizationsRoute: typeof AdminOrganizationsRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminMedicinesRoute: AdminMedicinesRouteWithChildren,
   AdminOrganizationsRoute: AdminOrganizationsRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
@@ -377,14 +508,30 @@ const LogisticsRouteWithChildren = LogisticsRoute._addFileChildren(
   LogisticsRouteChildren,
 )
 
+interface OrgInventoryRouteChildren {
+  OrgInventoryBatchIdRoute: typeof OrgInventoryBatchIdRoute
+  OrgInventoryNewRoute: typeof OrgInventoryNewRoute
+}
+
+const OrgInventoryRouteChildren: OrgInventoryRouteChildren = {
+  OrgInventoryBatchIdRoute: OrgInventoryBatchIdRoute,
+  OrgInventoryNewRoute: OrgInventoryNewRoute,
+}
+
+const OrgInventoryRouteWithChildren = OrgInventoryRoute._addFileChildren(
+  OrgInventoryRouteChildren,
+)
+
 interface OrgRouteChildren {
   OrgDocumentsRoute: typeof OrgDocumentsRoute
+  OrgInventoryRoute: typeof OrgInventoryRouteWithChildren
   OrgProfileRoute: typeof OrgProfileRoute
   OrgIndexRoute: typeof OrgIndexRoute
 }
 
 const OrgRouteChildren: OrgRouteChildren = {
   OrgDocumentsRoute: OrgDocumentsRoute,
+  OrgInventoryRoute: OrgInventoryRouteWithChildren,
   OrgProfileRoute: OrgProfileRoute,
   OrgIndexRoute: OrgIndexRoute,
 }
