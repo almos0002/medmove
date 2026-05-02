@@ -1,0 +1,126 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, TanStack Query, TanStack Form, Zod, TanStack Table, Tailwind CSS, shadcn/ui, and secure SaaS workflows.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout are done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+
+Now I want Step 8: Listing creation + admin approval workflow.
+
+Important model:
+User roles:
+- SUPER_ADMIN
+- ADMIN
+- ORG_OWNER
+- ORG_STAFF
+- LOGISTICS_STAFF
+
+Organization capabilities:
+- can_list_medicine
+- can_request_medicine
+- can_deliver_medicine
+
+Product rules:
+- This is NOT a public medicine marketplace.
+- Only verified organizations with can_list_medicine can create listings.
+- Listing can only be created from that organization’s own inventory batch.
+- No expired medicine can be listed.
+- No opened/unsealed medicine can be listed.
+- No cold-chain/refrigerated medicine in MVP.
+- No controlled/restricted medicines in MVP.
+- Listing quantity cannot exceed inventory quantity.
+- New listings must start as PENDING_REVIEW.
+- Admin must approve before listing becomes ACTIVE.
+- Buyers/requesting organizations can only see ACTIVE listings.
+- Sellers can see their own DRAFT/PENDING/ACTIVE/REJECTED listings.
+- Every listing action must create an audit log.
+- Frontend validation is not enough; server functions must enforce everything.
+
+Database tables involved:
+- listings
+- inventory_batches
+- medicines
+- organizations
+- audit_logs
+
+Listing statuses:
+- DRAFT
+- PENDING_REVIEW
+- ACTIVE
+- RESERVED
+- COMPLETED
+- REJECTED
+- EXPIRED
+- CANCELLED
+
+Now build the listing feature.
+
+Create:
+
+1. Organization listings page
+2. Create listing page
+3. Create listing form from existing inventory batch
+4. Listing detail page for owning organization
+5. Admin listings review page
+6. Admin listing detail page
+7. Admin approve listing action
+8. Admin reject listing action with reason
+9. Listing status badges
+10. Listing filters:
+    - status
+    - medicine name
+    - expiry window
+    - organization
+    - listing type
+11. Listing table using TanStack Table
+12. Empty states
+13. Loading states
+14. Error states
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use TypeScript.
+- Use Zod validation.
+- Use TanStack Query for fetch/mutations.
+- Use TanStack Form or React Hook Form if easier.
+- Use Drizzle ORM style server functions.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Include practical file paths.
+- Include reusable components.
+- Include permission checks.
+- Include audit log creation.
+- Keep MVP clean and safe.
+
+Important server-side validations:
+- user must be authenticated
+- organization must be VERIFIED
+- organization must have can_list_medicine
+- inventory batch must belong to user’s organization
+- inventory batch must be SEALED
+- inventory batch storage_type must be NORMAL
+- inventory batch must not be expired
+- medicine must not be controlled/restricted
+- listing quantity must be greater than 0
+- listing quantity must be <= inventory available quantity
+- listing must start as PENDING_REVIEW unless saved as DRAFT
+- only admin can approve/reject
+- approved listing becomes ACTIVE
+- rejected listing becomes REJECTED with reason
+
+Expected output:
+- File/folder structure
+- Server functions
+- Validation schemas
+- Query/mutation hooks
+- Table columns
+- Forms
+- Route/page code
+- Reusable components
+- Explanation of status transitions and safety checks
