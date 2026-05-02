@@ -24,7 +24,7 @@ const ROLES_FOR_SIGNUP: ReadonlyArray<{
   {
     value: ROLES.ORG_STAFF,
     label: 'Organization staff',
-    description: 'Join an existing organization that already uses MedMove.',
+    description: 'Join an existing organization that already uses the platform.',
   },
   {
     value: ROLES.LOGISTICS_STAFF,

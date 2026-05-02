@@ -107,6 +107,7 @@ function Mark() {
 
 /* ─────────────────────────────────── Hero ──────────────────────────────── */
 function Hero({ signedIn }: { signedIn: boolean }) {
+  const siteName = useSiteName()
   return (
     <section className="border-b border-[var(--color-mm-line)]">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-12 sm:pt-20 pb-16">
@@ -122,7 +123,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
               <span className="text-[var(--color-mm-accent)]">people who need it.</span>
             </h1>
             <p className="mt-5 text-[17px] text-[var(--color-mm-subtle)] leading-relaxed max-w-xl">
-              MedMove connects pharmacies, clinics, hospitals, NGOs and
+              {siteName} connects pharmacies, clinics, hospitals, NGOs and
               distributors so surplus, in-date medicine reaches patients —
               instead of being destroyed.
             </p>
