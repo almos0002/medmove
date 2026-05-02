@@ -29,8 +29,15 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     'http://localhost:5000',
-    /\.replit\.dev$/,
-    /\.replit\.app$/,
+    'https://*.replit.dev',
+    'https://*.replit.app',
+    'https://*.pike.replit.dev',
+    ...(process.env.REPLIT_DEV_DOMAIN
+      ? [`https://${process.env.REPLIT_DEV_DOMAIN}`]
+      : []),
+    ...(process.env.REPLIT_DOMAINS
+      ? process.env.REPLIT_DOMAINS.split(',').map((d) => `https://${d.trim()}`)
+      : []),
   ],
 })
 
