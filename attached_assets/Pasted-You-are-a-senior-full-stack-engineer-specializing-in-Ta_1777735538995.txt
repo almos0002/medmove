@@ -1,0 +1,111 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, TanStack Query, TanStack Form, Zod, TanStack Table, Tailwind CSS, and shadcn/ui.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout are done.
+- Step 6: Organization onboarding and verification UI is done.
+
+Now I want Step 7: Medicine catalog + inventory batch management.
+
+Important model:
+User roles:
+- SUPER_ADMIN
+- ADMIN
+- ORG_OWNER
+- ORG_STAFF
+- LOGISTICS_STAFF
+
+Organization capabilities:
+- can_list_medicine
+- can_request_medicine
+- can_deliver_medicine
+
+Product safety rules:
+- This is not a public marketplace.
+- Only verified organizations can manage inventory.
+- Only organizations with can_list_medicine can create inventory batches intended for listing.
+- No expired medicine can be added as listable stock.
+- No opened/unsealed medicine can be listed.
+- No controlled/restricted drugs in MVP.
+- No cold-chain/refrigerated medicine in MVP.
+- Inventory belongs to one organization.
+- Users can only manage inventory for their own organization.
+- Admin can view all inventory.
+- Every important inventory action should create an audit log.
+- Frontend validation is not enough; server functions must enforce rules.
+
+Database tables involved:
+- medicines
+- inventory_batches
+- organizations
+- audit_logs
+
+Now build the medicine catalog and inventory batch feature.
+
+Create:
+
+1. Admin medicine catalog page
+2. Admin create medicine form
+3. Admin edit medicine form
+4. Organization inventory list page
+5. Organization add inventory batch form
+6. Inventory batch detail page
+7. Expiry status badges:
+   - SAFE
+   - EXPIRING_SOON
+   - CRITICAL
+   - EXPIRED
+8. Inventory filters:
+   - medicine name
+   - expiry status
+   - sealed status
+   - storage type
+   - batch number
+9. Inventory table using TanStack Table
+10. Empty states
+11. Loading states
+12. Error states
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use server functions from previous backend design, or create practical examples if missing.
+- Use Drizzle ORM style queries.
+- Use Zod validation.
+- Use TanStack Form or React Hook Form if easier.
+- Use TanStack Query for fetching/mutations.
+- Use TanStack Table for inventory list.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Include TypeScript types.
+- Include practical file paths.
+- Include reusable components.
+
+Important validation:
+- medicine name is required
+- generic name is optional but recommended
+- strength is required
+- form is required
+- manufacturer is optional
+- batch number is required
+- expiry date is required
+- quantity must be greater than 0
+- sealed_status must be SEALED for listable inventory
+- storage_type must be NORMAL for MVP
+- block expired inventory from being listable
+- controlled/restricted medicines should be blocked in MVP
+
+Expected output:
+- File/folder structure
+- Drizzle queries/server functions if needed
+- Validation schemas
+- Query/mutation hooks
+- Table columns
+- Forms
+- Route/page code
+- Reusable components
+- Explanation of safety checks
