@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,6 +30,7 @@ export const Route = createFileRoute('/admin/medicines/$medicineId')({
   loader: ({ params }) => getMedicine({ data: { id: params.medicineId } }),
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
+  head: pageHead({ title: "Admin · Medicine", noindex: true }),
   component: AdminMedicineEditPage,
 })
 

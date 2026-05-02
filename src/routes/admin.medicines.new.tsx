@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,6 +24,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { MEDICINE_FORMS } from '@/components/data/MedicineFormLabel'
 
 export const Route = createFileRoute('/admin/medicines/new')({
+  head: pageHead({ title: "Admin · New medicine", noindex: true }),
   component: AdminMedicineNewPage,
 })
 

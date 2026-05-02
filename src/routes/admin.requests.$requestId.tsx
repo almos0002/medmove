@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useRouter, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -54,6 +55,7 @@ export const Route = createFileRoute('/admin/requests/$requestId')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin · Request", noindex: true }),
   component: AdminRequestDetailPage,
 })
 

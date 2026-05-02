@@ -1,3 +1,4 @@
+import { pageHead } from '@/lib/seo'
 import * as React from 'react'
 import {
   createFileRoute,
@@ -74,6 +75,7 @@ export const Route = createFileRoute('/org/deliveries/outgoing')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Outgoing deliveries", noindex: true }),
   component: OrgOutgoingDeliveriesPage,
 })
 

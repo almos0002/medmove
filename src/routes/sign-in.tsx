@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useState } from 'react'
 import { ArrowRight, ShieldCheck, FlaskConical } from 'lucide-react'
 import { signIn } from '@/lib/auth-client'
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/sign-in')({
     if (typeof r === 'string' && r.startsWith('/')) return { redirect: r }
     return {}
   },
+  head: pageHead({ title: "Sign in", description: "Log in to your MedMove workspace to manage listings, requests and deliveries.", noindex: false }),
   component: SignInPage,
 })
 

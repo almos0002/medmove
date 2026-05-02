@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { Building2, ExternalLink, FileCheck2, Settings2 } from 'lucide-react'
 import { getMyOrganization } from '@/server/functions/organizations'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/org/settings')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Organization settings", noindex: true }),
   component: OrgSettingsPage,
 })
 

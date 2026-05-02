@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Bell, Mail, MessageSquare, Smartphone } from 'lucide-react'
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/account/notifications')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Notification preferences", noindex: true }),
   component: NotificationsPage,
 })
 

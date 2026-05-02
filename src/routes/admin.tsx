@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { ADMIN_ROLES } from '@/lib/permissions'
 import { getServerSession } from '@/server/functions/session'
 import { AppShell } from '@/components/layout/AppShell'
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/admin')({
     }
     return { session }
   },
+  head: pageHead({ title: "Admin", noindex: true }),
   component: AdminLayout,
 })
 

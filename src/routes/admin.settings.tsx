@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Megaphone, Settings2, ShieldOff, Tag } from 'lucide-react'
@@ -25,6 +26,7 @@ export const Route = createFileRoute('/admin/settings')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin · Platform settings", noindex: true }),
   component: AdminSettingsPage,
 })
 

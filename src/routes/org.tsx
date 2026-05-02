@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { isAdminRole, isOrgMemberRole, isOrgOwner } from '@/lib/permissions'
 import { getServerSession } from '@/server/functions/session'
 import { AppShell } from '@/components/layout/AppShell'
@@ -43,6 +44,7 @@ export const Route = createFileRoute('/org')({
     }
     return { session }
   },
+  head: pageHead({ title: "Workspace", noindex: true }),
   component: OrgLayout,
 })
 

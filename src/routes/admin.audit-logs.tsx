@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
@@ -96,6 +97,7 @@ export const Route = createFileRoute('/admin/audit-logs')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin · Audit logs", noindex: true }),
   component: AdminAuditLogsPage,
 })
 

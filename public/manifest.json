@@ -1,6 +1,7 @@
 {
-  "short_name": "TanStack App",
-  "name": "Create TanStack App Sample",
+  "short_name": "MedMove",
+  "name": "MedMove — Verified medicine redistribution",
+  "description": "Verified B2B platform for redistributing surplus, in-date, sealed medicine between healthcare organizations.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +19,8 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#0f5c4a",
   "background_color": "#ffffff"
 }

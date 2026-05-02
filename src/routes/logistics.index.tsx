@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   flexRender,
@@ -58,6 +59,7 @@ export const Route = createFileRoute('/logistics/')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Assigned deliveries", noindex: true }),
   component: LogisticsHome,
 })
 

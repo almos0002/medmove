@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowLeft, Mail, ShieldCheck, User as UserIcon } from 'lucide-react'
@@ -32,6 +33,7 @@ export const Route = createFileRoute('/profile')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Profile", noindex: true }),
   component: ProfilePage,
 })
 

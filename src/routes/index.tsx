@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useSiteName } from '@/lib/use-site-name'
+import { pageHead } from '@/lib/seo'
 import {
   ArrowRight,
   CheckCircle2,
@@ -19,7 +20,15 @@ import type { LucideIcon } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 
-export const Route = createFileRoute('/')({ component: Home })
+export const Route = createFileRoute('/')({
+  head: pageHead({
+    title: 'Verified medicine redistribution',
+    description:
+      'A verified B2B network where pharmacies, clinics, hospitals, NGOs and distributors redirect surplus, in-date, sealed medicine to the patients who need it.',
+    noindex: false,
+  }),
+  component: Home,
+})
 
 function Home() {
   const { data: session } = useSession()

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCheck, ChevronLeft, ChevronRight, Inbox } from 'lucide-react'
 import { ADMIN_ROLES, ROLES } from '@/lib/permissions'
@@ -50,6 +51,7 @@ export const Route = createFileRoute('/notifications')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Notifications", noindex: true }),
   component: NotificationsPage,
 })
 

@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { KeyRound, ShieldCheck } from 'lucide-react'
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createFileRoute('/account/')({
+  head: pageHead({ title: "Account", noindex: true }),
   component: SecurityPage,
 })
 

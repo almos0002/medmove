@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -37,6 +38,7 @@ export const Route = createFileRoute('/org/marketplace/$listingId')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Listing", noindex: true }),
   component: MarketplaceListingDetailPage,
 })
 

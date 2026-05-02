@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
@@ -51,6 +52,7 @@ export const Route = createFileRoute('/admin/')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin overview", noindex: true }),
   component: AdminHome,
 })
 

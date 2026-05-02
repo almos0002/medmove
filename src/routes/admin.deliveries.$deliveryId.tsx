@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -64,6 +65,7 @@ export const Route = createFileRoute('/admin/deliveries/$deliveryId')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin · Delivery", noindex: true }),
   component: AdminDeliveryDetailPage,
 })
 

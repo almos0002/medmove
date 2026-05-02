@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import {
   flexRender,
   getCoreRowModel,
@@ -81,6 +82,7 @@ export const Route = createFileRoute('/admin/listings/')({
     }),
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
+  head: pageHead({ title: "Admin · Listings", noindex: true }),
   component: AdminListingsPage,
 })
 

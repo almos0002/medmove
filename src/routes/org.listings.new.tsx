@@ -1,3 +1,4 @@
+import { pageHead } from '@/lib/seo'
 import * as React from 'react'
 import {
   createFileRoute,
@@ -55,6 +56,7 @@ export const Route = createFileRoute('/org/listings/new')({
     return { primaryOrgId: session.primaryOrg.id }
   },
   pendingComponent: PageLoading,
+  head: pageHead({ title: "New listing", noindex: true }),
   component: OrgListingNewPage,
 })
 

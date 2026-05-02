@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { ArrowLeft } from 'lucide-react'
 import { format } from 'date-fns'
 import { getInventoryBatch } from '@/server/functions/inventory'
@@ -17,6 +18,7 @@ export const Route = createFileRoute('/org/inventory/$batchId')({
   loader: ({ params }) => getInventoryBatch({ data: { id: params.batchId } }),
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
+  head: pageHead({ title: "Batch", noindex: true }),
   component: OrgInventoryDetailPage,
 })
 

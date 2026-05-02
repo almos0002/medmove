@@ -1,3 +1,4 @@
+import { pageHead } from '@/lib/seo'
 import {
   createFileRoute,
   Link,
@@ -73,6 +74,7 @@ export const Route = createFileRoute('/admin/organizations/$orgId')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin · Organization", noindex: true }),
   component: AdminOrgDetail,
 })
 

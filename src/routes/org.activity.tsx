@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
@@ -97,6 +98,7 @@ export const Route = createFileRoute('/org/activity')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Activity", noindex: true }),
   component: OrgActivityPage,
 })
 

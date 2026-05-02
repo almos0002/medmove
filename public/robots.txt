@@ -1,3 +1,16 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+Allow: /sign-in
+Allow: /sign-up
+Disallow: /admin
+Disallow: /org
+Disallow: /logistics
+Disallow: /dashboard
+Disallow: /account
+Disallow: /profile
+Disallow: /notifications
+Disallow: /onboarding
+Disallow: /suspended
+Disallow: /unauthorized
+Disallow: /api/

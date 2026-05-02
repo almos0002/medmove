@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import {
   useRouter,
 } from '@tanstack/react-router'
@@ -56,6 +57,7 @@ export const Route = createFileRoute('/org/documents')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Verification documents", noindex: true }),
   component: DocumentsPage,
 })
 

@@ -1,3 +1,4 @@
+import { pageHead } from '@/lib/seo'
 import {
   createFileRoute,
   redirect,
@@ -56,6 +57,7 @@ export const Route = createFileRoute('/onboarding')({
     }
     return { session }
   },
+  head: pageHead({ title: "Onboarding", noindex: true }),
   component: OnboardingPage,
 })
 

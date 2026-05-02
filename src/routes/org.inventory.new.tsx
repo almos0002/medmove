@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useNavigate, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -36,6 +37,7 @@ export const Route = createFileRoute('/org/inventory/new')({
     return { primaryOrgId: session.primaryOrg.id }
   },
   pendingComponent: PageLoading,
+  head: pageHead({ title: "Add batch", noindex: true }),
   component: OrgInventoryNewPage,
 })
 

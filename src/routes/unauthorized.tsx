@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { UnauthorizedPage } from '@/components/feedback/UnauthorizedPage'
 
 /**
@@ -8,5 +9,6 @@ import { UnauthorizedPage } from '@/components/feedback/UnauthorizedPage'
  * open `/admin/...` as an org owner).
  */
 export const Route = createFileRoute('/unauthorized')({
+  head: pageHead({ title: "Unauthorized", noindex: true }),
   component: UnauthorizedPage,
 })

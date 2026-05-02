@@ -3,13 +3,22 @@ import { useState } from 'react'
 import { ArrowRight, ShieldCheck, Check } from 'lucide-react'
 import { signUp } from '@/lib/auth-client'
 import { useSiteName } from '@/lib/use-site-name'
+import { pageHead } from '@/lib/seo'
 import { ROLES, type AppRole, homePathForRole } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/sign-up')({ component: SignUpPage })
+export const Route = createFileRoute('/sign-up')({
+  head: pageHead({
+    title: 'Create an account',
+    description:
+      'Register your organization or join an existing one on the MedMove verified medicine network.',
+    noindex: false,
+  }),
+  component: SignUpPage,
+})
 
 const ROLES_FOR_SIGNUP: ReadonlyArray<{
   value: AppRole

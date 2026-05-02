@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { Building2, Search, X } from 'lucide-react'
 import { z } from 'zod'
 import { adminListOrganizations } from '@/server/functions/organizations'
@@ -47,6 +48,7 @@ export const Route = createFileRoute('/admin/organizations/')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Admin · Organizations", noindex: true }),
   component: AdminOrganizationsList,
 })
 

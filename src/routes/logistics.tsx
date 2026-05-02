@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { ROLES, isAdminRole } from '@/lib/permissions'
 import { getServerSession } from '@/server/functions/session'
 import { AppShell } from '@/components/layout/AppShell'
@@ -17,6 +18,7 @@ export const Route = createFileRoute('/logistics')({
     }
     return { session }
   },
+  head: pageHead({ title: "Logistics", noindex: true }),
   component: LogisticsLayout,
 })
 

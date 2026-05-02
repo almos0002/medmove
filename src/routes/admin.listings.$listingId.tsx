@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowLeft, Check, X, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
@@ -36,6 +37,7 @@ export const Route = createFileRoute('/admin/listings/$listingId')({
   loader: ({ params }) => getListing({ data: { id: params.listingId } }),
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
+  head: pageHead({ title: "Admin · Listing", noindex: true }),
   component: AdminListingDetailPage,
 })
 

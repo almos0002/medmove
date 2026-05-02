@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { ArrowLeft, Bell, KeyRound, ShieldCheck, User as UserIcon } from 'lucide-react'
 import { getServerSession } from '@/server/functions/session'
 import { getMyAccount } from '@/server/functions/account'
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/account')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Account", noindex: true }),
   component: AccountLayout,
 })
 

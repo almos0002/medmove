@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createFileRoute, Link, useNavigate, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import {
   flexRender,
   getCoreRowModel,
@@ -65,6 +66,7 @@ export const Route = createFileRoute('/org/inventory/')({
   },
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
+  head: pageHead({ title: "Inventory", noindex: true }),
   component: OrgInventoryPage,
 })
 

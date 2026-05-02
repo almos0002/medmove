@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { getServerSession } from '@/server/functions/session'
 import { getMyOrganization } from '@/server/functions/organizations'
 import { getPlatformSettings } from '@/server/functions/platformSettings'
@@ -32,6 +33,7 @@ export const Route = createFileRoute('/suspended')({
     ])
     return { org: orgRes.organization, settings: settingsRes.settings }
   },
+  head: pageHead({ title: "Account suspended", noindex: true }),
   component: SuspendedRoute,
 })
 

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import {
   AlertTriangle,
   ArrowRight,
@@ -45,6 +46,7 @@ export const Route = createFileRoute('/org/')({
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),
+  head: pageHead({ title: "Workspace", noindex: true }),
   component: OrgHome,
 })
 

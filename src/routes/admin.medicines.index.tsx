@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '@/lib/seo'
 import { Pill, Plus, Search, X } from 'lucide-react'
 import { z } from 'zod'
 import { listMedicines } from '@/server/functions/medicines'
@@ -30,6 +31,7 @@ export const Route = createFileRoute('/admin/medicines/')({
     }),
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => <PageError error={error} reset={reset} />,
+  head: pageHead({ title: "Admin · Medicines", noindex: true }),
   component: AdminMedicinesPage,
 })
 
