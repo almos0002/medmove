@@ -4,10 +4,10 @@
  * Wipes every domain + auth row and creates only:
  *   • 1 super_admin user
  *   • 2 verified organizations of type "logistics_partner" (delivery)
+ *   • 2 logistics_staff users — one assigned to each org
  *
  * No catalog, listings, transfers, deliveries, notifications, or audit
- * rows are created — this is a clean slate for hand-testing flows from
- * the super_admin account.
+ * rows are created — this is a clean slate for hand-testing flows.
  *
  * Run:  npm run db:seed
  */
@@ -123,6 +123,24 @@ async function ensureOrg(args: {
   return org!
 }
 
+async function ensureMembership(
+  orgId: string,
+  userId: string,
+  role: 'owner' | 'member',
+) {
+  const existing = await db
+    .select()
+    .from(organizationMembers)
+    .where(eq(organizationMembers.userId, userId))
+    .limit(1)
+  if (existing[0]) return existing[0]
+  const [row] = await db
+    .insert(organizationMembers)
+    .values({ organizationId: orgId, userId, role })
+    .returning()
+  return row!
+}
+
 /**
  * Wipe every domain row plus every Better Auth row so the seed is a
  * true reset.
@@ -155,14 +173,26 @@ async function main() {
   console.log('Resetting all domain + auth tables…')
   await resetDatabase()
 
-  // ─── User ─────────────────────────────────────────────────────────────
+  // ─── Users ────────────────────────────────────────────────────────────
   const superAdminUser = await ensureUser({
     email: 'super-admin@medmove.dev',
     password: 'SuperAdminPass123!',
     name: 'MedMove Super Admin',
     role: ROLES.SUPER_ADMIN,
   })
-  console.log('Super admin ready.')
+  const logisticsStaffA = await ensureUser({
+    email: 'logistics1@medmove.dev',
+    password: 'Logistics1Pass123!',
+    name: 'Liam Logistics One',
+    role: ROLES.LOGISTICS_STAFF,
+  })
+  const logisticsStaffB = await ensureUser({
+    email: 'logistics2@medmove.dev',
+    password: 'Logistics2Pass123!',
+    name: 'Lena Logistics Two',
+    role: ROLES.LOGISTICS_STAFF,
+  })
+  console.log('Users ready (1 super admin + 2 logistics staff).')
 
   // ─── Organisations (delivery / logistics_partner) ─────────────────────
   const orgA = await ensureOrg({
@@ -185,13 +215,23 @@ async function main() {
     country: 'USA',
     ownerUserId: superAdminUser.id,
   })
+
+  // Each logistics staff joins one org as a member.
+  await ensureMembership(orgA.id, logisticsStaffA.id, 'member')
+  await ensureMembership(orgB.id, logisticsStaffB.id, 'member')
   console.log(`Organisations ready: ${orgA.name}, ${orgB.name}`)
 
   // ─── Summary ──────────────────────────────────────────────────────────
   console.log('\nDone.\n')
   console.log('Login credentials:')
   console.log(
-    '  super_admin: super-admin@medmove.dev / SuperAdminPass123!',
+    '  super_admin:   super-admin@medmove.dev  / SuperAdminPass123!',
+  )
+  console.log(
+    '  logistics #1:  logistics1@medmove.dev   / Logistics1Pass123!  (SwiftMove Logistics)',
+  )
+  console.log(
+    '  logistics #2:  logistics2@medmove.dev   / Logistics2Pass123!  (NorthStar Delivery)',
   )
 }
 
