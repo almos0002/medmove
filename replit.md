@@ -6,7 +6,9 @@ A React application built with TanStack Start (full-stack React framework), TanS
 ## Tech Stack
 - **Framework**: TanStack Start (React SSR/full-stack)
 - **Router**: TanStack Router (file-based routing)
-- **Styling**: Tailwind CSS v4
+- **Styling**: Tailwind CSS v4 (configured via `@theme` in `src/styles.css`)
+- **Icons**: lucide-react
+- **Font**: Poppins (loaded from Google Fonts in `__root.tsx`, set as default `font-sans`)
 - **Build Tool**: Vite v8
 - **Language**: TypeScript
 - **Testing**: Vitest + React Testing Library
