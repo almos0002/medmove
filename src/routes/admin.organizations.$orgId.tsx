@@ -325,7 +325,7 @@ function Field({
       <div
         className={
           mono
-            ? 'text-sm font-mono text-[var(--color-mm-ink)] break-all'
+            ? 'text-sm text-[var(--color-mm-ink)] break-all'
             : 'text-sm text-[var(--color-mm-ink)] break-words'
         }
       >
