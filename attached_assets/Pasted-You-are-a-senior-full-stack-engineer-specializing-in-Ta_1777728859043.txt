@@ -1,0 +1,87 @@
+You are a senior full-stack engineer specializing in TanStack Start, TypeScript, PostgreSQL, Drizzle ORM, authentication, and secure role-based SaaS architecture.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules, server functions, and API design are done.
+
+Now I want Step 4: Authentication, authorization, protected routes, and role-based access control.
+
+Product summary:
+Verified pharmacies/clinics can list safe near-expiry medicine stock. Verified hospitals/NGOs/clinics can request that stock. Admin approves organizations, listings, and transfer requests. The platform tracks manual pickup/delivery and stores audit logs.
+
+User roles:
+- SUPER_ADMIN
+- ADMIN
+- SELLER
+- BUYER
+- LOGISTICS_USER
+
+Organization types:
+- PHARMACY
+- CLINIC
+- HOSPITAL
+- NGO
+- LOGISTICS
+
+Important rules:
+- Users must belong to an organization except platform admins.
+- Only verified organizations can list or request medicine.
+- Sellers can only access their own organization inventory/listings.
+- Buyers can only access approved active listings and their own requests.
+- Logistics users can only access assigned deliveries.
+- Admins can see and manage everything.
+- Every write action must check role and organization verification.
+- Never trust frontend-only protection.
+- Backend/server functions must enforce all permissions.
+
+Tech stack:
+- TanStack Start
+- TypeScript
+- PostgreSQL
+- Drizzle ORM
+- Better Auth or Clerk
+- TanStack Router
+- TanStack Query
+- Tailwind CSS
+- shadcn/ui
+
+Now design and implement the auth/RBAC layer.
+
+Give me:
+
+1. Recommended auth provider for this MVP: Better Auth vs Clerk
+2. Auth folder structure
+3. User session shape
+4. Role enum and permission design
+5. Auth helper functions:
+   - getCurrentUser()
+   - requireAuth()
+   - requireRole()
+   - requireAdmin()
+   - requireVerifiedOrganization()
+   - requireOrganizationAccess()
+6. Protected route strategy in TanStack Start
+7. Public routes
+8. Admin-only routes
+9. Seller-only routes
+10. Buyer-only routes
+11. Logistics-only routes
+12. Redirect rules after login
+13. Middleware or beforeLoad route protection examples
+14. Backend server function permission examples
+15. Example protected route for admin dashboard
+16. Example protected route for seller dashboard
+17. Example protected server function for creating inventory
+18. Example protected server function for requesting medicine
+19. Common security mistakes to avoid
+20. Testing checklist for role permissions
+
+Important:
+- Use TypeScript examples.
+- Keep code practical for a real TanStack Start app.
+- Do not build the full UI yet.
+- Focus only on auth, route protection, and permission enforcement.
+- Make sure permissions are enforced on the server, not only in React components.
