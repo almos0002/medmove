@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 [agent]
 expertMode = true
 stack = "BEST_EFFORT_FALLBACK"
@@ -42,3 +42,9 @@ externalPort = 80
 deploymentTarget = "autoscale"
 run = ["node", ".output/server/index.mjs"]
 build = ["npm", "run", "build"]
+
+[userenv]
+
+[userenv.shared]
+BETTER_AUTH_SECRET = "aK4gJ5TzmWqfkVEhaGmFhhGhCPTYGzUMI5mQ+wp2mh4="
+BETTER_AUTH_URL = "http://localhost:5000"
