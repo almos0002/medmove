@@ -1,0 +1,139 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, TanStack Query, TanStack Form, Zod, TanStack Table, Tailwind CSS, shadcn/ui, and secure healthcare SaaS workflows.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout are done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+- Step 8: Listing creation + admin approval workflow is done.
+
+Now I want Step 9: Request / claim workflow for verified organizations.
+
+Important model:
+User roles:
+- SUPER_ADMIN
+- ADMIN
+- ORG_OWNER
+- ORG_STAFF
+- LOGISTICS_STAFF
+
+Organization capabilities:
+- can_list_medicine
+- can_request_medicine
+- can_deliver_medicine
+
+Product rules:
+- This is NOT a public medicine marketplace.
+- Only verified organizations with can_request_medicine can request listed medicine.
+- A pharmacy, clinic, hospital, or NGO may request medicine if admin enables that capability.
+- Requesting organization must not be the same organization that created the listing.
+- Organizations can only request ACTIVE listings.
+- Listings must not be expired.
+- Requested quantity cannot exceed available listing quantity.
+- Request must start as REQUESTED or PENDING_REVIEW.
+- Admin must approve or reject the request.
+- After request approval, the listing quantity should be reserved.
+- Every request action must create an audit log.
+- Frontend validation is not enough; server functions must enforce everything.
+
+Database tables involved:
+- listings
+- transfer_requests
+- inventory_batches
+- medicines
+- organizations
+- audit_logs
+
+Transfer request statuses:
+- REQUESTED
+- APPROVED
+- REJECTED
+- PICKUP_SCHEDULED
+- IN_TRANSIT
+- DELIVERED
+- CANCELLED
+
+Now build the request / claim workflow.
+
+Create:
+
+1. Available listings page for verified organizations
+2. Listing detail page for requesting organizations
+3. Request medicine form
+4. My organization requests page
+5. Request detail page
+6. Admin transfer requests review page
+7. Admin transfer request detail page
+8. Admin approve request action
+9. Admin reject request action with reason
+10. Request status badges
+11. Request filters:
+    - status
+    - medicine name
+    - requesting organization
+    - listing organization
+    - expiry window
+12. Request table using TanStack Table
+13. Empty states
+14. Loading states
+15. Error states
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use TypeScript.
+- Use Zod validation.
+- Use TanStack Query for fetch/mutations.
+- Use TanStack Form or React Hook Form if easier.
+- Use Drizzle ORM style server functions.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Include practical file paths.
+- Include reusable components.
+- Include permission checks.
+- Include audit log creation.
+- Keep MVP clean and safe.
+
+Important server-side validations:
+- user must be authenticated
+- organization must be VERIFIED
+- organization must have can_request_medicine
+- listing must be ACTIVE
+- listing must not belong to the requesting organization
+- listing medicine must not be expired
+- requested quantity must be greater than 0
+- requested quantity must be <= listing.quantity_available
+- duplicate active requests from same organization for same listing should be blocked or handled safely
+- only admin can approve/reject transfer requests
+- rejected request must store rejection reason
+- approved request must reserve quantity safely
+- quantity reservation must be transaction-safe to avoid two organizations claiming the same stock
+- all important actions must create audit logs
+
+Important transaction rule:
+When admin approves a request:
+1. Start database transaction
+2. Lock or safely re-check listing quantity
+3. Confirm listing is still ACTIVE
+4. Confirm requested quantity is still available
+5. Reduce or reserve listing quantity
+6. Mark transfer request as APPROVED
+7. If full quantity is reserved, mark listing as RESERVED
+8. Create audit log
+9. Commit transaction
+
+Expected output:
+- File/folder structure
+- Server functions
+- Validation schemas
+- Query/mutation hooks
+- Table columns
+- Forms
+- Route/page code
+- Reusable components
+- Explanation of status transitions
+- Explanation of safe quantity reservation
