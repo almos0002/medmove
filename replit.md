@@ -38,6 +38,14 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
     - `listings.ts` - `listings`, `transfer_requests`, `deliveries` (+ CHECK constraints on quantities)
     - `audit.ts` - append-only `audit_logs`
     - `index.ts` - re-exports all tables and relations
+- `src/server/` - Server-only business logic layer
+  - `errors.ts` - `AppError` class + `toClientError` (typed error codes)
+  - `context.ts` - `getRequestContext()` (auth session + primary org + IP/UA)
+  - `audit.ts` - `writeAudit()` (transaction-aware audit log writer)
+  - `transitions.ts` - status transition maps + `assertTransition()` for org/listing/transfer/delivery
+  - `guards/` - `requireAuth`, `requireRole`, `requireOrgMember`, `requireVerifiedOrg`
+  - `validators/` - Zod input schemas per domain (`organizations`, `medicines`, `inventory`, `listings`, `transfers`, `deliveries`)
+  - `functions/` - `createServerFn` handlers per domain; all wrap business logic in DB transactions, enforce role + verified-org guards, run MVP safety re-checks (no controlled / cold-chain / expired / opened), assert state transitions, decrement quantities race-safely (`SET qty = qty - n WHERE qty >= n`), and write audit rows inside the same transaction. All use `strict: { output: false }` because audit JSONB columns use `Record<string, unknown>`.
 - `scripts/seed.ts` - Idempotent dev seed (admin + pharmacy + hospital users, 10 medicines, demo listing)
 - `src/router.tsx` - Router configuration
 - `src/styles.css` - Global styles
