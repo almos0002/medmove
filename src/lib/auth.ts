@@ -24,13 +24,14 @@ async function validateRoleForCreate(input: { role?: unknown }) {
   const trusted = process.env.MEDMOVE_TRUSTED_SIGNUP === '1'
   const allowed = trusted ? ALL_ROLES : PUBLIC_SIGNUP_ROLES
   const role =
-    typeof input.role === 'string' ? (input.role as AppRole) : ROLES.BUYER
+    typeof input.role === 'string' ? (input.role as AppRole) : ROLES.ORG_STAFF
   if (!allowed.includes(role)) {
     throw new APIError('FORBIDDEN', {
       message: `Role '${role}' is not allowed for public sign-up`,
     })
   }
-  // Coerce missing/invalid to BUYER so the row is always well-formed.
+  // Coerce missing/invalid to ORG_STAFF so the row is always well-formed
+  // (lowest-trust authenticated role that still belongs to an org).
   return { ...input, role }
 }
 
@@ -48,7 +49,7 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: true,
-        defaultValue: ROLES.BUYER,
+        defaultValue: ROLES.ORG_STAFF,
         input: true,
       },
       organizationName: {

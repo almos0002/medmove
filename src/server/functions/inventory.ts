@@ -2,11 +2,13 @@ import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { inventoryBatches, medicines } from '@/lib/schema'
+import { CAPABILITIES, isAdminRole } from '@/lib/permissions'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
-import { requireRole } from '../guards/require-role'
-import { requireVerifiedOrg } from '../guards/require-verified-org'
+import { requireAuth } from '../guards/require-auth'
+import { requireCapability } from '../guards/require-capability'
+import { requireOrgMember } from '../guards/require-org'
 import {
   createBatchSchema,
   listBatchesSchema,
@@ -17,8 +19,14 @@ export const createInventoryBatch = createServerFn({ method: 'POST', strict: { o
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
-      await requireVerifiedOrg(ctx, data.organizationId)
+      // To stock listable inventory, the user's org must be enabled to list
+      // medicine. (We deliberately do NOT require staff vs owner here — both
+      // org_owner and org_staff may manage inventory; admins also bypass.)
+      await requireCapability(
+        ctx,
+        data.organizationId,
+        CAPABILITIES.CAN_LIST_MEDICINE,
+      )
 
       const [med] = await db
         .select()
@@ -102,7 +110,15 @@ export const listInventoryBatches = createServerFn({ method: 'GET', strict: { ou
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      await requireVerifiedOrg(ctx, data.organizationId)
+      // Read-only: any org member (or admin) may inspect their org's stock.
+      // We don't gate this on a capability flag because viewing inventory is
+      // safe regardless of whether the org may currently list/request.
+      // Admins bypass membership for support reasons (parity with
+      // requireCapability's admin branch).
+      const actor = requireAuth(ctx)
+      if (!isAdminRole(actor.role)) {
+        await requireOrgMember(ctx, data.organizationId)
+      }
 
       const rows = await db
         .select()

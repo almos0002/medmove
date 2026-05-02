@@ -11,15 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as SellerRouteImport } from './routes/seller'
+import { Route as OrgRouteImport } from './routes/org'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as BuyerRouteImport } from './routes/buyer'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SellerIndexRouteImport } from './routes/seller.index'
+import { Route as OrgIndexRouteImport } from './routes/org.index'
 import { Route as LogisticsIndexRouteImport } from './routes/logistics.index'
-import { Route as BuyerIndexRouteImport } from './routes/buyer.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -33,9 +31,9 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SellerRoute = SellerRouteImport.update({
-  id: '/seller',
-  path: '/seller',
+const OrgRoute = OrgRouteImport.update({
+  id: '/org',
+  path: '/org',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogisticsRoute = LogisticsRouteImport.update({
@@ -48,11 +46,6 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BuyerRoute = BuyerRouteImport.update({
-  id: '/buyer',
-  path: '/buyer',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -63,20 +56,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SellerIndexRoute = SellerIndexRouteImport.update({
+const OrgIndexRoute = OrgIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => SellerRoute,
+  getParentRoute: () => OrgRoute,
 } as any)
 const LogisticsIndexRoute = LogisticsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LogisticsRoute,
-} as any)
-const BuyerIndexRoute = BuyerIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BuyerRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -92,16 +80,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/buyer': typeof BuyerRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/logistics': typeof LogisticsRouteWithChildren
-  '/seller': typeof SellerRouteWithChildren
+  '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/admin/': typeof AdminIndexRoute
-  '/buyer/': typeof BuyerIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
-  '/seller/': typeof SellerIndexRoute
+  '/org/': typeof OrgIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -110,25 +96,22 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/admin': typeof AdminIndexRoute
-  '/buyer': typeof BuyerIndexRoute
   '/logistics': typeof LogisticsIndexRoute
-  '/seller': typeof SellerIndexRoute
+  '/org': typeof OrgIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/buyer': typeof BuyerRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/logistics': typeof LogisticsRouteWithChildren
-  '/seller': typeof SellerRouteWithChildren
+  '/org': typeof OrgRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/admin/': typeof AdminIndexRoute
-  '/buyer/': typeof BuyerIndexRoute
   '/logistics/': typeof LogisticsIndexRoute
-  '/seller/': typeof SellerIndexRoute
+  '/org/': typeof OrgIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -136,16 +119,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/buyer'
     | '/dashboard'
     | '/logistics'
-    | '/seller'
+    | '/org'
     | '/sign-in'
     | '/sign-up'
     | '/admin/'
-    | '/buyer/'
     | '/logistics/'
-    | '/seller/'
+    | '/org/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,34 +135,30 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
-    | '/buyer'
     | '/logistics'
-    | '/seller'
+    | '/org'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/admin'
-    | '/buyer'
     | '/dashboard'
     | '/logistics'
-    | '/seller'
+    | '/org'
     | '/sign-in'
     | '/sign-up'
     | '/admin/'
-    | '/buyer/'
     | '/logistics/'
-    | '/seller/'
+    | '/org/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  BuyerRoute: typeof BuyerRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   LogisticsRoute: typeof LogisticsRouteWithChildren
-  SellerRoute: typeof SellerRouteWithChildren
+  OrgRoute: typeof OrgRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -203,11 +180,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/seller': {
-      id: '/seller'
-      path: '/seller'
-      fullPath: '/seller'
-      preLoaderRoute: typeof SellerRouteImport
+    '/org': {
+      id: '/org'
+      path: '/org'
+      fullPath: '/org'
+      preLoaderRoute: typeof OrgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logistics': {
@@ -224,13 +201,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/buyer': {
-      id: '/buyer'
-      path: '/buyer'
-      fullPath: '/buyer'
-      preLoaderRoute: typeof BuyerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -245,12 +215,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/seller/': {
-      id: '/seller/'
+    '/org/': {
+      id: '/org/'
       path: '/'
-      fullPath: '/seller/'
-      preLoaderRoute: typeof SellerIndexRouteImport
-      parentRoute: typeof SellerRoute
+      fullPath: '/org/'
+      preLoaderRoute: typeof OrgIndexRouteImport
+      parentRoute: typeof OrgRoute
     }
     '/logistics/': {
       id: '/logistics/'
@@ -258,13 +228,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/logistics/'
       preLoaderRoute: typeof LogisticsIndexRouteImport
       parentRoute: typeof LogisticsRoute
-    }
-    '/buyer/': {
-      id: '/buyer/'
-      path: '/'
-      fullPath: '/buyer/'
-      preLoaderRoute: typeof BuyerIndexRouteImport
-      parentRoute: typeof BuyerRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -293,16 +256,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface BuyerRouteChildren {
-  BuyerIndexRoute: typeof BuyerIndexRoute
-}
-
-const BuyerRouteChildren: BuyerRouteChildren = {
-  BuyerIndexRoute: BuyerIndexRoute,
-}
-
-const BuyerRouteWithChildren = BuyerRoute._addFileChildren(BuyerRouteChildren)
-
 interface LogisticsRouteChildren {
   LogisticsIndexRoute: typeof LogisticsIndexRoute
 }
@@ -315,24 +268,22 @@ const LogisticsRouteWithChildren = LogisticsRoute._addFileChildren(
   LogisticsRouteChildren,
 )
 
-interface SellerRouteChildren {
-  SellerIndexRoute: typeof SellerIndexRoute
+interface OrgRouteChildren {
+  OrgIndexRoute: typeof OrgIndexRoute
 }
 
-const SellerRouteChildren: SellerRouteChildren = {
-  SellerIndexRoute: SellerIndexRoute,
+const OrgRouteChildren: OrgRouteChildren = {
+  OrgIndexRoute: OrgIndexRoute,
 }
 
-const SellerRouteWithChildren =
-  SellerRoute._addFileChildren(SellerRouteChildren)
+const OrgRouteWithChildren = OrgRoute._addFileChildren(OrgRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  BuyerRoute: BuyerRouteWithChildren,
   DashboardRoute: DashboardRoute,
   LogisticsRoute: LogisticsRouteWithChildren,
-  SellerRoute: SellerRouteWithChildren,
+  OrgRoute: OrgRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

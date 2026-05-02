@@ -10,14 +10,19 @@ import {
 } from '@/lib/schema'
 import { user as userTable } from '@/lib/auth-schema'
 import { organizationMembers } from '@/lib/schema'
-import { ROLES, isAdminRole } from '@/lib/permissions'
+import {
+  CAPABILITIES,
+  ORG_TYPES,
+  ROLES,
+  hasCapability,
+  isAdminRole,
+} from '@/lib/permissions'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { requireAuth } from '../guards/require-auth'
-import { requireRole } from '../guards/require-role'
 import { requireAdmin } from '../guards/require-admin'
-import { requireVerifiedOrg } from '../guards/require-verified-org'
+import { requireCapability } from '../guards/require-capability'
 import {
   DELIVERY_TRANSITIONS,
   TRANSFER_TRANSITIONS,
@@ -40,7 +45,6 @@ export const scheduleDelivery = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [request] = await tx
@@ -58,7 +62,12 @@ export const scheduleDelivery = createServerFn({
           .limit(1)
         if (!listing) throw new AppError('NOT_FOUND', 'Listing missing')
 
-        await requireVerifiedOrg(ctx, listing.sellerOrgId)
+        // Scheduling is the seller-side hand-off step → can_list_medicine.
+        await requireCapability(
+          ctx,
+          listing.sellerOrgId,
+          CAPABILITIES.CAN_LIST_MEDICINE,
+        )
 
         if (request.status !== 'accepted') {
           throw new AppError(
@@ -144,16 +153,7 @@ export const markDispatched = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      // Authorization: seller of the source org, the assigned logistics user,
-      // or admin/super_admin. We resolve the actor first, then re-check below
-      // against the actual delivery row.
-      const actor = requireRole(
-        ctx,
-        ROLES.SELLER,
-        ROLES.LOGISTICS_USER,
-        ROLES.ADMIN,
-        ROLES.SUPER_ADMIN,
-      )
+      const actor = requireAuth(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
@@ -178,21 +178,66 @@ export const markDispatched = createServerFn({
           .limit(1)
         if (!listing) throw new AppError('NOT_FOUND', 'Listing missing')
 
-        // Per-row authorization: which of the allowed roles is this actor in
-        // relation to *this specific* delivery?
-        let user = actor
-        if (actor.role === ROLES.SELLER) {
-          const r = await requireVerifiedOrg(ctx, listing.sellerOrgId)
-          user = r.user
-        } else if (actor.role === ROLES.LOGISTICS_USER) {
-          if (delivery.assignedLogisticsUserId !== actor.id) {
-            throw new AppError(
-              'FORBIDDEN',
-              'You are not assigned to this delivery',
-            )
+        // Authorization rules for marking dispatched:
+        //   1. Admins always allowed.
+        //   2. The specific assigned LOGISTICS_STAFF user (per-row check on
+        //      delivery.assignedLogisticsUserId). To prevent stale-privilege
+        //      escalation, we ALSO re-validate at dispatch time that:
+        //        a) the actor's current role is still LOGISTICS_STAFF, AND
+        //        b) the actor is still a member of the assigned logistics
+        //           org (if one was recorded).
+        //      If either changed, we fall through to the org-capability
+        //      branches below — which themselves require the org to still
+        //      hold can_deliver_medicine.
+        //   3. Otherwise: caller must be a member of an org with
+        //      can_deliver_medicine. That org must be either the assigned
+        //      logistics org (if one is set) or the seller org (self-
+        //      dispatch by a distributor / cap-enabled seller).
+        if (!isAdminRole(actor.role)) {
+          let authorisedAsAssigned = false
+          if (
+            delivery.assignedLogisticsUserId &&
+            delivery.assignedLogisticsUserId === actor.id &&
+            actor.role === ROLES.LOGISTICS_STAFF
+          ) {
+            if (delivery.assignedLogisticsOrgId) {
+              const [stillMember] = await tx
+                .select({ id: organizationMembers.id })
+                .from(organizationMembers)
+                .where(
+                  and(
+                    eq(organizationMembers.userId, actor.id),
+                    eq(
+                      organizationMembers.organizationId,
+                      delivery.assignedLogisticsOrgId,
+                    ),
+                  ),
+                )
+                .limit(1)
+              authorisedAsAssigned = !!stillMember
+            } else {
+              authorisedAsAssigned = true
+            }
+          }
+
+          if (!authorisedAsAssigned) {
+            if (delivery.assignedLogisticsOrgId) {
+              await requireCapability(
+                ctx,
+                delivery.assignedLogisticsOrgId,
+                CAPABILITIES.CAN_DELIVER_MEDICINE,
+              )
+            } else {
+              // No logistics assigned — must be a self-dispatch by a seller
+              // org that holds can_deliver_medicine (e.g. distributor type).
+              await requireCapability(
+                ctx,
+                listing.sellerOrgId,
+                CAPABILITIES.CAN_DELIVER_MEDICINE,
+              )
+            }
           }
         }
-        // Admin / super_admin have implicit access.
 
         assertTransition(DELIVERY_TRANSITIONS, delivery.status, 'in_transit')
         assertTransition(TRANSFER_TRANSITIONS, request.status, 'dispatched')
@@ -202,7 +247,7 @@ export const markDispatched = createServerFn({
           .set({
             status: 'in_transit',
             dispatchedAt: new Date(),
-            dispatchedByUserId: user.id,
+            dispatchedByUserId: actor.id,
             courierReference:
               data.courierReference ?? delivery.courierReference,
             dispatchNotes: data.dispatchNotes ?? delivery.dispatchNotes,
@@ -277,7 +322,6 @@ export const confirmDelivery = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'buyer')
 
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
@@ -295,9 +339,12 @@ export const confirmDelivery = createServerFn({
         if (!request)
           throw new AppError('NOT_FOUND', 'Transfer request missing')
 
-        const { user } = await requireVerifiedOrg(
+        // Receipt is asserted by the requesting (buyer-side) org, which must
+        // have can_request_medicine.
+        const { user } = await requireCapability(
           ctx,
           request.requesterOrgId,
+          CAPABILITIES.CAN_REQUEST_MEDICINE,
         )
         assertTransition(DELIVERY_TRANSITIONS, delivery.status, 'delivered')
         assertTransition(TRANSFER_TRANSITIONS, request.status, 'completed')
@@ -448,10 +495,12 @@ export const confirmDelivery = createServerFn({
   })
 
 /**
- * Admin assigns a delivery to a verified logistics-org user. The target user
- * must (a) have the logistics_user role and (b) be a member of a verified org
- * of type 'logistics'. Re-assignment is allowed while the delivery is still
- * 'scheduled'; once 'in_transit' it's locked.
+ * Admin assigns a delivery to a verified delivery-capable org user. The
+ * target user must be a LOGISTICS_STAFF user, AND a member of the target
+ * org, AND the target org must (a) be verified, (b) be of a delivery-
+ * capable type (logistics_partner or distributor), and (c) hold the
+ * can_deliver_medicine capability flag. Re-assignment is allowed only while
+ * the delivery is still 'scheduled'.
  */
 export const adminAssignDeliveryLogistics = createServerFn({
   method: 'POST',
@@ -477,43 +526,54 @@ export const adminAssignDeliveryLogistics = createServerFn({
           )
         }
 
-        // Validate the target user is a logistics_user.
+        // Validate the target user is a LOGISTICS_STAFF user.
         const [target] = await tx
           .select({ id: userTable.id, role: userTable.role })
           .from(userTable)
           .where(eq(userTable.id, data.logisticsUserId))
           .limit(1)
         if (!target) throw new AppError('NOT_FOUND', 'Target user not found')
-        if (target.role !== ROLES.LOGISTICS_USER) {
+        if (target.role !== ROLES.LOGISTICS_STAFF) {
           throw new AppError(
             'FORBIDDEN',
-            'Target user is not a logistics_user',
+            'Target user is not a logistics_staff user',
           )
         }
 
-        // Validate the org is a verified logistics org.
+        // Validate the org is a verified delivery-capable org with the
+        // can_deliver_medicine capability set.
         const [org] = await tx
           .select()
           .from(organizations)
           .where(eq(organizations.id, data.logisticsOrgId))
           .limit(1)
-        if (!org) throw new AppError('NOT_FOUND', 'Logistics org not found')
-        if (org.type !== 'logistics') {
+        if (!org)
+          throw new AppError('NOT_FOUND', 'Delivery org not found')
+        if (
+          org.type !== ORG_TYPES.LOGISTICS_PARTNER &&
+          org.type !== ORG_TYPES.DISTRIBUTOR
+        ) {
           throw new AppError(
             'CONFLICT',
-            "Assigned org must be of type 'logistics'",
+            "Assigned org must be a 'logistics_partner' or 'distributor'",
           )
         }
         if (org.verificationStatus !== 'verified') {
           throw new AppError(
             'ORG_NOT_VERIFIED',
-            'Logistics org is not verified',
+            'Delivery org is not verified',
+          )
+        }
+        if (!hasCapability(org, CAPABILITIES.CAN_DELIVER_MEDICINE)) {
+          throw new AppError(
+            'FORBIDDEN',
+            "Assigned org does not have the 'can_deliver_medicine' capability",
           )
         }
 
-        // The target user must actually belong to the target logistics org —
-        // otherwise an admin could assign a delivery to a logistics_user from
-        // a *different* logistics company, breaking the contract.
+        // The target user must actually belong to the target org —
+        // otherwise an admin could assign a delivery to a logistics_staff
+        // user from a *different* delivery company, breaking the contract.
         const [membership] = await tx
           .select({ id: organizationMembers.id })
           .from(organizationMembers)
@@ -527,7 +587,7 @@ export const adminAssignDeliveryLogistics = createServerFn({
         if (!membership) {
           throw new AppError(
             'FORBIDDEN',
-            'Target user is not a member of the assigned logistics org',
+            'Target user is not a member of the assigned delivery org',
           )
         }
 
@@ -577,8 +637,8 @@ export const adminAssignDeliveryLogistics = createServerFn({
   })
 
 /**
- * Returns the deliveries assigned to the calling logistics user. Admins see
- * all assigned deliveries (read-only convenience).
+ * Returns the deliveries assigned to the calling logistics_staff user.
+ * Admins see all in-flight deliveries (read-only convenience).
  */
 export const listMyAssignedDeliveries = createServerFn({
   method: 'GET',
@@ -591,11 +651,11 @@ export const listMyAssignedDeliveries = createServerFn({
       const user = requireAuth(ctx)
       if (
         !isAdminRole(user.role) &&
-        user.role !== ROLES.LOGISTICS_USER
+        user.role !== ROLES.LOGISTICS_STAFF
       ) {
         throw new AppError(
           'FORBIDDEN',
-          'Only logistics users or admins can view assigned deliveries',
+          'Only logistics_staff or admins can view assigned deliveries',
         )
       }
 
@@ -626,7 +686,6 @@ export const disputeDelivery = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'buyer')
 
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
@@ -644,7 +703,12 @@ export const disputeDelivery = createServerFn({
         if (!request)
           throw new AppError('NOT_FOUND', 'Transfer request missing')
 
-        await requireVerifiedOrg(ctx, request.requesterOrgId)
+        // Disputing is the receiving (buyer-side) action.
+        await requireCapability(
+          ctx,
+          request.requesterOrgId,
+          CAPABILITIES.CAN_REQUEST_MEDICINE,
+        )
         assertTransition(DELIVERY_TRANSITIONS, delivery.status, 'disputed')
 
         const updated = await tx

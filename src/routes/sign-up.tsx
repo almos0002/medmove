@@ -9,12 +9,14 @@ export const Route = createFileRoute('/sign-up')({ component: SignUpPage })
 /**
  * Public signup intentionally does NOT expose admin/super_admin. Those roles
  * are bootstrapped via the seed script (or, in production, via an admin-only
- * back-office endpoint).
+ * back-office endpoint). The server-side hook in `src/lib/auth.ts` enforces
+ * this allowlist independently — even if a client tampers with the form, an
+ * `admin` value will be rejected by the API.
  */
 const ROLES_FOR_SIGNUP: ReadonlyArray<{ value: AppRole; label: string }> = [
-  { value: ROLES.SELLER, label: 'Seller (pharmacy)' },
-  { value: ROLES.BUYER, label: 'Buyer (hospital / NGO)' },
-  { value: ROLES.LOGISTICS_USER, label: 'Logistics' },
+  { value: ROLES.ORG_OWNER, label: 'Organization owner' },
+  { value: ROLES.ORG_STAFF, label: 'Organization staff' },
+  { value: ROLES.LOGISTICS_STAFF, label: 'Logistics staff' },
 ]
 
 function SignUpPage() {
@@ -23,7 +25,7 @@ function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [organizationName, setOrganizationName] = useState('')
-  const [role, setRole] = useState<AppRole>(ROLES.BUYER)
+  const [role, setRole] = useState<AppRole>(ROLES.ORG_OWNER)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 

@@ -1,22 +1,29 @@
 /**
- * Central definitions of the MedMove RBAC model.
+ * MedMove RBAC + capability model (Step 4 — revised).
  *
- * Roles live on `user.role` (text column populated by Better Auth's
- * additionalFields). Organization types live on `organizations.type`
- * (Postgres enum).
- *
- * IMPORTANT: this file is the *source of truth* for what a role can do; the
- * server guards in `src/server/guards/` consume it. Never branch on roles
- * inline — always reference `ROLES` and the helpers below so we don't leave
- * dangling string literals when we add new roles.
+ * IMPORTANT design notes:
+ * - User roles describe *what kind of actor* a person is (admin, member of an
+ *   organisation, logistics worker). They are stored on `user.role`.
+ * - Organization capabilities describe *what business actions an org may
+ *   perform*. They are stored as boolean columns on `organizations`
+ *   (`can_list_medicine`, `can_request_medicine`, `can_deliver_medicine`).
+ * - In this platform a single org (e.g. a pharmacy) may both LIST and REQUEST
+ *   medicine, so user-level "seller" / "buyer" roles would be wrong. The user
+ *   has a role; the org has capabilities; every protected server function
+ *   must check **both**.
+ * - Only verified organisations may exercise capabilities — the capability
+ *   guard always re-checks `verificationStatus === 'verified'`.
+ * - This file is the single source of truth. Never branch on roles or types
+ *   inline; always reference `ROLES`, `ORG_TYPES`, `CAPABILITIES`.
  */
 
+// ─── User roles ────────────────────────────────────────────────────────────
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
-  SELLER: 'seller',
-  BUYER: 'buyer',
-  LOGISTICS_USER: 'logistics_user',
+  ORG_OWNER: 'org_owner',
+  ORG_STAFF: 'org_staff',
+  LOGISTICS_STAFF: 'logistics_staff',
 } as const
 
 export type AppRole = (typeof ROLES)[keyof typeof ROLES]
@@ -24,9 +31,9 @@ export type AppRole = (typeof ROLES)[keyof typeof ROLES]
 export const ALL_ROLES: ReadonlyArray<AppRole> = [
   ROLES.SUPER_ADMIN,
   ROLES.ADMIN,
-  ROLES.SELLER,
-  ROLES.BUYER,
-  ROLES.LOGISTICS_USER,
+  ROLES.ORG_OWNER,
+  ROLES.ORG_STAFF,
+  ROLES.LOGISTICS_STAFF,
 ] as const
 
 export const ADMIN_ROLES: ReadonlyArray<AppRole> = [
@@ -34,54 +41,123 @@ export const ADMIN_ROLES: ReadonlyArray<AppRole> = [
   ROLES.ADMIN,
 ] as const
 
-/** Roles a user is allowed to choose at public sign-up. */
+/** Roles a user may select at public sign-up (admins are bootstrapped). */
 export const PUBLIC_SIGNUP_ROLES: ReadonlyArray<AppRole> = [
-  ROLES.SELLER,
-  ROLES.BUYER,
-  ROLES.LOGISTICS_USER,
+  ROLES.ORG_OWNER,
+  ROLES.ORG_STAFF,
+  ROLES.LOGISTICS_STAFF,
 ] as const
 
+/** Roles considered "members of an org" (owner + staff). */
+export const ORG_MEMBER_ROLES: ReadonlyArray<AppRole> = [
+  ROLES.ORG_OWNER,
+  ROLES.ORG_STAFF,
+] as const
+
+// ─── Organization types ────────────────────────────────────────────────────
 export const ORG_TYPES = {
   PHARMACY: 'pharmacy',
   CLINIC: 'clinic',
   HOSPITAL: 'hospital',
   NGO: 'ngo',
-  LOGISTICS: 'logistics',
+  DISTRIBUTOR: 'distributor',
+  LOGISTICS_PARTNER: 'logistics_partner',
 } as const
 
 export type OrgType = (typeof ORG_TYPES)[keyof typeof ORG_TYPES]
 
-/** Org types whose members may act as sellers. */
-export const SELLER_ORG_TYPES: ReadonlyArray<OrgType> = [
-  ORG_TYPES.PHARMACY,
-  ORG_TYPES.CLINIC,
-] as const
+// ─── Capabilities ──────────────────────────────────────────────────────────
+export const CAPABILITIES = {
+  CAN_LIST_MEDICINE: 'can_list_medicine',
+  CAN_REQUEST_MEDICINE: 'can_request_medicine',
+  CAN_DELIVER_MEDICINE: 'can_deliver_medicine',
+} as const
 
-/** Org types whose members may act as buyers. */
-export const BUYER_ORG_TYPES: ReadonlyArray<OrgType> = [
-  ORG_TYPES.HOSPITAL,
-  ORG_TYPES.CLINIC,
-  ORG_TYPES.NGO,
-] as const
+export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES]
 
-export const LOGISTICS_ORG_TYPES: ReadonlyArray<OrgType> = [
-  ORG_TYPES.LOGISTICS,
-] as const
+/** Shape of capabilities as stored on an organization row. */
+export type OrgCapabilities = {
+  canListMedicine: boolean
+  canRequestMedicine: boolean
+  canDeliverMedicine: boolean
+}
 
+/**
+ * Default capabilities granted to a *new* organization based on its declared
+ * type. Admins can adjust these post-verification via
+ * `adminUpdateOrganizationCapabilities`. Rules implemented:
+ *   - PHARMACY / CLINIC: list + request
+ *   - HOSPITAL: request only (admin may enable list)
+ *   - NGO: request only
+ *   - DISTRIBUTOR: deliver
+ *   - LOGISTICS_PARTNER: deliver
+ */
+export function defaultCapabilitiesForType(type: OrgType): OrgCapabilities {
+  switch (type) {
+    case ORG_TYPES.PHARMACY:
+    case ORG_TYPES.CLINIC:
+      return {
+        canListMedicine: true,
+        canRequestMedicine: true,
+        canDeliverMedicine: false,
+      }
+    case ORG_TYPES.HOSPITAL:
+      return {
+        canListMedicine: false,
+        canRequestMedicine: true,
+        canDeliverMedicine: false,
+      }
+    case ORG_TYPES.NGO:
+      return {
+        canListMedicine: false,
+        canRequestMedicine: true,
+        canDeliverMedicine: false,
+      }
+    case ORG_TYPES.DISTRIBUTOR:
+    case ORG_TYPES.LOGISTICS_PARTNER:
+      return {
+        canListMedicine: false,
+        canRequestMedicine: false,
+        canDeliverMedicine: true,
+      }
+  }
+}
+
+/**
+ * Pure check against an org row's capability flags. Does NOT check
+ * verification status — callers should do that, or use the
+ * `requireCapability` guard which checks both.
+ */
+export function hasCapability(
+  org: Partial<OrgCapabilities> | null | undefined,
+  capability: Capability,
+): boolean {
+  if (!org) return false
+  switch (capability) {
+    case CAPABILITIES.CAN_LIST_MEDICINE:
+      return !!org.canListMedicine
+    case CAPABILITIES.CAN_REQUEST_MEDICINE:
+      return !!org.canRequestMedicine
+    case CAPABILITIES.CAN_DELIVER_MEDICINE:
+      return !!org.canDeliverMedicine
+  }
+}
+
+// ─── Role helpers ──────────────────────────────────────────────────────────
 export function isAdminRole(role: AppRole | null | undefined): boolean {
   return role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN
 }
 
-export function isSeller(role: AppRole | null | undefined): boolean {
-  return role === ROLES.SELLER
+export function isOrgMemberRole(role: AppRole | null | undefined): boolean {
+  return role === ROLES.ORG_OWNER || role === ROLES.ORG_STAFF
 }
 
-export function isBuyer(role: AppRole | null | undefined): boolean {
-  return role === ROLES.BUYER
+export function isOrgOwner(role: AppRole | null | undefined): boolean {
+  return role === ROLES.ORG_OWNER
 }
 
-export function isLogisticsUser(role: AppRole | null | undefined): boolean {
-  return role === ROLES.LOGISTICS_USER
+export function isLogisticsStaff(role: AppRole | null | undefined): boolean {
+  return role === ROLES.LOGISTICS_STAFF
 }
 
 /** Default landing page after sign-in for each role. */
@@ -91,11 +167,10 @@ export function homePathForRole(role: AppRole | null | undefined): string {
     case ROLES.SUPER_ADMIN:
     case ROLES.ADMIN:
       return '/admin'
-    case ROLES.SELLER:
-      return '/seller'
-    case ROLES.BUYER:
-      return '/buyer'
-    case ROLES.LOGISTICS_USER:
+    case ROLES.ORG_OWNER:
+    case ROLES.ORG_STAFF:
+      return '/org'
+    case ROLES.LOGISTICS_STAFF:
       return '/logistics'
     default:
       return '/dashboard'

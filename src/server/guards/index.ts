@@ -17,6 +17,7 @@ export { requireAdmin } from './require-admin'
 export { requireOrgMember, type Membership } from './require-org'
 export { requireVerifiedOrg, type OrgRow } from './require-verified-org'
 export { requireOrganizationAccess } from './require-org-access'
+export { requireCapability } from './require-capability'
 
 /**
  * Returns the actor user or null. Use in places where it's legitimate to

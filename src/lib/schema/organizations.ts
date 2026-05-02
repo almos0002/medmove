@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   bigint,
+  boolean,
   index,
   uniqueIndex,
   jsonb,
@@ -36,6 +37,19 @@ export const organizations = pgTable(
     verificationStatus: orgVerificationStatusEnum('verification_status')
       .notNull()
       .default('pending'),
+    // Capability flags. Defaults are false — admins enable them at
+    // verification time (or any time after) based on org type. The defaults
+    // for *new* orgs are populated by `defaultCapabilitiesForType()` in
+    // `src/lib/permissions.ts` at insert time, but the column-level default
+    // must be safe (false) so a row without explicit capabilities can never
+    // accidentally do anything.
+    canListMedicine: boolean('can_list_medicine').notNull().default(false),
+    canRequestMedicine: boolean('can_request_medicine')
+      .notNull()
+      .default(false),
+    canDeliverMedicine: boolean('can_deliver_medicine')
+      .notNull()
+      .default(false),
     verifiedAt: timestamp('verified_at'),
     verifiedByUserId: text('verified_by_user_id').references(() => user.id, {
       onDelete: 'set null',

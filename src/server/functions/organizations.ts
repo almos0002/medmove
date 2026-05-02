@@ -11,7 +11,7 @@ import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { requireAuth } from '../guards/require-auth'
 import { requireOrgMember } from '../guards/require-org'
-import { isAdminRole } from '@/lib/permissions'
+import { defaultCapabilitiesForType, isAdminRole } from '@/lib/permissions'
 import { requireAdmin } from '../guards/require-admin'
 import { ORG_TRANSITIONS, assertTransition } from '../transitions'
 import {
@@ -20,6 +20,7 @@ import {
   rejectOrganizationSchema,
   reviewDocumentSchema,
   reviewOrganizationSchema,
+  updateOrganizationCapabilitiesSchema,
   uploadDocumentSchema,
 } from '../validators/organizations'
 
@@ -29,6 +30,11 @@ export const createOrganization = createServerFn({ method: 'POST', strict: { out
     try {
       const ctx = await getRequestContext()
       const user = requireAuth(ctx)
+
+      // Seed capability flags from the org type so the org has sensible
+      // defaults the moment it's verified. Admins can flip any of these
+      // afterwards via `adminUpdateOrganizationCapabilities`.
+      const caps = defaultCapabilitiesForType(data.type)
 
       const created = await db.transaction(async (tx) => {
         const [org] = await tx
@@ -45,6 +51,9 @@ export const createOrganization = createServerFn({ method: 'POST', strict: { out
             state: data.state ?? null,
             postalCode: data.postalCode ?? null,
             country: data.country,
+            canListMedicine: caps.canListMedicine,
+            canRequestMedicine: caps.canRequestMedicine,
+            canDeliverMedicine: caps.canDeliverMedicine,
           })
           .returning()
 
@@ -388,6 +397,74 @@ export const adminRejectOrganization = createServerFn({ method: 'POST', strict: 
           before: before as unknown as Record<string, unknown>,
           after: after as unknown as Record<string, unknown>,
           metadata: { reason: data.reason },
+          actorOrgIdOverride: after.id,
+        })
+        return after
+      })
+
+      return { ok: true as const, organization: result }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Admin-only: toggle the per-org capability flags. Only the flags supplied
+ * in the payload are changed (PATCH semantics). At least one flag must be
+ * present (enforced by the validator).
+ */
+export const adminUpdateOrganizationCapabilities = createServerFn({
+  method: 'POST',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) =>
+    updateOrganizationCapabilitiesSchema.parse(d),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      requireAdmin(ctx)
+
+      const result = await db.transaction(async (tx) => {
+        const [before] = await tx
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, data.organizationId))
+          .limit(1)
+        if (!before) throw new AppError('NOT_FOUND', 'Organization not found')
+
+        const patch: Partial<typeof organizations.$inferInsert> = {}
+        if (data.canListMedicine !== undefined)
+          patch.canListMedicine = data.canListMedicine
+        if (data.canRequestMedicine !== undefined)
+          patch.canRequestMedicine = data.canRequestMedicine
+        if (data.canDeliverMedicine !== undefined)
+          patch.canDeliverMedicine = data.canDeliverMedicine
+
+        const updated = await tx
+          .update(organizations)
+          .set(patch)
+          .where(eq(organizations.id, data.organizationId))
+          .returning()
+        const after = updated[0]!
+
+        await writeAudit({
+          ctx,
+          tx,
+          action: 'organization.capabilities_updated',
+          entityType: 'organization',
+          entityId: after.id,
+          before: {
+            canListMedicine: before.canListMedicine,
+            canRequestMedicine: before.canRequestMedicine,
+            canDeliverMedicine: before.canDeliverMedicine,
+          } as Record<string, unknown>,
+          after: {
+            canListMedicine: after.canListMedicine,
+            canRequestMedicine: after.canRequestMedicine,
+            canDeliverMedicine: after.canDeliverMedicine,
+          } as Record<string, unknown>,
+          metadata: { reason: data.reason ?? null },
           actorOrgIdOverride: after.id,
         })
         return after

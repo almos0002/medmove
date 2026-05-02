@@ -5,10 +5,10 @@ import { inventoryBatches, listings, medicines } from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
-import { isAdminRole } from '@/lib/permissions'
-import { requireRole } from '../guards/require-role'
+import { CAPABILITIES, isAdminRole } from '@/lib/permissions'
+import { requireAuth } from '../guards/require-auth'
 import { requireAdmin } from '../guards/require-admin'
-import { requireVerifiedOrg } from '../guards/require-verified-org'
+import { requireCapability } from '../guards/require-capability'
 import { LISTING_TRANSITIONS, assertTransition } from '../transitions'
 import {
   adminApproveListingSchema,
@@ -28,7 +28,6 @@ export const createListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
 
       const [row] = await db
         .select({
@@ -41,7 +40,14 @@ export const createListing = createServerFn({
         .limit(1)
       if (!row) throw new AppError('NOT_FOUND', 'Batch not found')
 
-      const { user } = await requireVerifiedOrg(ctx, row.batch.organizationId)
+      // Capability is on the org that owns the batch — that's the seller org
+      // for this listing. The guard verifies membership + verified org +
+      // can_list_medicine in one shot (admins bypass).
+      const { user } = await requireCapability(
+        ctx,
+        row.batch.organizationId,
+        CAPABILITIES.CAN_LIST_MEDICINE,
+      )
 
       // Defense-in-depth re-checks
       if (row.medicine.isControlled) {
@@ -118,7 +124,6 @@ export const submitListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -127,7 +132,11 @@ export const submitListing = createServerFn({
           .where(eq(listings.id, data.listingId))
           .limit(1)
         if (!before) throw new AppError('NOT_FOUND', 'Listing not found')
-        await requireVerifiedOrg(ctx, before.sellerOrgId)
+        await requireCapability(
+          ctx,
+          before.sellerOrgId,
+          CAPABILITIES.CAN_LIST_MEDICINE,
+        )
         assertTransition(LISTING_TRANSITIONS, before.status, 'pending_admin')
 
         const updated = await tx
@@ -178,7 +187,6 @@ export const withdrawListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -187,7 +195,11 @@ export const withdrawListing = createServerFn({
           .where(eq(listings.id, data.listingId))
           .limit(1)
         if (!before) throw new AppError('NOT_FOUND', 'Listing not found')
-        await requireVerifiedOrg(ctx, before.sellerOrgId)
+        await requireCapability(
+          ctx,
+          before.sellerOrgId,
+          CAPABILITIES.CAN_LIST_MEDICINE,
+        )
         assertTransition(LISTING_TRANSITIONS, before.status, 'withdrawn')
 
         if (before.quantityAvailable !== before.quantityListed) {
@@ -362,19 +374,19 @@ export const listActiveListings = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const user = requireRole(ctx, 'buyer', 'admin', 'super_admin')
+      const user = requireAuth(ctx)
 
-      // Buyers must come from a verified org. Admins skip the check.
+      // Browsing the marketplace requires the caller's org to be enabled to
+      // request medicine (verified + can_request_medicine). Admins bypass.
       if (!isAdminRole(user.role)) {
         if (!ctx.primaryOrg) {
           throw new AppError('FORBIDDEN', 'Join an organization first')
         }
-        if (ctx.primaryOrg.verificationStatus !== 'verified') {
-          throw new AppError(
-            'ORG_NOT_VERIFIED',
-            'Your organization is not verified',
-          )
-        }
+        await requireCapability(
+          ctx,
+          ctx.primaryOrg.id,
+          CAPABILITIES.CAN_REQUEST_MEDICINE,
+        )
       }
 
       const where = and(

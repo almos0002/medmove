@@ -5,10 +5,11 @@ import { inventoryBatches, listings, transferRequests } from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
-import { isAdminRole } from '@/lib/permissions'
-import { requireRole } from '../guards/require-role'
+import { CAPABILITIES, isAdminRole } from '@/lib/permissions'
+import { requireAuth } from '../guards/require-auth'
 import { requireAdmin } from '../guards/require-admin'
-import { requireVerifiedOrg } from '../guards/require-verified-org'
+import { requireCapability } from '../guards/require-capability'
+import { requireOrgMember } from '../guards/require-org'
 import {
   LISTING_TRANSITIONS,
   TRANSFER_TRANSITIONS,
@@ -33,10 +34,11 @@ export const requestTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'buyer')
-      const { user, org: requesterOrg } = await requireVerifiedOrg(
+      // Requesting medicine requires the requester org to be enabled for it.
+      const { user, org: requesterOrg } = await requireCapability(
         ctx,
         data.requesterOrgId,
+        CAPABILITIES.CAN_REQUEST_MEDICINE,
       )
 
       const result = await db.transaction(async (tx) => {
@@ -226,7 +228,6 @@ export const sellerAcceptTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -252,7 +253,12 @@ export const sellerAcceptTransfer = createServerFn({
         if (!row) throw new AppError('NOT_FOUND', 'Listing missing')
         const { listing, batch } = row
 
-        const { user } = await requireVerifiedOrg(ctx, listing.sellerOrgId)
+        // Accepting on behalf of the seller org requires can_list_medicine.
+        const { user } = await requireCapability(
+          ctx,
+          listing.sellerOrgId,
+          CAPABILITIES.CAN_LIST_MEDICINE,
+        )
         assertTransition(TRANSFER_TRANSITIONS, before.status, 'accepted')
 
         // MVP safety re-check at execution time (the wall clock advances).
@@ -396,7 +402,6 @@ export const sellerDeclineTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -414,7 +419,11 @@ export const sellerDeclineTransfer = createServerFn({
           .limit(1)
         if (!listing) throw new AppError('NOT_FOUND', 'Listing missing')
 
-        const { user } = await requireVerifiedOrg(ctx, listing.sellerOrgId)
+        const { user } = await requireCapability(
+          ctx,
+          listing.sellerOrgId,
+          CAPABILITIES.CAN_LIST_MEDICINE,
+        )
         assertTransition(TRANSFER_TRANSITIONS, before.status, 'declined')
 
         const updated = await tx
@@ -468,7 +477,7 @@ export const cancelTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const user = requireRole(ctx, 'buyer', 'admin', 'super_admin')
+      const user = requireAuth(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -479,8 +488,13 @@ export const cancelTransfer = createServerFn({
         if (!before)
           throw new AppError('NOT_FOUND', 'Transfer request not found')
 
+        // Cancellation authorisation: admins always; otherwise the caller
+        // must be a member of the requester org (capability check is not
+        // required for cancellation — once a request is created, the org
+        // should always be able to retract it even if its capability has
+        // since been disabled).
         if (!isAdminRole(user.role)) {
-          await requireVerifiedOrg(ctx, before.requesterOrgId)
+          await requireOrgMember(ctx, before.requesterOrgId)
         }
 
         const cancellableFrom = [

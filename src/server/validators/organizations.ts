@@ -6,7 +6,8 @@ export const orgTypeSchema = z.enum([
   'hospital',
   'clinic',
   'ngo',
-  'logistics',
+  'distributor',
+  'logistics_partner',
 ])
 
 export const docTypeSchema = z.enum([
@@ -60,3 +61,27 @@ export const rejectDocumentSchema = z.object({
   documentId: uuid,
   reason: nonEmpty(500),
 })
+
+/**
+ * Admin-only payload to toggle per-org capability flags. At least one
+ * capability must be present (otherwise the call is a no-op and almost
+ * certainly a client bug).
+ */
+export const updateOrganizationCapabilitiesSchema = z
+  .object({
+    organizationId: uuid,
+    canListMedicine: z.boolean().optional(),
+    canRequestMedicine: z.boolean().optional(),
+    canDeliverMedicine: z.boolean().optional(),
+    reason: z.string().trim().max(500).optional(),
+  })
+  .refine(
+    (v) =>
+      v.canListMedicine !== undefined ||
+      v.canRequestMedicine !== undefined ||
+      v.canDeliverMedicine !== undefined,
+    {
+      message: 'At least one capability flag must be provided',
+      path: ['canListMedicine'],
+    },
+  )

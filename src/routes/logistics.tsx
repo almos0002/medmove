@@ -9,7 +9,7 @@ export const Route = createFileRoute('/logistics')({
       throw redirect({ to: '/sign-in', search: { redirect: '/logistics' } })
     }
     if (
-      session.user.role !== ROLES.LOGISTICS_USER &&
+      session.user.role !== ROLES.LOGISTICS_STAFF &&
       !isAdminRole(session.user.role)
     ) {
       throw redirect({ to: '/dashboard' })

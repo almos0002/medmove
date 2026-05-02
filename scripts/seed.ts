@@ -1,9 +1,10 @@
 /**
  * MedMove dev seed.
  *
- * Creates one user per role (super_admin, admin, seller, buyer, logistics_user)
- * plus one verified org per type (pharmacy, hospital, logistics) with the
- * appropriate owner. Also populates the medicine catalog and one demo listing.
+ * Creates one user per role (super_admin, admin, org_owner ×3, org_staff,
+ * logistics_staff) plus one verified org per type, with capability flags
+ * derived from `defaultCapabilitiesForType`. Also populates the medicine
+ * catalog and one demo listing.
  *
  * Run:  npm run db:seed
  *
@@ -22,7 +23,12 @@ import {
   inventoryBatches,
   listings,
 } from '../src/lib/schema'
-import { ROLES, type AppRole, type OrgType } from '../src/lib/permissions'
+import {
+  ROLES,
+  defaultCapabilitiesForType,
+  type AppRole,
+  type OrgType,
+} from '../src/lib/permissions'
 
 // Trusted bootstrap path: lets the seed script create admin/super_admin users
 // despite the public-signup role allowlist enforced in src/lib/auth.ts. The
@@ -90,9 +96,28 @@ async function ensureOrg(args: {
     .where(eq(organizations.licenseNumber, args.licenseNumber))
     .limit(1)
   if (existing[0]) {
-    return existing[0]
+    // Re-stamp capabilities every run so that a re-seed after the capability
+    // model is added/changed brings existing seed orgs back to the canonical
+    // defaults for their type.
+    const caps = defaultCapabilitiesForType(args.type)
+    if (
+      existing[0].canListMedicine !== caps.canListMedicine ||
+      existing[0].canRequestMedicine !== caps.canRequestMedicine ||
+      existing[0].canDeliverMedicine !== caps.canDeliverMedicine
+    ) {
+      await db
+        .update(organizations)
+        .set({
+          canListMedicine: caps.canListMedicine,
+          canRequestMedicine: caps.canRequestMedicine,
+          canDeliverMedicine: caps.canDeliverMedicine,
+        })
+        .where(eq(organizations.id, existing[0].id))
+    }
+    return { ...existing[0], ...caps }
   }
 
+  const caps = defaultCapabilitiesForType(args.type)
   const [org] = await db
     .insert(organizations)
     .values({
@@ -106,6 +131,9 @@ async function ensureOrg(args: {
       country: args.country,
       verificationStatus: 'verified',
       verifiedAt: new Date(),
+      canListMedicine: caps.canListMedicine,
+      canRequestMedicine: caps.canRequestMedicine,
+      canDeliverMedicine: caps.canDeliverMedicine,
     })
     .returning()
 
@@ -116,6 +144,21 @@ async function ensureOrg(args: {
   })
 
   return org!
+}
+
+async function ensureMembership(orgId: string, userId: string, role: 'owner' | 'member') {
+  const existing = await db
+    .select()
+    .from(organizationMembers)
+    .where(eq(organizationMembers.userId, userId))
+    .limit(1)
+  if (existing[0]?.organizationId === orgId) return existing[0]
+  if (existing[0]) return existing[0] // user already belongs to a different org
+  const [row] = await db
+    .insert(organizationMembers)
+    .values({ organizationId: orgId, userId, role })
+    .returning()
+  return row!
 }
 
 async function ensureMedicine(m: {
@@ -172,26 +215,44 @@ async function main() {
     name: 'MedMove Admin',
     role: ROLES.ADMIN,
   })
-  const sellerOwner = await ensureUser({
+  const pharmacyOwner = await ensureUser({
     email: 'pharmacy-owner@medmove.dev',
     password: 'PharmaPass123!',
     name: 'Priya Pharmacy Owner',
-    role: ROLES.SELLER,
+    role: ROLES.ORG_OWNER,
   })
-  const buyerOwner = await ensureUser({
+  const hospitalOwner = await ensureUser({
     email: 'hospital-owner@medmove.dev',
     password: 'HospitalPass123!',
     name: 'Henry Hospital Owner',
-    role: ROLES.BUYER,
+    role: ROLES.ORG_OWNER,
+  })
+  const distributorOwner = await ensureUser({
+    email: 'distributor-owner@medmove.dev',
+    password: 'DistribPass123!',
+    name: 'Dana Distributor Owner',
+    role: ROLES.ORG_OWNER,
   })
   const logisticsOwner = await ensureUser({
     email: 'logistics-owner@medmove.dev',
     password: 'LogisticsPass123!',
     name: 'Liam Logistics Owner',
-    role: ROLES.LOGISTICS_USER,
+    role: ROLES.ORG_OWNER,
+  })
+  const pharmacyStaff = await ensureUser({
+    email: 'pharmacy-staff@medmove.dev',
+    password: 'StaffPass123!',
+    name: 'Sam Pharmacy Staff',
+    role: ROLES.ORG_STAFF,
+  })
+  const logisticsStaff = await ensureUser({
+    email: 'logistics-staff@medmove.dev',
+    password: 'LogStaffPass123!',
+    name: 'Lena Logistics Staff',
+    role: ROLES.LOGISTICS_STAFF,
   })
   console.log(
-    `Users: super_admin=${superAdminUser.id} admin=${adminUser.id} seller=${sellerOwner.id} buyer=${buyerOwner.id} logistics=${logisticsOwner.id}`,
+    `Users: super_admin=${superAdminUser.id} admin=${adminUser.id} pharmacy_owner=${pharmacyOwner.id} hospital_owner=${hospitalOwner.id} distributor_owner=${distributorOwner.id} logistics_owner=${logisticsOwner.id} pharmacy_staff=${pharmacyStaff.id} logistics_staff=${logisticsStaff.id}`,
   )
 
   const pharmacyOrg = await ensureOrg({
@@ -202,7 +263,7 @@ async function main() {
     contactPhone: '+1-555-0100',
     city: 'Boston',
     country: 'USA',
-    ownerUserId: sellerOwner.id,
+    ownerUserId: pharmacyOwner.id,
   })
   const hospitalOrg = await ensureOrg({
     name: "St Mary's Community Hospital",
@@ -212,11 +273,21 @@ async function main() {
     contactPhone: '+1-555-0200',
     city: 'Cambridge',
     country: 'USA',
-    ownerUserId: buyerOwner.id,
+    ownerUserId: hospitalOwner.id,
+  })
+  const distributorOrg = await ensureOrg({
+    name: 'NorthStar Distribution',
+    type: 'distributor',
+    licenseNumber: 'DIST-LIC-0001',
+    contactEmail: 'ops@northstar.test',
+    contactPhone: '+1-555-0250',
+    city: 'Boston',
+    country: 'USA',
+    ownerUserId: distributorOwner.id,
   })
   const logisticsOrg = await ensureOrg({
     name: 'SwiftMove Logistics',
-    type: 'logistics',
+    type: 'logistics_partner',
     licenseNumber: 'LOG-LIC-0001',
     contactEmail: 'ops@swiftmove.test',
     contactPhone: '+1-555-0300',
@@ -224,8 +295,13 @@ async function main() {
     country: 'USA',
     ownerUserId: logisticsOwner.id,
   })
+
+  // Add the staff users into their respective orgs.
+  await ensureMembership(pharmacyOrg.id, pharmacyStaff.id, 'member')
+  await ensureMembership(logisticsOrg.id, logisticsStaff.id, 'member')
+
   console.log(
-    `Orgs: pharmacy=${pharmacyOrg.id} hospital=${hospitalOrg.id} logistics=${logisticsOrg.id}`,
+    `Orgs: pharmacy=${pharmacyOrg.id} hospital=${hospitalOrg.id} distributor=${distributorOrg.id} logistics_partner=${logisticsOrg.id}`,
   )
 
   const catalog = await Promise.all([
@@ -291,7 +367,7 @@ async function main() {
       submittedAt: new Date(),
       approvedAt: new Date(),
       approvedByUserId: adminUser.id,
-      createdByUserId: sellerOwner.id,
+      createdByUserId: pharmacyOwner.id,
       notes: 'Demo listing for development.',
     })
   }
@@ -299,11 +375,14 @@ async function main() {
 
   console.log('\nDone.\n')
   console.log('Login credentials:')
-  console.log('  super_admin:    super-admin@medmove.dev / SuperAdminPass123!')
-  console.log('  admin:          admin@medmove.dev / AdminPass123!')
-  console.log('  seller:         pharmacy-owner@medmove.dev / PharmaPass123!')
-  console.log('  buyer:          hospital-owner@medmove.dev / HospitalPass123!')
-  console.log('  logistics_user: logistics-owner@medmove.dev / LogisticsPass123!')
+  console.log('  super_admin:        super-admin@medmove.dev / SuperAdminPass123!')
+  console.log('  admin:              admin@medmove.dev / AdminPass123!')
+  console.log('  org_owner (pharm):  pharmacy-owner@medmove.dev / PharmaPass123!')
+  console.log('  org_owner (hosp):   hospital-owner@medmove.dev / HospitalPass123!')
+  console.log('  org_owner (dist):   distributor-owner@medmove.dev / DistribPass123!')
+  console.log('  org_owner (log):    logistics-owner@medmove.dev / LogisticsPass123!')
+  console.log('  org_staff (pharm):  pharmacy-staff@medmove.dev / StaffPass123!')
+  console.log('  logistics_staff:    logistics-staff@medmove.dev / LogStaffPass123!')
 }
 
 main()

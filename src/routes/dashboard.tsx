@@ -28,9 +28,9 @@ export const Route = createFileRoute('/dashboard')({
 const ROLE_LABEL: Record<AppRole, string> = {
   [ROLES.SUPER_ADMIN]: 'Super admin',
   [ROLES.ADMIN]: 'Admin',
-  [ROLES.SELLER]: 'Seller',
-  [ROLES.BUYER]: 'Buyer',
-  [ROLES.LOGISTICS_USER]: 'Logistics',
+  [ROLES.ORG_OWNER]: 'Organization owner',
+  [ROLES.ORG_STAFF]: 'Organization staff',
+  [ROLES.LOGISTICS_STAFF]: 'Logistics staff',
 }
 
 function DashboardPage() {
