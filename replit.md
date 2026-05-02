@@ -1,7 +1,10 @@
 # MedMove - TanStack Start App
 
 ## Overview
-A React application built with TanStack Start (full-stack React framework), TanStack Router for file-based routing, Tailwind CSS v4 for styling, and Nitro for the server.
+MedMove is a platform for redistributing near-expiry medicine from pharmacies to hospitals and NGOs.
+Built with TanStack Start (full-stack React framework), TanStack Router for file-based routing, Tailwind CSS v4 for styling, and Nitro for the server.
+
+**Core business workflow:** see [`WORKFLOW.md`](./WORKFLOW.md) for the full pharmacy → admin → receiver flow.
 
 ## Tech Stack
 - **Framework**: TanStack Start (React SSR/full-stack)
