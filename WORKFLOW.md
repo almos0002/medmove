@@ -69,3 +69,25 @@ Transfer completed
 PENDING_VERIFICATION → AVAILABLE → REQUESTED → APPROVED → SCHEDULED → IN_TRANSIT → RECEIVED → COMPLETED
                     ↘ REJECTED                ↘ CANCELLED
 ```
+
+## Step 12 — Notifications & Expiry Alerts
+
+The platform writes in-app notifications next to every audit-worthy state
+transition (`createForUser` / `createForOrg` / `createForAdmins` from
+`src/server/notifications/`). Rows are inserted inside the same Drizzle
+transaction as `writeAudit`, then the post-commit channel dispatcher
+(`dispatchNotificationsAfterCommit`) fans out email/SMS/WhatsApp via stubbed
+providers under `src/server/notifications/channels/`.
+
+### Expiry scan (cron)
+
+`runExpiryScan()` in `src/server/expiry.ts` sweeps every org's non-empty
+batches and inserts one notification per (org, batch) in the critical
+(≤30d) or expiring_soon (31–90d) windows. The DB partial unique index
+`notifications_org_entity_type_uq` makes it idempotent — re-running the
+scan never produces duplicates.
+
+Wire it to a daily scheduler (e.g. Replit Scheduled Job, GitHub Action, or
+an in-process timer) hitting an admin-only server fn that calls
+`runExpiryScan()`. There is no built-in cron — the function is safe to call
+on-demand from the admin tools while waiting on a scheduler.

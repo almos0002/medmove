@@ -21,6 +21,12 @@ import {
   transferRequests,
 } from '@/lib/schema'
 import { writeAudit } from '../audit'
+import {
+  createForAdmins,
+  createForOrg,
+  dispatchNotificationsAfterCommit,
+  type NotificationRow,
+} from '../notifications'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { CAPABILITIES, isAdminRole } from '@/lib/permissions'
@@ -178,6 +184,7 @@ export const submitListing = createServerFn({
     try {
       const ctx = await getRequestContext()
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -223,9 +230,21 @@ export const submitListing = createServerFn({
           after: after as unknown as Record<string, unknown>,
           actorOrgIdOverride: before.sellerOrgId,
         })
+        const n = await createForAdmins({
+          tx,
+          type: 'listing.pending_review',
+          severity: 'info',
+          title: 'New listing awaiting review',
+          body: `A seller submitted listing ${after.id.slice(0, 8)} for approval.`,
+          entityType: 'listing',
+          entityId: after.id,
+          link: `/admin/listings/${after.id}`,
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, listing: result }
     } catch (e) {
       throw toClientError(e)
@@ -240,6 +259,7 @@ export const withdrawListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
+      const notifs: NotificationRow[] = []
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -290,9 +310,23 @@ export const withdrawListing = createServerFn({
           after: after as unknown as Record<string, unknown>,
           actorOrgIdOverride: before.sellerOrgId,
         })
+
+        const n = await createForAdmins({
+          tx,
+          type: 'listing.withdrawn',
+          severity: 'info',
+          title: 'Listing withdrawn',
+          body: `Seller withdrew a listing (${after.id.slice(0, 8)}).`,
+          entityType: 'listing',
+          entityId: after.id,
+          link: `/admin/listings/${after.id}`,
+          metadata: { sellerOrgId: before.sellerOrgId },
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, listing: result }
     } catch (e) {
       throw toClientError(e)
@@ -309,6 +343,7 @@ export const adminApproveListing = createServerFn({
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -351,9 +386,23 @@ export const adminApproveListing = createServerFn({
           after: after as unknown as Record<string, unknown>,
           metadata: { notes: data.notes ?? null },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.sellerOrgId,
+          type: 'listing.approved',
+          severity: 'success',
+          title: 'Listing approved',
+          body: 'Your listing is now live in the marketplace.',
+          entityType: 'listing',
+          entityId: after.id,
+          link: `/org/listings/${after.id}`,
+          metadata: { reviewedByAdminId: admin.id },
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, listing: result }
     } catch (e) {
       throw toClientError(e)
@@ -370,6 +419,7 @@ export const adminRejectListing = createServerFn({
       const ctx = await getRequestContext()
       requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -410,9 +460,22 @@ export const adminRejectListing = createServerFn({
           after: after as unknown as Record<string, unknown>,
           metadata: { reason: data.reason },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.sellerOrgId,
+          type: 'listing.rejected',
+          severity: 'warning',
+          title: 'Listing rejected',
+          body: data.reason,
+          entityType: 'listing',
+          entityId: after.id,
+          link: `/org/listings/${after.id}`,
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, listing: result }
     } catch (e) {
       throw toClientError(e)

@@ -11,6 +11,12 @@ import {
   transferRequests,
 } from '@/lib/schema'
 import { writeAudit } from '../audit'
+import {
+  createForAdmins,
+  createForOrg,
+  dispatchNotificationsAfterCommit,
+  type NotificationRow,
+} from '../notifications'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { CAPABILITIES, isAdminRole } from '@/lib/permissions'
@@ -84,6 +90,7 @@ export const requestTransfer = createServerFn({
         CAPABILITIES.CAN_REQUEST_MEDICINE,
       )
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [listing] = await tx
           .select()
@@ -176,9 +183,21 @@ export const requestTransfer = createServerFn({
           after: req as unknown as Record<string, unknown>,
           actorOrgIdOverride: requesterOrg.id,
         })
+        const n = await createForAdmins({
+          tx,
+          type: 'transfer_request.created',
+          severity: 'info',
+          title: 'New transfer request awaiting review',
+          body: `${requesterOrg.name} requested ${data.quantityRequested} units against listing ${listing.id.slice(0, 8)}.`,
+          entityType: 'transfer_request',
+          entityId: req.id,
+          link: `/admin/requests/${req.id}`,
+        })
+        notifs.push(...n)
         return req
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, request: result }
     } catch (e) {
       throw toClientError(e)
@@ -195,6 +214,7 @@ export const adminApproveTransfer = createServerFn({
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -203,6 +223,13 @@ export const adminApproveTransfer = createServerFn({
           .limit(1)
         if (!before)
           throw new AppError('NOT_FOUND', 'Transfer request not found')
+        const [listingRow] = await tx
+          .select({ sellerOrgId: listings.sellerOrgId })
+          .from(listings)
+          .where(eq(listings.id, before.listingId))
+          .limit(1)
+        if (!listingRow)
+          throw new AppError('NOT_FOUND', 'Listing missing')
         assertTransition(
           TRANSFER_TRANSITIONS,
           before.status,
@@ -241,8 +268,22 @@ export const adminApproveTransfer = createServerFn({
           before: before as unknown as Record<string, unknown>,
           after: after as unknown as Record<string, unknown>,
         })
+        const n = await createForOrg({
+          tx,
+          orgId: listingRow.sellerOrgId,
+          type: 'transfer_request.admin_approved',
+          severity: 'info',
+          title: 'New transfer request awaiting your response',
+          body: `Admin approved a request for ${after.quantityRequested} units. Accept or decline to continue.`,
+          entityType: 'transfer_request',
+          entityId: after.id,
+          link: `/org/requests/${after.id}`,
+          metadata: { reviewedByAdminId: admin.id },
+        })
+        notifs.push(...n)
         return after
       })
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, request: result }
     } catch (e) {
       throw toClientError(e)
@@ -259,6 +300,7 @@ export const adminRejectTransfer = createServerFn({
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -302,8 +344,22 @@ export const adminRejectTransfer = createServerFn({
           after: after as unknown as Record<string, unknown>,
           metadata: { reason: data.reason },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.requesterOrgId,
+          type: 'transfer_request.admin_rejected',
+          severity: 'warning',
+          title: 'Transfer request rejected by admin',
+          body: data.reason,
+          entityType: 'transfer_request',
+          entityId: after.id,
+          link: `/org/requests/${after.id}`,
+          metadata: { reviewedByAdminId: admin.id },
+        })
+        notifs.push(...n)
         return after
       })
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, request: result }
     } catch (e) {
       throw toClientError(e)
@@ -319,6 +375,7 @@ export const sellerAcceptTransfer = createServerFn({
     try {
       const ctx = await getRequestContext()
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -475,9 +532,22 @@ export const sellerAcceptTransfer = createServerFn({
             actorOrgIdOverride: listing.sellerOrgId,
           })
         }
+        const n = await createForOrg({
+          tx,
+          orgId: after.requesterOrgId,
+          type: 'transfer_request.seller_accepted',
+          severity: 'success',
+          title: 'Seller accepted your transfer request',
+          body: `${after.quantityRequested} units reserved. Awaiting delivery dispatch.`,
+          entityType: 'transfer_request',
+          entityId: after.id,
+          link: `/org/requests/${after.id}`,
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, request: result }
     } catch (e) {
       throw toClientError(e)
@@ -493,6 +563,7 @@ export const sellerDeclineTransfer = createServerFn({
     try {
       const ctx = await getRequestContext()
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -550,9 +621,22 @@ export const sellerDeclineTransfer = createServerFn({
           actorOrgIdOverride: listing.sellerOrgId,
           metadata: { reason: data.reason },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.requesterOrgId,
+          type: 'transfer_request.seller_declined',
+          severity: 'warning',
+          title: 'Seller declined your transfer request',
+          body: data.reason,
+          entityType: 'transfer_request',
+          entityId: after.id,
+          link: `/org/requests/${after.id}`,
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, request: result }
     } catch (e) {
       throw toClientError(e)

@@ -7,6 +7,12 @@ import {
   organizations,
 } from '@/lib/schema'
 import { writeAudit } from '../audit'
+import {
+  createForAdmins,
+  createForOrg,
+  dispatchNotificationsAfterCommit,
+  type NotificationRow,
+} from '../notifications'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { requireAuth } from '../guards/require-auth'
@@ -38,6 +44,7 @@ export const createOrganization = createServerFn({ method: 'POST', strict: { out
       // afterwards via `adminUpdateOrganizationCapabilities`.
       const caps = defaultCapabilitiesForType(data.type)
 
+      const notifs: NotificationRow[] = []
       const created = await db.transaction(async (tx) => {
         const [org] = await tx
           .insert(organizations)
@@ -75,9 +82,21 @@ export const createOrganization = createServerFn({ method: 'POST', strict: { out
           actorOrgIdOverride: org.id,
         })
 
+        const n = await createForAdmins({
+          tx,
+          type: 'organization.pending_verification',
+          severity: 'info',
+          title: 'New organization awaiting verification',
+          body: `${org.name} (${org.type}) registered and is awaiting review.`,
+          entityType: 'organization',
+          entityId: org.id,
+          link: `/admin/organizations/${org.id}`,
+        })
+        notifs.push(...n)
+
         return org
       })
-
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, organization: created }
     } catch (e) {
       throw toClientError(e)
@@ -267,6 +286,7 @@ export const adminApproveOrganization = createServerFn({ method: 'POST', strict:
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -340,9 +360,22 @@ export const adminApproveOrganization = createServerFn({ method: 'POST', strict:
           metadata: { notes: data.reason ?? null },
           actorOrgIdOverride: after.id,
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.id,
+          type: 'organization.verified',
+          severity: 'success',
+          title: 'Your organization is verified',
+          body: `${after.name} can now use its assigned MedMove capabilities.`,
+          entityType: 'organization',
+          entityId: after.id,
+          link: '/org',
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, organization: result }
     } catch (e) {
       throw toClientError(e)
@@ -356,6 +389,7 @@ export const adminRejectOrganization = createServerFn({ method: 'POST', strict: 
       const ctx = await getRequestContext()
       requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -401,9 +435,22 @@ export const adminRejectOrganization = createServerFn({ method: 'POST', strict: 
           metadata: { reason: data.reason },
           actorOrgIdOverride: after.id,
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.id,
+          type: 'organization.rejected',
+          severity: 'critical',
+          title: 'Organization verification rejected',
+          body: data.reason,
+          entityType: 'organization',
+          entityId: after.id,
+          link: '/org',
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, organization: result }
     } catch (e) {
       throw toClientError(e)
@@ -485,6 +532,7 @@ export const adminSuspendOrganization = createServerFn({ method: 'POST', strict:
       const ctx = await getRequestContext()
       requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
           .select()
@@ -531,9 +579,22 @@ export const adminSuspendOrganization = createServerFn({ method: 'POST', strict:
           metadata: { reason: data.reason },
           actorOrgIdOverride: after.id,
         })
+        const n = await createForOrg({
+          tx,
+          orgId: after.id,
+          type: 'organization.suspended',
+          severity: 'critical',
+          title: 'Organization suspended',
+          body: data.reason,
+          entityType: 'organization',
+          entityId: after.id,
+          link: '/org',
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, organization: result }
     } catch (e) {
       throw toClientError(e)

@@ -22,6 +22,11 @@ import {
   isAdminRole,
 } from '@/lib/permissions'
 import { writeAudit } from '../audit'
+import {
+  createForOrg,
+  dispatchNotificationsAfterCommit,
+} from '../notifications'
+import type { NotificationRow } from '../notifications'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { requireAuth } from '../guards/require-auth'
@@ -184,6 +189,7 @@ export const adminCreateDelivery = createServerFn({
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [request] = await tx
           .select()
@@ -279,9 +285,36 @@ export const adminCreateDelivery = createServerFn({
           before: request as unknown as Record<string, unknown>,
           after: updatedReq as unknown as Record<string, unknown>,
         })
+        const sellerN = await createForOrg({
+          tx,
+          orgId: listing.sellerOrgId,
+          type: 'delivery.created',
+          severity: 'info',
+          title: 'Delivery created — handoff pending',
+          body: 'Admin scheduled this transfer for delivery. Prepare the batch for pickup.',
+          entityType: 'delivery',
+          entityId: delivery.id,
+          link: `/org/deliveries/${delivery.id}`,
+          metadata: { byAdminId: admin.id },
+        })
+        notifs.push(...sellerN)
+        const buyerN = await createForOrg({
+          tx,
+          orgId: request.requesterOrgId,
+          type: 'delivery.created',
+          severity: 'info',
+          title: 'Delivery created for your transfer request',
+          body: 'Awaiting pickup scheduling. You can track progress on the delivery page.',
+          entityType: 'delivery',
+          entityId: delivery.id,
+          link: `/org/deliveries/${delivery.id}`,
+          metadata: { byAdminId: admin.id },
+        })
+        notifs.push(...buyerN)
         return { delivery, request: updatedReq }
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, ...result }
     } catch (e) {
       throw toClientError(e)
@@ -304,6 +337,7 @@ export const adminAssignDeliveryLogistics = createServerFn({
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
           .select()
@@ -417,8 +451,25 @@ export const adminAssignDeliveryLogistics = createServerFn({
             notes: data.notes ?? null,
           },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: data.logisticsOrgId,
+          type: 'delivery.logistics_assigned',
+          severity: 'info',
+          title: 'New delivery assigned to your team',
+          body: 'A MedMove admin assigned a delivery to your organisation.',
+          entityType: 'delivery',
+          entityId: after.id,
+          link: `/logistics/${after.id}`,
+          metadata: {
+            logisticsUserId: data.logisticsUserId,
+            byAdminId: admin.id,
+          },
+        })
+        notifs.push(...n)
         return after
       })
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, delivery: result }
     } catch (e) {
       throw toClientError(e)
@@ -438,6 +489,7 @@ export const schedulePickup = createServerFn({
       const ctx = await getRequestContext()
       const admin = requireAdmin(ctx)
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
           .select()
@@ -445,6 +497,17 @@ export const schedulePickup = createServerFn({
           .where(eq(deliveries.id, data.deliveryId))
           .limit(1)
         if (!delivery) throw new AppError('NOT_FOUND', 'Delivery not found')
+        const [parties] = await tx
+          .select({
+            requesterOrgId: transferRequests.requesterOrgId,
+            sellerOrgId: listings.sellerOrgId,
+          })
+          .from(transferRequests)
+          .innerJoin(listings, eq(listings.id, transferRequests.listingId))
+          .where(eq(transferRequests.id, delivery.transferRequestId))
+          .limit(1)
+        if (!parties)
+          throw new AppError('NOT_FOUND', 'Delivery parties missing')
         assertTransition(
           DELIVERY_TRANSITIONS,
           delivery.status,
@@ -487,9 +550,23 @@ export const schedulePickup = createServerFn({
             notes: data.notes ?? null,
           },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: parties.sellerOrgId,
+          type: 'delivery.pickup_scheduled',
+          severity: 'info',
+          title: 'Pickup scheduled',
+          body: `Pickup is scheduled for ${data.pickupScheduledAt.toISOString()}. Have the batch ready.`,
+          entityType: 'delivery',
+          entityId: after.id,
+          link: `/org/deliveries/${after.id}`,
+          metadata: { byAdminId: admin.id },
+        })
+        notifs.push(...n)
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, delivery: result }
     } catch (e) {
       throw toClientError(e)
@@ -570,6 +647,7 @@ export const markInTransit = createServerFn({
   .inputValidator((d: unknown) => markInTransitSchema.parse(d))
   .handler(async ({ data }) => {
     try {
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
           .select()
@@ -651,9 +729,24 @@ export const markInTransit = createServerFn({
           before: request as unknown as Record<string, unknown>,
           after: updatedRequest as unknown as Record<string, unknown>,
         })
+        const n = await createForOrg({
+          tx,
+          orgId: request.requesterOrgId,
+          type: 'delivery.in_transit',
+          severity: 'info',
+          title: 'Your delivery is in transit',
+          body: updatedDelivery.courierReference
+            ? `Tracking reference: ${updatedDelivery.courierReference}`
+            : 'A courier has picked up the batch and is on the way.',
+          entityType: 'delivery',
+          entityId: updatedDelivery.id,
+          link: `/org/deliveries/${updatedDelivery.id}`,
+        })
+        notifs.push(...n)
         return { delivery: updatedDelivery, request: updatedRequest }
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, ...result }
     } catch (e) {
       throw toClientError(e)
@@ -675,6 +768,7 @@ export const confirmDelivery = createServerFn({
     try {
       const ctx = await getRequestContext()
 
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
           .select()
@@ -698,6 +792,14 @@ export const confirmDelivery = createServerFn({
         )
         assertTransition(DELIVERY_TRANSITIONS, delivery.status, 'delivered')
         assertTransition(TRANSFER_TRANSITIONS, request.status, 'completed')
+
+        const [sellerRow] = await tx
+          .select({ sellerOrgId: listings.sellerOrgId })
+          .from(listings)
+          .where(eq(listings.id, request.listingId))
+          .limit(1)
+        if (!sellerRow)
+          throw new AppError('NOT_FOUND', 'Listing missing')
 
         if (data.receivedQuantity !== request.quantityRequested) {
           throw new AppError(
@@ -831,9 +933,22 @@ export const confirmDelivery = createServerFn({
             transferRequestId: updatedRequest.id,
           },
         })
+        const n = await createForOrg({
+          tx,
+          orgId: sellerRow.sellerOrgId,
+          type: 'delivery.delivered',
+          severity: 'success',
+          title: 'Delivery confirmed by receiver',
+          body: `${data.receivedQuantity} units received and signed for.`,
+          entityType: 'delivery',
+          entityId: updatedDelivery.id,
+          link: `/org/deliveries/${updatedDelivery.id}`,
+        })
+        notifs.push(...n)
         return { delivery: updatedDelivery, request: updatedRequest }
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, ...result }
     } catch (e) {
       throw toClientError(e)
@@ -854,6 +969,7 @@ export const markDeliveryFailed = createServerFn({
   .inputValidator((d: unknown) => markDeliveryFailedSchema.parse(d))
   .handler(async ({ data }) => {
     try {
+      const notifs: NotificationRow[] = []
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
           .select()
@@ -861,6 +977,18 @@ export const markDeliveryFailed = createServerFn({
           .where(eq(deliveries.id, data.deliveryId))
           .limit(1)
         if (!delivery) throw new AppError('NOT_FOUND', 'Delivery not found')
+
+        const [parties] = await tx
+          .select({
+            requesterOrgId: transferRequests.requesterOrgId,
+            sellerOrgId: listings.sellerOrgId,
+          })
+          .from(transferRequests)
+          .innerJoin(listings, eq(listings.id, transferRequests.listingId))
+          .where(eq(transferRequests.id, delivery.transferRequestId))
+          .limit(1)
+        if (!parties)
+          throw new AppError('NOT_FOUND', 'Delivery parties missing')
 
         const { ctx, actor } = await requireDeliveryCourier(delivery, tx)
         if (
@@ -908,9 +1036,25 @@ export const markDeliveryFailed = createServerFn({
           after: after as unknown as Record<string, unknown>,
           metadata: { reason: data.reason },
         })
+        for (const orgId of [parties.sellerOrgId, parties.requesterOrgId]) {
+          const n = await createForOrg({
+            tx,
+            orgId,
+            type: 'delivery.failed',
+            severity: 'critical',
+            title: 'Delivery failed',
+            body: data.reason,
+            entityType: 'delivery',
+            entityId: after.id,
+            link: `/org/deliveries/${after.id}`,
+            metadata: { reportedByUserId: actor.id },
+          })
+          notifs.push(...n)
+        }
         return after
       })
 
+      void dispatchNotificationsAfterCommit(notifs)
       return { ok: true as const, delivery: result }
     } catch (e) {
       throw toClientError(e)

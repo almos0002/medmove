@@ -8,27 +8,39 @@ import {
   FileCheck2,
   PauseCircle,
   XCircle,
-  type LucideIcon,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { isOrgOwner } from '@/lib/permissions'
 import { getMyOrganization } from '@/server/functions/organizations'
+import { getOrgExpirySummaryFn } from '@/server/functions/expiry'
+import type { OrgExpirySummary } from '@/server/expiry'
+import { ExpiryAlertCards } from '@/components/notifications/ExpiryAlertCards'
+import { ExpiringInventoryTable } from '@/components/notifications/ExpiringInventoryTable'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { PageLoading } from '@/components/feedback/PageLoading'
 import { PageError } from '@/components/feedback/PageError'
-import {
-  VerificationStatusBadge,
-  type OrgVerificationStatus,
-} from '@/components/data/StatusBadge'
+import { VerificationStatusBadge } from '@/components/data/StatusBadge'
+import type { OrgVerificationStatus } from '@/components/data/StatusBadge'
 import {
   CapabilityChipRow,
 } from '@/components/data/CapabilityChip'
 import { OrgTypeBadge } from '@/components/data/OrgTypeBadge'
 
 export const Route = createFileRoute('/org/')({
-  loader: () => getMyOrganization(),
+  loader: async () => {
+    const data = await getMyOrganization()
+    let expiry: OrgExpirySummary | null = null
+    if (data.organization && data.organization.verificationStatus === 'verified') {
+      const res = await getOrgExpirySummaryFn({
+        data: { organizationId: data.organization.id },
+      })
+      expiry = res.summary
+    }
+    return { ... data, expiry }
+  },
   pendingComponent: PageLoading,
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
@@ -41,6 +53,7 @@ function OrgHome() {
   const data = Route.useLoaderData()
   const org = data.organization
   const documents = data.documents
+  const expiry = data.expiry
 
   if (!org) {
     return (
@@ -89,13 +102,13 @@ function OrgHome() {
         }
         actions={
           <VerificationStatusBadge
-            status={org.verificationStatus as OrgVerificationStatus}
+            status={org.verificationStatus}
           />
         }
       />
 
       <StatusBanner
-        status={org.verificationStatus as OrgVerificationStatus}
+        status={org.verificationStatus}
         rejectionReason={org.rejectionReason ?? undefined}
         suspensionReason={org.suspensionReason ?? undefined}
         documentsPending={pendingDocs}
@@ -152,6 +165,27 @@ function OrgHome() {
           </p>
         </CardContent>
       </Card>
+
+      {expiry && (
+        <section className="space-y-3">
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="eyebrow">Expiry watch</div>
+              <h2 className="text-base font-semibold text-[var(--color-mm-ink)]">
+                Inventory expiry overview
+              </h2>
+            </div>
+            <Link
+              to="/org/inventory"
+              className="text-xs text-[var(--color-mm-accent)] hover:underline inline-flex items-center gap-1"
+            >
+              Open inventory <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <ExpiryAlertCards totals={expiry.totals} />
+          <ExpiringInventoryTable rows={expiry.topExpiring} />
+        </section>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button asChild variant="secondary">

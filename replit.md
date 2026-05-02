@@ -293,3 +293,19 @@ npm run db:seed      # Seed dev data
 - Better Auth trusted origins include `localhost:5000` and `*.replit.dev` / `*.replit.app`
 - Server functions available via `createServerFn` from `@tanstack/react-start`
 - All admin-only server fns use `requireAdmin(ctx)`. All capability-gated business fns use `requireCapability(ctx, orgId, cap)`. The role-only `requireRole` helper is reserved for narrow role checks (e.g. logistics_staff list views).
+
+## Step 12: in-app notifications + expiry alerts
+
+Transactional notifications wired next to every audit-worthy state change, with email/SMS/WhatsApp dispatched after commit (provider stubs).
+
+- **Schema** (`src/lib/schema/notifications.ts`) — `notifications` table with `audience` / `severity` / `type` pgEnums, recipient FKs (`user`/`organization` cascade), entity ref, jsonb metadata, single shared `read_at`, plus a partial unique index `notifications_org_entity_type_uq` (recipient_org_id IS NOT NULL) that backs idempotent expiry-scan inserts.
+- **Service** (`src/server/notifications/`) — `createForUser` / `createForOrg` / `createForAdmins` accept an optional Drizzle `tx` so writes happen in the same transaction as `writeAudit`; `dispatchNotificationsAfterCommit(rows)` runs the channel fan-out (`channels/email`, `channels/sms`, `channels/whatsapp` — all stubs that just log) outside the transaction so a slow provider never rolls back the business write.
+- **Inbox server fns** (`src/server/functions/notifications.ts`) — `listMyNotifications`, `countUnreadNotifications`, `markNotificationRead`, `markAllNotificationsRead`. Visibility is the union of (audience='user' AND recipientUserId=me) ∪ (audience='organization' AND recipientOrgId IN my orgs) ∪ (audience='admins' AND I'm admin). Org/admin rows use the shared `read_at` (MVP).
+- **Wiring** — notification creation inserted next to `writeAudit` in:
+  - `organizations.ts` — createOrganization → admins; adminApprove/Reject/Suspend → org.
+  - `listings.ts` — submitListing → admins; adminApprove/Reject → seller org.
+  - `transfers.ts` — requestTransfer → admins; adminApprove → seller org; adminReject/sellerAccept/sellerDecline → requester org.
+  - `deliveries.ts` — adminCreateDelivery → seller + requester; adminAssignDeliveryLogistics → assigned logistics org; schedulePickup → seller; markInTransit → requester; confirmDelivery → seller; markDeliveryFailed → seller + requester.
+- **Expiry module** (`src/server/expiry.ts`) — `getOrgExpirySummary(orgId)` returns counters (expired / ≤30d / 31–90d / safe) + top-N urgent batches; `runExpiryScan()` walks every org's non-empty batches and dedup-inserts critical / expiring_soon notifications via `ON CONFLICT DO NOTHING` against the partial unique index. Wrapped in `src/server/functions/expiry.ts` as `getOrgExpirySummaryFn` (org-member-scoped) + `adminRunExpiryScan` (admin-only) so route loaders never import postgres-js client-side.
+- **UI** — `NotificationBell` (in `AppShell` topbar, polls `countUnreadNotifications` + opens dropdown of latest 8 with mark-all-read), `/notifications` route (full inbox with All/Unread filter), `ExpiryAlertCards` + `ExpiringInventoryTable` (verified-org-only block on `/org`, deep-links into `/org/inventory?expiryWindow=…` and `/org/inventory/$batchId`). Built on a new `dropdown-menu` primitive (`src/components/ui/dropdown-menu.tsx`).
+- **Cron** — `runExpiryScan()` is idempotent and intended for a daily scheduler; see WORKFLOW.md for the deployment note.

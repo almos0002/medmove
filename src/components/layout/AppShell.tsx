@@ -22,6 +22,7 @@ import { isAdminRole, type AppRole } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { VerificationStatusBadge } from '@/components/data/StatusBadge'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export type ShellSection = 'app' | 'admin' | 'logistics'
 
@@ -225,6 +226,7 @@ function TopBar({
           )}
         </div>
         <div className="flex items-center gap-3">
+          {session.user && <NotificationBell />}
           {session.user && (
             <span className="hidden sm:block text-[13px] text-[var(--color-mm-subtle)] truncate max-w-[220px]">
               {session.user.email}
