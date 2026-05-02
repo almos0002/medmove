@@ -11,7 +11,16 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
 - **Router**: TanStack Router (file-based routing)
 - **Styling**: Tailwind CSS v4 (configured via `@theme` in `src/styles.css`)
 - **Icons**: lucide-react
-- **Font**: Poppins (loaded from Google Fonts in `__root.tsx`, set as default `font-sans`)
+- **Fonts**: **Instrument Serif** (display, italic-friendly editorial headlines) + **Geist** (body sans), both loaded from Google Fonts in `__root.tsx`. Body defaults to Geist; `font-display` utility opts into Instrument Serif.
+
+## Visual System (post-redesign, 2026-05)
+- **Surfaces are pure `#FFFFFF` only.** No grays, no off-whites, no shadows. Hierarchy comes from typography weight/size, hairline soft borders, and the single accent colour.
+- **Borders are soft.** `--color-mm-line` = `rgba(10,10,10,0.08)`, `--color-mm-line-strong` = `rgba(10,10,10,0.14)`. No `border-black` anywhere — always reference the line tokens.
+- **Ink is `#0A0A0A`, body muted is `#1A1A1A`.** Accent is **deep teal `#0D4F40`**, used only for italic display emphasis, active selections, primary-button hover, and the verified pill.
+- **Squircle corners** via utilities `squircle-xs/sm/md/lg/xl` (10/14/22/36/50px) — never use `rounded-*` for surfaces.
+- **Editorial helpers in `styles.css`**: `.eyebrow` (uppercase tracked label), `.numeral` (display-serif numerals), `.hairline` / `.hairline-v` (soft divider rules), `.tick` (square bullet), `.link-underline`.
+- **Imagery**: hero/section images live in `public/img/` (copied from `attached_assets/{generated_images,stock_images}/`). Generated AI heroes for the home page; stock photos for shelves, vials, courier, doctor, aid worker, supply, warehouse, handoff.
+- **Primitives** (`button`, `input`, `textarea`, `card`, `badge`, `separator`, `label`) all use the line tokens; `Button.primary` is ink-on-white-bg with teal hover; `Button.secondary/outline` are soft-bordered. `Input` is an underline field, never boxed.
 - **Auth**: Better Auth (email/password) with `inferAdditionalFields` plugin for `role` + `organizationName`
 - **Database**: Replit Postgres via `DATABASE_URL`
 - **ORM**: Drizzle ORM (`postgres-js` driver) + `drizzle-kit` for schema push

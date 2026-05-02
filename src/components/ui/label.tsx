@@ -1,16 +1,20 @@
 import * as React from 'react'
-import * as LabelPrimitive from '@radix-ui/react-label'
+import * as RLabel from '@radix-ui/react-label'
 import { cn } from '@/lib/utils'
 
+/**
+ * Label = editorial eyebrow style: small, uppercase, wide-tracked. Pairs
+ * naturally with the underline-style Input below it.
+ */
 export const Label = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+  HTMLLabelElement,
+  React.ComponentPropsWithoutRef<typeof RLabel.Root>
 >(function Label({ className, ...rest }, ref) {
   return (
-    <LabelPrimitive.Root
+    <RLabel.Root
       ref={ref}
       className={cn(
-        'text-sm font-medium text-[var(--color-mm-ink)] block',
+        'block text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--color-mm-ink)]',
         className,
       )}
       {...rest}

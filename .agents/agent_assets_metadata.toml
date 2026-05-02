@@ -1,0 +1,67 @@
+uploads = []
+
+[[generated]]
+id = "3OCN6lJstCGOhtLAYrFc5"
+uri = "file://attached_assets/generated_images/mm_hero.png"
+type = "image"
+title = "mm hero"
+
+[[generated]]
+id = "mv0lLP-c3UX3YQ7dELZxU"
+uri = "file://attached_assets/generated_images/mm_boxes.png"
+type = "image"
+title = "mm boxes"
+
+[[generated]]
+id = "WgEOCIokM1q8YPd9-ZWJa"
+uri = "file://attached_assets/generated_images/mm_handoff.png"
+type = "image"
+title = "mm handoff"
+
+[[outputs]]
+id = "MDirPWVU6_PxOLp0rEt29"
+uri = "file://attached_assets/stock_images/stock_image.jpg"
+type = "image"
+title = "medicine vials and pill bottles on a clean surface"
+
+[[outputs]]
+id = "R8svGNiqB-iTqlAzAm5DQ"
+uri = "file://attached_assets/stock_images/mm_pharmacy_shelves.jpg"
+type = "image"
+title = "organized pharmacy shelves stocked with medicine boxes, top down clean composition"
+
+[[outputs]]
+id = "EiLrHS1NpdbHQAi1Mtz2f"
+uri = "file://attached_assets/stock_images/mm_supply_boxes.jpg"
+type = "image"
+title = "sealed cardboard medical supply boxes ready for shipment, soft daylight"
+
+[[outputs]]
+id = "QXpvJpQ_WMoarHaNPuljp"
+uri = "file://attached_assets/stock_images/mm_warehouse.jpg"
+type = "image"
+title = "modern logistics warehouse interior with shelving, neutral daylight"
+
+[[outputs]]
+id = "paDNmZDfV7lrCaowtK70j"
+uri = "file://attached_assets/stock_images/mm_doctor_meds.jpg"
+type = "image"
+title = "doctor in white coat holding medication blister pack in hospital corridor, candid"
+
+[[outputs]]
+id = "-Gzvp5zvQYV6cWWX8u6h9"
+uri = "file://attached_assets/stock_images/mm_aid_worker.jpg"
+type = "image"
+title = "humanitarian aid worker handing over medical supplies, documentary photography"
+
+[[outputs]]
+id = "zFkCOWjmbWeBPdTViMndl"
+uri = "file://attached_assets/stock_images/mm_vials_topdown.jpg"
+type = "image"
+title = "pill bottles and medicine vials arranged neatly on light table, top down"
+
+[[outputs]]
+id = "-inaMXyCR5J58KYsIW0jV"
+uri = "file://attached_assets/stock_images/mm_courier_handoff.jpg"
+type = "image"
+title = "delivery courier handing parcel to pharmacist at counter, candid"

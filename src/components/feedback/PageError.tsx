@@ -1,12 +1,9 @@
 import { Link, useRouter } from '@tanstack/react-router'
-import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type ServerErrorShape = { code?: string; message?: string }
 
 function describe(err: unknown): { title: string; body: string; code?: string } {
-  // TanStack server fns serialize errors as JSON with { error: { code, message } }
-  // or sometimes just an Error with that JSON in `message`.
   if (err && typeof err === 'object') {
     const anyErr = err as Record<string, unknown> & {
       message?: string
@@ -19,7 +16,7 @@ function describe(err: unknown): { title: string; body: string; code?: string } 
         : undefined)
     if (inner?.code === 'FORBIDDEN') {
       return {
-        title: "You don't have access",
+        title: 'No access.',
         body:
           inner.message ??
           'Your account or organization is not allowed to view this page.',
@@ -28,31 +25,32 @@ function describe(err: unknown): { title: string; body: string; code?: string } 
     }
     if (inner?.code === 'UNAUTHORIZED') {
       return {
-        title: 'Please sign in',
+        title: 'Sign in.',
         body: 'Your session has expired. Sign in again to continue.',
         code: inner.code,
       }
     }
     if (inner?.code === 'NOT_FOUND') {
       return {
-        title: 'Not found',
-        body: inner.message ?? 'This resource no longer exists or was never created.',
+        title: 'Not found.',
+        body:
+          inner.message ?? 'This resource no longer exists or was never created.',
         code: inner.code,
       }
     }
     if (inner?.code) {
       return {
-        title: 'Something went wrong',
+        title: 'Something broke.',
         body: inner.message ?? 'An unexpected error occurred.',
         code: inner.code,
       }
     }
     if (typeof anyErr.message === 'string' && anyErr.message.length > 0) {
-      return { title: 'Something went wrong', body: anyErr.message }
+      return { title: 'Something broke.', body: anyErr.message }
     }
   }
   return {
-    title: 'Something went wrong',
+    title: 'Something broke.',
     body: 'An unexpected error occurred. Please try again.',
   }
 }
@@ -79,23 +77,22 @@ export function PageError({
   const router = useRouter()
   const { title, body, code } = describe(error)
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12 bg-[var(--color-mm-canvas)]">
-      <div className="w-full max-w-md text-center">
-        <div className="mx-auto mb-5 inline-flex h-12 w-12 items-center justify-center bg-[var(--color-mm-warn-soft)] squircle">
-          <AlertTriangle className="h-6 w-6 text-[var(--color-mm-warn)]" />
+    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+      <div className="w-full max-w-2xl text-center">
+        <div className="eyebrow text-[var(--color-mm-bad)]">
+          Error{code ? ` · ${code}` : ''}
         </div>
-        <h1 className="text-xl font-semibold text-[var(--color-mm-ink)]">
+        <h1 className="mt-6 font-display italic text-[clamp(60px,10vw,140px)] leading-[0.9] text-black">
           {title}
         </h1>
-        <p className="mt-2 text-sm text-[var(--color-mm-muted)]">{body}</p>
-        {code && (
-          <p className="mt-3 text-xs uppercase tracking-wide text-[var(--color-mm-subtle)]">
-            Error code: {code}
-          </p>
-        )}
-        <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="hairline my-10 max-w-xs mx-auto" />
+        <p className="text-sm text-black max-w-md mx-auto leading-relaxed">
+          {body}
+        </p>
+        <div className="mt-8 flex items-center justify-center gap-3">
           <Button
-            variant="secondary"
+            variant="primary"
+            size="lg"
             onClick={() => {
               reset?.()
               router.invalidate()
@@ -103,7 +100,7 @@ export function PageError({
           >
             Try again
           </Button>
-          <Button asChild variant="ghost">
+          <Button asChild variant="secondary" size="lg">
             <Link to="/dashboard">Back to dashboard</Link>
           </Button>
         </div>

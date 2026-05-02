@@ -1,6 +1,10 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
+/**
+ * Card — pure white surface, hairline black border, sharper editorial
+ * corners (squircle-sm). All inner separators are also pure black.
+ */
 export function Card({
   className,
   ...rest
@@ -8,7 +12,7 @@ export function Card({
   return (
     <div
       className={cn(
-        'bg-[var(--color-mm-surface)] border border-[var(--color-mm-line)] squircle-md',
+        'bg-white border border-[var(--color-mm-line-strong)] squircle-sm',
         className,
       )}
       {...rest}
@@ -23,7 +27,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        'px-6 py-5 border-b border-[var(--color-mm-line)]',
+        'px-6 py-5 border-b border-[var(--color-mm-line-strong)]',
         className,
       )}
       {...rest}
@@ -38,7 +42,7 @@ export function CardTitle({
   return (
     <h2
       className={cn(
-        'text-base font-semibold text-[var(--color-mm-ink)]',
+        'font-display text-2xl text-[var(--color-mm-ink)] leading-none',
         className,
       )}
       {...rest}
@@ -52,7 +56,7 @@ export function CardDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn('text-sm text-[var(--color-mm-muted)] mt-1', className)}
+      className={cn('text-sm text-[var(--color-mm-muted)] mt-2', className)}
       {...rest}
     />
   )
@@ -72,7 +76,7 @@ export function CardFooter({
   return (
     <div
       className={cn(
-        'px-6 py-4 border-t border-[var(--color-mm-line)] flex items-center gap-3',
+        'px-6 py-4 border-t border-[var(--color-mm-line-strong)] flex items-center gap-3',
         className,
       )}
       {...rest}

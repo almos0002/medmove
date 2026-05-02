@@ -4,25 +4,39 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+/**
+ * Editorial button system.
+ *
+ * Visual contract:
+ *   - Primary  = solid deep-teal pill, white text.
+ *   - Secondary = white pill, full black border, black text.
+ *   - Outline  = same as secondary but transparent (used on dark hero strips).
+ *   - Ghost    = no border, black text, hover inverts to black bg + white.
+ *   - Danger   = solid burgundy pill, white text.
+ *   - Link     = inline link with editorial underline.
+ *
+ * No fills besides white, the accent, or the danger tone. No shadows.
+ */
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed select-none',
   {
     variants: {
       variant: {
         primary:
-          'bg-[var(--color-mm-accent)] text-[var(--color-mm-accent-ink)] hover:bg-[#0c4a3c]',
+          'bg-[var(--color-mm-ink)] text-white border border-[var(--color-mm-ink)] hover:bg-[var(--color-mm-accent)] hover:border-[var(--color-mm-accent)]',
         secondary:
-          'bg-[var(--color-mm-surface)] text-[var(--color-mm-ink)] border border-[var(--color-mm-line-strong)] hover:bg-[var(--color-mm-canvas)]',
-        ghost:
-          'bg-transparent text-[var(--color-mm-ink)] hover:bg-[var(--color-mm-canvas)]',
-        danger:
-          'bg-[var(--color-mm-bad)] text-white hover:bg-[#741822]',
+          'bg-white text-[var(--color-mm-ink)] border border-[var(--color-mm-line-strong)] hover:border-[var(--color-mm-ink)]',
         outline:
-          'bg-transparent text-[var(--color-mm-ink)] border border-[var(--color-mm-line-strong)] hover:bg-[var(--color-mm-canvas)]',
-        link: 'bg-transparent text-[var(--color-mm-accent)] underline-offset-4 hover:underline px-0 py-0 h-auto',
+          'bg-transparent text-[var(--color-mm-ink)] border border-[var(--color-mm-line-strong)] hover:border-[var(--color-mm-ink)]',
+        ghost:
+          'bg-transparent text-[var(--color-mm-ink)] border border-transparent hover:bg-black/[0.04]',
+        danger:
+          'bg-[var(--color-mm-bad)] text-white border border-[var(--color-mm-bad)] hover:bg-[var(--color-mm-ink)] hover:border-[var(--color-mm-ink)]',
+        link:
+          'bg-transparent text-[var(--color-mm-ink)] border-0 px-0 py-0 h-auto link-underline hover:text-[var(--color-mm-accent)]',
       },
       size: {
-        sm: 'h-8 px-3 text-sm squircle',
+        sm: 'h-8 px-3 text-[13px] squircle',
         md: 'h-10 px-4 text-sm squircle',
         lg: 'h-12 px-6 text-base squircle',
         icon: 'h-9 w-9 squircle',
@@ -44,10 +58,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     { className, variant, size, asChild, loading, children, disabled, ...rest },
     ref,
   ) {
-    // When asChild, the consumer owns the markup (e.g. <Link>). Slot is
-    // strict: it requires exactly one element child and forwards props
-    // to it — so we must hand it `children` untouched (no loader spinner
-    // injection, no fragment). Loading is a no-op for asChild buttons.
     if (asChild) {
       return (
         <Slot

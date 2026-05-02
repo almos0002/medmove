@@ -139,36 +139,40 @@ function OnboardingPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[var(--color-mm-canvas)]">
-      <header className="bg-[var(--color-mm-surface)] border-b border-[var(--color-mm-line)]">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-2">
-          <div className="h-7 w-7 inline-flex items-center justify-center bg-[var(--color-mm-accent)] text-white squircle">
-            <ShieldCheck className="h-4 w-4" />
-          </div>
-          <span className="text-sm font-semibold">MedMove · Onboarding</span>
+    <div className="min-h-screen bg-white">
+      <header className="border-b border-[var(--color-mm-line)] bg-white">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <span className="inline-flex h-8 w-8 items-center justify-center bg-[var(--color-mm-ink)] text-white squircle-xs">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <span className="font-display text-[18px]">MedMove</span>
+          </Link>
+          <span className="eyebrow">Onboarding · Step 02</span>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 inline-flex items-center justify-center bg-[var(--color-mm-surface)] border border-[var(--color-mm-line)] squircle">
-            <Building2 className="h-5 w-5 text-[var(--color-mm-accent)]" />
+      <main className="max-w-3xl mx-auto px-6 py-14 space-y-10">
+        <div>
+          <div className="eyebrow flex items-center gap-3">
+            <span className="tick" /> Register your organization
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Register your organization
-            </h1>
-            <p className="mt-1 text-sm text-[var(--color-mm-muted)] max-w-xl">
-              Tell us about your organization. After you submit, MedMove
-              admins will review your details and verification documents
-              before unlocking medicine actions.
-            </p>
+          <h1 className="mt-6 font-display text-[clamp(44px,5.5vw,68px)] leading-[0.95] tracking-tight">
+            Tell us who<br />
+            <span className="italic">you serve.</span>
+          </h1>
+          <p className="mt-5 text-[15px] text-[var(--color-mm-muted)] max-w-xl leading-relaxed">
+            Once you submit, MedMove admins will review your documents
+            (typically within 48 hours) before medicine actions are unlocked.
+          </p>
+          <div className="mt-1 inline-flex h-0 items-center justify-center">
+            <Building2 className="h-0 w-0" />
           </div>
         </div>
 
         <form
           onSubmit={form.handleSubmit((v) => create.mutate(v))}
-          className="bg-[var(--color-mm-surface)] border border-[var(--color-mm-line)] squircle-md p-6 sm:p-8 space-y-8"
+          className="bg-white border border-[var(--color-mm-line-strong)] squircle-sm p-6 sm:p-10 space-y-10"
         >
           {/* Section: Type + name */}
           <section className="space-y-4">
@@ -183,23 +187,28 @@ function OnboardingPage() {
                   key={opt.value}
                   onClick={() => form.setValue('type', opt.value)}
                   className={cn(
-                    'text-left p-3 squircle-sm border text-sm transition-colors',
+                    'text-left p-3.5 squircle-sm border text-sm transition-colors',
                     watchedType === opt.value
-                      ? 'border-[var(--color-mm-accent)] bg-[var(--color-mm-accent-soft)]'
-                      : 'border-[var(--color-mm-line)] hover:border-[var(--color-mm-line-strong)]',
+                      ? 'border-[var(--color-mm-ink)] bg-white'
+                      : 'border-[var(--color-mm-line-strong)] hover:border-[var(--color-mm-ink)]',
                   )}
                 >
-                  <div className="font-medium text-[var(--color-mm-ink)]">
-                    {opt.label}
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-[var(--color-mm-ink)]">
+                      {opt.label}
+                    </div>
+                    {watchedType === opt.value && (
+                      <span className="inline-flex h-3.5 w-3.5 squircle-xs bg-[var(--color-mm-accent)]" />
+                    )}
                   </div>
-                  <div className="text-[11px] text-[var(--color-mm-muted)] mt-0.5">
+                  <div className="text-[12px] text-[var(--color-mm-muted)] mt-1">
                     {opt.blurb}
                   </div>
                 </button>
               ))}
             </div>
-            <div className="bg-[var(--color-mm-canvas)] border border-[var(--color-mm-line)] squircle-sm px-4 py-3">
-              <div className="text-xs uppercase tracking-wide text-[var(--color-mm-subtle)] mb-1.5">
+            <div className="border border-[var(--color-mm-line)] squircle-sm px-5 py-4 bg-white">
+              <div className="eyebrow mb-3">
                 Default capabilities for this type
               </div>
               <CapabilityChipRow
@@ -320,22 +329,22 @@ function OnboardingPage() {
             </Field>
           </section>
 
-          <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--color-mm-line)] -mx-6 sm:-mx-8 px-6 sm:px-8">
-            <p className="text-xs text-[var(--color-mm-subtle)] max-w-md">
+          <div className="flex items-center justify-between gap-3 pt-6 border-t border-[var(--color-mm-line)] -mx-6 sm:-mx-10 px-6 sm:px-10">
+            <p className="text-[12px] text-[var(--color-mm-muted)] max-w-md leading-relaxed">
               By submitting you confirm the information above is accurate and
               that you are authorized to register this organization on its
               behalf.
             </p>
-            <Button type="submit" loading={create.isPending}>
+            <Button type="submit" size="lg" loading={create.isPending}>
               Continue
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </form>
 
-        <p className="text-center text-xs text-[var(--color-mm-subtle)]">
+        <p className="text-center text-[12px] text-[var(--color-mm-muted)]">
           Need help?{' '}
-          <Link to="/sign-in" search={{}} className="underline">
+          <Link to="/sign-in" search={{}} className="link-underline text-[var(--color-mm-ink)]">
             Sign in to a different account
           </Link>
         </p>
@@ -352,12 +361,12 @@ function SectionHeading({
   description?: string
 }) {
   return (
-    <div>
-      <h2 className="text-sm font-semibold text-[var(--color-mm-ink)]">
+    <div className="border-l-2 border-[var(--color-mm-ink)] pl-4">
+      <h2 className="font-display text-2xl text-[var(--color-mm-ink)] leading-none">
         {title}
       </h2>
       {description && (
-        <p className="text-xs text-[var(--color-mm-muted)] mt-0.5">
+        <p className="text-[13px] text-[var(--color-mm-muted)] mt-2 leading-relaxed">
           {description}
         </p>
       )}
@@ -379,21 +388,21 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-baseline justify-between">
         <Label>{label}</Label>
         {optional && (
-          <span className="text-[11px] text-[var(--color-mm-subtle)]">
+          <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-mm-muted)]">
             optional
           </span>
         )}
       </div>
       {children}
       {hint && !error && (
-        <p className="text-xs text-[var(--color-mm-subtle)]">{hint}</p>
+        <p className="text-[12px] text-[var(--color-mm-muted)]">{hint}</p>
       )}
       {error && (
-        <p className="text-xs text-[var(--color-mm-bad)]">{error}</p>
+        <p className="text-[12px] text-[var(--color-mm-bad)]">{error}</p>
       )}
     </div>
   )

@@ -6,12 +6,11 @@ import {
   ShieldCheck,
   Truck,
   LogOut,
-  Users,
   type LucideIcon,
   FileCheck2,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
-import { ROLES, isAdminRole, type AppRole } from '@/lib/permissions'
+import { isAdminRole, type AppRole } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { VerificationStatusBadge } from '@/components/data/StatusBadge'
@@ -42,12 +41,10 @@ const APP_NAV: NavItem[] = [
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
 ]
-
 const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
 ]
-
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },
 ]
@@ -77,23 +74,19 @@ export function AppShell({
   const filtered = navItems.filter((n) => n.show?.(session) ?? true)
 
   return (
-    <div className="min-h-screen flex bg-[var(--color-mm-canvas)]">
-      {/* Sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--color-mm-line)] bg-[var(--color-mm-surface)]">
-        <div className="px-5 py-5 flex items-center gap-2">
-          <div className="h-8 w-8 inline-flex items-center justify-center bg-[var(--color-mm-accent)] text-white squircle">
+    <div className="min-h-screen flex bg-white">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--color-mm-line)] bg-white">
+        <Link to="/" className="px-6 py-6 flex items-center gap-2.5 border-b border-[var(--color-mm-line)]">
+          <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-ink)] text-white squircle-sm">
             <ShieldCheck className="h-4 w-4" />
-          </div>
+          </span>
           <div>
-            <div className="text-sm font-semibold text-[var(--color-mm-ink)]">
-              MedMove
-            </div>
-            <div className="text-[11px] uppercase tracking-wider text-[var(--color-mm-subtle)]">
-              {SECTION_TITLE[section]}
-            </div>
+            <div className="font-display text-[18px] leading-none">MedMove</div>
+            <div className="eyebrow text-[9px] mt-1.5">{SECTION_TITLE[section]}</div>
           </div>
-        </div>
-        <nav className="px-3 pb-2 flex-1 app-scroll overflow-y-auto">
+        </Link>
+        <nav className="px-4 py-5 flex-1 app-scroll overflow-y-auto">
+          <div className="eyebrow mb-3 px-2">Navigate</div>
           <ul className="space-y-0.5">
             {filtered.map((item) => {
               const Icon = item.icon
@@ -101,17 +94,22 @@ export function AppShell({
                 <li key={item.to}>
                   <Link
                     to={item.to}
-                    activeOptions={{ exact: item.to === '/org' || item.to === '/admin' || item.to === '/logistics' }}
+                    activeOptions={{
+                      exact:
+                        item.to === '/org' ||
+                        item.to === '/admin' ||
+                        item.to === '/logistics',
+                    }}
                     activeProps={{
                       className:
-                        'bg-[var(--color-mm-accent-soft)] text-[var(--color-mm-accent)]',
+                        'bg-[var(--color-mm-ink)] text-white border-[var(--color-mm-ink)]',
                     }}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 text-sm font-medium text-[var(--color-mm-muted)] squircle',
-                      'hover:bg-[var(--color-mm-canvas)]',
+                      'flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium text-[var(--color-mm-ink)] squircle-xs border border-transparent transition-colors',
+                      'hover:border-[var(--color-mm-line-strong)]',
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4" strokeWidth={1.6} />
                     {item.label}
                   </Link>
                 </li>
@@ -119,12 +117,11 @@ export function AppShell({
             })}
           </ul>
         </nav>
-        <div className="border-t border-[var(--color-mm-line)] p-3">
+        <div className="border-t border-[var(--color-mm-line)] p-4">
           <UserCard session={session} />
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
           section={section}
@@ -134,7 +131,7 @@ export function AppShell({
             navigate({ to: '/sign-in', search: {} })
           }}
         />
-        <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 max-w-6xl w-full mx-auto">
+        <main className="flex-1 px-6 sm:px-10 py-10 max-w-6xl w-full mx-auto">
           {children}
         </main>
       </div>
@@ -154,27 +151,25 @@ function TopBar({
   const isAdmin = isAdminRole(session.user?.role)
   const showAdminBanner = section === 'app' && isAdmin
   return (
-    <header className="border-b border-[var(--color-mm-line)] bg-[var(--color-mm-surface)]">
+    <header className="border-b border-[var(--color-mm-line)] bg-white">
       {showAdminBanner && (
-        <div className="bg-[var(--color-mm-warn-soft)] text-[var(--color-mm-warn)] text-xs px-6 py-1.5 text-center">
-          Viewing organization workspace as admin — actions you take are
-          recorded against your admin account.
+        <div className="border-b border-[var(--color-mm-line)] text-[var(--color-mm-warn)] text-[12px] px-6 py-2 text-center">
+          <span className="eyebrow text-[var(--color-mm-warn)]">
+            Admin view · actions are recorded against your admin account
+          </span>
         </div>
       )}
-      <div className="flex items-center justify-between px-4 sm:px-8 py-3 gap-4">
+      <div className="flex items-center justify-between px-6 sm:px-10 py-4 gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {section === 'app' && session.primaryOrg && (
             <VerificationStatusBadge status={session.primaryOrg.verificationStatus} />
           )}
-          {section === 'admin' && (
-            <span className="text-xs uppercase tracking-wide text-[var(--color-mm-subtle)]">
-              Admin
-            </span>
-          )}
+          {section === 'admin' && <span className="eyebrow">Admin console</span>}
+          {section === 'logistics' && <span className="eyebrow">Logistics</span>}
         </div>
         <div className="flex items-center gap-3">
           {session.user && (
-            <span className="hidden sm:block text-xs text-[var(--color-mm-muted)] truncate max-w-[180px]">
+            <span className="hidden sm:block text-[12px] text-[var(--color-mm-muted)] truncate max-w-[220px]">
               {session.user.email}
             </span>
           )}
@@ -192,24 +187,18 @@ function UserCard({ session }: { session: SessionShape }) {
   const u = session.user
   if (!u) return null
   return (
-    <div className="flex items-center gap-3 px-2 py-2">
-      <div className="h-8 w-8 squircle bg-[var(--color-mm-canvas)] inline-flex items-center justify-center text-xs font-semibold text-[var(--color-mm-ink)]">
+    <div className="flex items-center gap-3 p-2">
+      <div className="h-9 w-9 squircle-xs border border-[var(--color-mm-line-strong)] inline-flex items-center justify-center text-[12px] font-medium font-display text-[var(--color-mm-ink)]">
         {(u.email[0] ?? 'U').toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-medium text-[var(--color-mm-ink)] truncate">
+        <div className="text-[12px] font-medium text-[var(--color-mm-ink)] truncate">
           {u.email}
         </div>
-        <div className="text-[11px] text-[var(--color-mm-subtle)] capitalize">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-mm-muted)] mt-0.5">
           {u.role.replace('_', ' ')}
         </div>
       </div>
-      {u.role === ROLES.ORG_OWNER && (
-        <Users
-          className="h-3.5 w-3.5 text-[var(--color-mm-accent)]"
-          aria-label="Owner"
-        />
-      )}
     </div>
   )
 }

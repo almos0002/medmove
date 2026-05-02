@@ -31,7 +31,7 @@ export const Route = createRootRoute({
       },
       {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap',
+        href: 'https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap',
       },
       { rel: 'stylesheet', href: appCss },
     ],
@@ -60,7 +60,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             toastOptions={{
               classNames: {
                 toast:
-                  'squircle-sm bg-[var(--color-mm-surface)] border border-[var(--color-mm-line)] text-[var(--color-mm-ink)] no-shadow',
+                  'squircle-sm bg-white border border-[var(--color-mm-line-strong)] text-[var(--color-mm-ink)] no-shadow',
                 title: 'font-medium',
                 description: 'text-[var(--color-mm-muted)]',
               },

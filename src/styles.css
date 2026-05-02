@@ -1,30 +1,48 @@
 @import "tailwindcss";
 
 @theme {
-  --font-poppins:
-    "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  /* ──────────────────────────────────────────────────────────────────────
+   * Typography — pairs an editorial serif with a precise modern sans.
+   * Display: Instrument Serif (italics for emphasis).
+   * Body:    Geist (300/400/500/600/700).
+   * ────────────────────────────────────────────────────────────────────── */
+  --font-display:
+    "Instrument Serif", "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body:
+    "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-sans: var(--font-poppins);
+  --font-mono:
+    "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: var(--font-body);
 
-  /* MedMove palette — calm, clinical, trust-forward. NOT generic SaaS indigo. */
-  --color-mm-ink: #0d1817;        /* near-black with the slightest green tint */
-  --color-mm-muted: #4a5654;
-  --color-mm-subtle: #6b7775;
-  --color-mm-line: #e3e6e3;        /* hairline border, replaces shadow */
-  --color-mm-line-strong: #c9cfcb;
-  --color-mm-canvas: #f6f5f1;      /* warm off-white app background */
+  /* ──────────────────────────────────────────────────────────────────────
+   * Mono-chromatic palette: white paper, black ink, deep-teal accent.
+   * No grays. Hierarchy comes from typography weight/size, not tone.
+   * Legacy "*-soft" tokens collapse to white so existing components
+   * render as outline-only on white surfaces.
+   * ────────────────────────────────────────────────────────────────────── */
+  --color-mm-paper: #ffffff;
+  --color-mm-canvas: #ffffff;
   --color-mm-surface: #ffffff;
-  --color-mm-accent: #0f5c4b;      /* deep teal — primary action */
+  --color-mm-ink: #0a0a0a;
+  --color-mm-muted: #1a1a1a;          /* near-black body, no gray */
+  --color-mm-subtle: #1a1a1a;
+  /* Soft borders — low-opacity ink so panels separate without harsh lines. */
+  --color-mm-line: rgba(10,10,10,0.08);
+  --color-mm-line-strong: rgba(10,10,10,0.14);
+
+  --color-mm-accent: #0d4f40;        /* deep teal — only color besides black/white */
   --color-mm-accent-ink: #ffffff;
-  --color-mm-accent-soft: #e6f0ec;
-  --color-mm-warn: #8a4b00;
-  --color-mm-warn-soft: #fcefd6;
-  --color-mm-ok: #0e6a4d;
-  --color-mm-ok-soft: #d8efe4;
-  --color-mm-bad: #8a1f2c;
-  --color-mm-bad-soft: #fbe2e5;
-  --color-mm-cool: #3b3f4a;
-  --color-mm-cool-soft: #e8eaee;
+  --color-mm-accent-soft: #ffffff;   /* legacy alias — kept white */
+
+  --color-mm-warn: #b45309;          /* amber-700 — text/border only */
+  --color-mm-warn-soft: #ffffff;
+  --color-mm-ok: #0d4f40;
+  --color-mm-ok-soft: #ffffff;
+  --color-mm-bad: #991b1b;
+  --color-mm-bad-soft: #ffffff;
+  --color-mm-cool: #000000;
+  --color-mm-cool-soft: #ffffff;
 }
 
 * {
@@ -39,11 +57,46 @@ body,
 
 body {
   margin: 0;
-  font-family: var(--font-sans);
-  background: var(--color-mm-canvas);
-  color: var(--color-mm-ink);
+  font-family: var(--font-body);
+  background: #ffffff;
+  color: #000000;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01" 1, "ss02" 1, "cv11" 1;
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+ * Typography utilities — editorial display vs precise body.
+ * ─────────────────────────────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+.font-body {
+  font-family: var(--font-body);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Eyebrow / kicker — uppercase wide-tracked label used everywhere
+ * to mark sections without resorting to gray fills. */
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #000000;
+}
+
+/* Display numerals (e.g. "01", "02") in the editorial layout. */
+.numeral {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -52,51 +105,69 @@ body {
  * `border-radius` value, which is intentionally large so the shape still
  * reads as "smoothly rounded" rather than a stadium.
  * ─────────────────────────────────────────────────────────────────────── */
-.squircle {
-  border-radius: 50px;
-  corner-shape: squircle;
-}
-.squircle-lg {
-  border-radius: 36px;
-  corner-shape: squircle;
-}
-.squircle-md {
-  border-radius: 22px;
-  corner-shape: squircle;
-}
-.squircle-sm {
-  border-radius: 14px;
-  corner-shape: squircle;
-}
-.squircle-xs {
-  border-radius: 10px;
-  corner-shape: squircle;
-}
+.squircle    { border-radius: 50px; corner-shape: squircle; }
+.squircle-lg { border-radius: 36px; corner-shape: squircle; }
+.squircle-md { border-radius: 22px; corner-shape: squircle; }
+.squircle-sm { border-radius: 14px; corner-shape: squircle; }
+.squircle-xs { border-radius: 10px; corner-shape: squircle; }
 
-/* No drop shadows by design. Surfaces are separated by hairline borders
- * and tonal contrast. This single rule suppresses Tailwind shadow utilities
- * if anyone reaches for them by accident. */
+/* No drop shadows by design. Surfaces are separated by hairline borders.
+ * This single rule suppresses Tailwind shadow utilities anywhere. */
 .no-shadow,
 .no-shadow * {
   box-shadow: none !important;
 }
 
-/* Scrollbar tuning for the dashboard: thinner, less industrial. */
+/* ───────────────────────────────────────────────────────────────────────
+ * Hairline rules — used for editorial dividers and decorative accents.
+ * ─────────────────────────────────────────────────────────────────────── */
+.hairline {
+  background: var(--color-mm-line-strong);
+  height: 1px;
+  width: 100%;
+}
+.hairline-v {
+  background: var(--color-mm-line-strong);
+  width: 1px;
+  align-self: stretch;
+}
+
+/* Ticker dot — small filled square used as an editorial bullet. */
+.tick {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-mm-ink);
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+ * Scrollbar tuning — thin, black on white, intentional.
+ * ─────────────────────────────────────────────────────────────────────── */
 .app-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--color-mm-line-strong) transparent;
 }
-.app-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.app-scroll::-webkit-scrollbar-thumb {
-  background: var(--color-mm-line-strong);
-  border-radius: 999px;
-}
+.app-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.app-scroll::-webkit-scrollbar-thumb { background: var(--color-mm-line-strong); }
 
-/* Subtle focus ring used across primitives — reuses accent color. */
-.focus-ring {
-  outline: none;
-}
+/* Subtle focus ring — accent-colored, no shadow. */
+.focus-ring { outline: none; }
 .focus-ring:focus-visible {
   outline: 2px solid var(--color-mm-accent);
   outline-offset: 2px;
+}
+
+/* Subtle text-selection in the brand teal. */
+::selection {
+  background: #0d4f40;
+  color: #ffffff;
+}
+
+/* Underline links inside body copy with a hairline accent. */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  text-decoration: none;
 }
