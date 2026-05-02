@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ArrowRight, ShieldCheck, FlaskConical } from 'lucide-react'
 import { signIn } from '@/lib/auth-client'
+import { useSiteName } from '@/lib/use-site-name'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,6 +33,7 @@ export const Route = createFileRoute('/sign-in')({
 const SHOW_TEST_PICKER = import.meta.env.DEV
 
 function SignInPage() {
+  const siteName = useSiteName()
   const navigate = useNavigate()
   const search = Route.useSearch()
   const [email, setEmail] = useState('')
@@ -71,7 +73,7 @@ function SignInPage() {
               <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
             </span>
             <span className="font-display text-[20px] text-[var(--color-mm-accent)]">
-              MedMove
+              {siteName}
             </span>
           </Link>
           <Link
@@ -90,7 +92,7 @@ function SignInPage() {
               Welcome back
             </h1>
             <p className="mt-2 text-[15px] text-[var(--color-mm-subtle)]">
-              Log in to your MedMove workspace.
+              Log in to your {siteName} workspace.
             </p>
           </div>
 

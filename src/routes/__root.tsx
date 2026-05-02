@@ -9,13 +9,28 @@ import appCss from '../styles.css?url'
 import { makeQueryClient } from '@/lib/query-client'
 import { PageError } from '@/components/feedback/PageError'
 import { NotFoundPage } from '@/components/feedback/NotFoundPage'
+import { getPlatformSettings } from '@/server/functions/platformSettings'
 
 export const Route = createRootRoute({
-  head: () => ({
+  loader: async () => {
+    try {
+      const { settings } = await getPlatformSettings()
+      return {
+        siteName: settings.siteName,
+        announcementBanner: settings.announcementBanner,
+      }
+    } catch {
+      return { siteName: 'MedMove', announcementBanner: '' }
+    }
+  },
+  staleTime: 60_000,
+  head: ({ loaderData }) => {
+    const siteName = loaderData?.siteName ?? 'MedMove'
+    return {
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'MedMove — Verified medicine redistribution' },
+      { title: `${siteName} — Verified medicine redistribution` },
       {
         name: 'description',
         content:
@@ -35,7 +50,8 @@ export const Route = createRootRoute({
       },
       { rel: 'stylesheet', href: appCss },
     ],
-  }),
+    }
+  },
   errorComponent: ({ error, reset }) => (
     <PageError error={error} reset={reset} />
   ),

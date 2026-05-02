@@ -36,6 +36,8 @@ import { cn } from '@/lib/utils'
 import { VerificationStatusBadge } from '@/components/data/StatusBadge'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 
+import { useSiteName } from '@/lib/use-site-name'
+
 export type ShellSection = 'app' | 'admin' | 'logistics'
 
 type SessionShape = {
@@ -210,7 +212,7 @@ export function AppShell({
           </span>
           <div>
             <div className="font-display text-[18px] leading-none text-[var(--color-mm-accent)]">
-              MedMove
+              {useSiteName()}
             </div>
             <div className="text-[11px] text-[var(--color-mm-subtle)] mt-1">
               {SECTION_TITLE[section]}

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useSiteName } from '@/lib/use-site-name'
 import {
   ArrowRight,
   CheckCircle2,
@@ -39,13 +40,14 @@ function Home() {
 
 /* ────────────────────────────── Top navigation ─────────────────────────── */
 function SiteNav({ signedIn }: { signedIn: boolean }) {
+  const siteName = useSiteName()
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[var(--color-mm-line)]">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8 h-[72px] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
           <Mark />
           <span className="font-display text-[20px] text-[var(--color-mm-accent)]">
-            MedMove
+            {siteName}
           </span>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
@@ -640,6 +642,7 @@ function Cta({ signedIn }: { signedIn: boolean }) {
 
 /* ──────────────────────────────── Footer ───────────────────────────────── */
 function SiteFooter() {
+  const siteName = useSiteName()
   return (
     <footer className="bg-white">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-14 grid grid-cols-12 gap-8">
@@ -647,7 +650,7 @@ function SiteFooter() {
           <div className="flex items-center gap-2.5">
             <Mark />
             <span className="font-display text-[20px] text-[var(--color-mm-accent)]">
-              MedMove
+              {siteName}
             </span>
           </div>
           <p className="mt-4 text-[14px] text-[var(--color-mm-subtle)] leading-relaxed max-w-sm">
@@ -677,7 +680,7 @@ function SiteFooter() {
       </div>
       <div className="border-t border-[var(--color-mm-line)]">
         <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[13px] text-[var(--color-mm-subtle)]">
-          <span>© {new Date().getFullYear()} MedMove. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} {siteName}. All rights reserved.</span>
           <span>Verified-only network</span>
         </div>
       </div>

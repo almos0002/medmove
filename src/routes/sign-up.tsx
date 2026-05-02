@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ArrowRight, ShieldCheck, Check } from 'lucide-react'
 import { signUp } from '@/lib/auth-client'
+import { useSiteName } from '@/lib/use-site-name'
 import { ROLES, type AppRole, homePathForRole } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,7 @@ const ROLES_FOR_SIGNUP: ReadonlyArray<{
 ]
 
 function SignUpPage() {
+  const siteName = useSiteName()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -72,7 +74,7 @@ function SignUpPage() {
               <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
             </span>
             <span className="font-display text-[20px] text-[var(--color-mm-accent)]">
-              MedMove
+              {siteName}
             </span>
           </Link>
           <Link
