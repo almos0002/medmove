@@ -23,7 +23,6 @@ import { organizations, organizationMembers } from '../src/lib/schema'
 import {
   ROLES,
   ORG_TYPES,
-  defaultCapabilitiesForType,
   type AppRole,
   type OrgType,
 } from '../src/lib/permissions'
@@ -90,14 +89,33 @@ async function ensureOrg(args: {
   country: string
   ownerUserId: string
 }) {
+  // Both seed orgs are full-capability: they can list, request, AND
+  // deliver medicine. We override the type-default capabilities (which
+  // would only grant `canDeliverMedicine` to a logistics_partner) so the
+  // seeded orgs can exercise every flow end-to-end.
+  const caps = {
+    canListMedicine: true,
+    canRequestMedicine: true,
+    canDeliverMedicine: true,
+  }
+
   const existing = await db
     .select()
     .from(organizations)
     .where(eq(organizations.licenseNumber, args.licenseNumber))
     .limit(1)
-  if (existing[0]) return existing[0]
+  if (existing[0]) {
+    await db
+      .update(organizations)
+      .set({
+        canListMedicine: caps.canListMedicine,
+        canRequestMedicine: caps.canRequestMedicine,
+        canDeliverMedicine: caps.canDeliverMedicine,
+      })
+      .where(eq(organizations.id, existing[0].id))
+    return { ...existing[0], ...caps }
+  }
 
-  const caps = defaultCapabilitiesForType(args.type)
   const [org] = await db
     .insert(organizations)
     .values({
