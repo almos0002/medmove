@@ -65,3 +65,27 @@ export const LISTING_STATUS_FILTERS: ReadonlyArray<{
   { value: 'expired', label: 'Expired' },
   { value: 'withdrawn', label: 'Withdrawn' },
 ]
+
+export type ListingTypeValue = 'donation' | 'sale'
+export const LISTING_TYPE_FILTERS: ReadonlyArray<{
+  value: ListingTypeValue
+  label: string
+}> = [
+  { value: 'donation', label: 'Donation (free)' },
+  { value: 'sale', label: 'Sale (priced)' },
+]
+
+export type ListingExpiryWindowValue =
+  | 'expired'
+  | 'critical'
+  | 'expiring_soon'
+  | 'safe'
+export const LISTING_EXPIRY_WINDOW_FILTERS: ReadonlyArray<{
+  value: ListingExpiryWindowValue
+  label: string
+}> = [
+  { value: 'expired', label: 'Expired' },
+  { value: 'critical', label: '≤ 30 days' },
+  { value: 'expiring_soon', label: '31–90 days' },
+  { value: 'safe', label: '> 90 days' },
+]

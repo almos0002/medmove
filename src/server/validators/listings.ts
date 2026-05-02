@@ -11,6 +11,17 @@ export const listingStatusSchema = z.enum([
   'withdrawn',
 ])
 
+export const listingTypeSchema = z.enum(['donation', 'sale'])
+export type ListingType = z.infer<typeof listingTypeSchema>
+
+export const listingExpiryWindowSchema = z.enum([
+  'expired',
+  'critical',
+  'expiring_soon',
+  'safe',
+])
+export type ListingExpiryWindow = z.infer<typeof listingExpiryWindowSchema>
+
 export const createListingSchema = z.object({
   batchId: uuid,
   quantityListed: positiveInt,
@@ -52,6 +63,8 @@ export const listMyListingsSchema = z.object({
   organizationId: uuid,
   status: listingStatusSchema.optional(),
   medicineSearch: z.string().trim().max(120).optional(),
+  listingType: listingTypeSchema.optional(),
+  expiryWindow: listingExpiryWindowSchema.optional(),
   limit: z.number().int().positive().max(100).default(100),
 })
 
@@ -59,5 +72,7 @@ export const adminListAllListingsSchema = z.object({
   status: listingStatusSchema.optional(),
   medicineSearch: z.string().trim().max(120).optional(),
   orgSearch: z.string().trim().max(120).optional(),
+  listingType: listingTypeSchema.optional(),
+  expiryWindow: listingExpiryWindowSchema.optional(),
   limit: z.number().int().positive().max(100).default(100),
 })

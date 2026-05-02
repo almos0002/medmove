@@ -33,13 +33,20 @@ import { ExpiryStatusBadge } from '@/components/data/ExpiryStatusBadge'
 import {
   ListingStatusBadge,
   LISTING_STATUS_FILTERS,
+  LISTING_TYPE_FILTERS,
+  LISTING_EXPIRY_WINDOW_FILTERS,
   type ListingStatus,
 } from '@/components/data/ListingStatusBadge'
 
 const FILTERS_ALL = '__all__'
 
 const searchSchema = z.object({
-  q: z.string().optional(),
+  q: z
+    .string()
+    .trim()
+    .max(120)
+    .transform((v) => (v.length === 0 ? undefined : v))
+    .optional(),
   status: z
     .enum([
       'draft',
@@ -51,6 +58,8 @@ const searchSchema = z.object({
       'withdrawn',
     ])
     .optional(),
+  type: z.enum(['donation', 'sale']).optional(),
+  expiry: z.enum(['expired', 'critical', 'expiring_soon', 'safe']).optional(),
 })
 
 type SearchValues = z.infer<typeof searchSchema>
@@ -74,6 +83,8 @@ export const Route = createFileRoute('/org/listings')({
         organizationId: primaryOrgId,
         status: deps.status,
         medicineSearch: deps.q && deps.q.length > 0 ? deps.q : undefined,
+        listingType: deps.type,
+        expiryWindow: deps.expiry,
       },
     })
   },
@@ -126,7 +137,7 @@ function OrgListingsPage() {
   const canCreate = canList && isVerified
 
   const items = data.items as unknown as Row[]
-  const hasFilters = !!(search.q || search.status)
+  const hasFilters = !!(search.q || search.status || search.type || search.expiry)
 
   const columns = React.useMemo<ColumnDef<Row>[]>(
     () => [
@@ -405,7 +416,7 @@ function FilterBar({
   onClear: () => void
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_auto] gap-3 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.2fr_auto] gap-3 items-start">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-mm-subtle)]" />
         <Input
@@ -437,6 +448,50 @@ function FilterBar({
           {LISTING_STATUS_FILTERS.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={search.type ?? FILTERS_ALL}
+        onValueChange={(v) =>
+          onChange(
+            'type',
+            v === FILTERS_ALL ? undefined : (v as SearchValues['type']),
+          )
+        }
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={FILTERS_ALL}>Any type</SelectItem>
+          {LISTING_TYPE_FILTERS.map((t) => (
+            <SelectItem key={t.value} value={t.value}>
+              {t.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={search.expiry ?? FILTERS_ALL}
+        onValueChange={(v) =>
+          onChange(
+            'expiry',
+            v === FILTERS_ALL ? undefined : (v as SearchValues['expiry']),
+          )
+        }
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Expiry" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={FILTERS_ALL}>Any expiry window</SelectItem>
+          {LISTING_EXPIRY_WINDOW_FILTERS.map((w) => (
+            <SelectItem key={w.value} value={w.value}>
+              {w.label}
             </SelectItem>
           ))}
         </SelectContent>

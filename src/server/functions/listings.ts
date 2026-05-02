@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, ilike, or } from 'drizzle-orm'
+import { and, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   inventoryBatches,
@@ -27,7 +27,36 @@ import {
   listMyListingsSchema,
   submitListingSchema,
   withdrawListingSchema,
+  type ListingExpiryWindow,
+  type ListingType,
 } from '../validators/listings'
+
+/**
+ * SQL fragment for an expiry-window filter against `inventoryBatches.expiryDate`.
+ * Mirrors `classifyExpiry` in `src/lib/expiry.ts` (30 / 90 day breakpoints).
+ */
+function expiryWindowFilter(window: ListingExpiryWindow) {
+  switch (window) {
+    case 'expired':
+      return sql`${inventoryBatches.expiryDate} <= CURRENT_DATE`
+    case 'critical':
+      return sql`${inventoryBatches.expiryDate} > CURRENT_DATE AND ${inventoryBatches.expiryDate} <= CURRENT_DATE + INTERVAL '30 days'`
+    case 'expiring_soon':
+      return sql`${inventoryBatches.expiryDate} > CURRENT_DATE + INTERVAL '30 days' AND ${inventoryBatches.expiryDate} <= CURRENT_DATE + INTERVAL '90 days'`
+    case 'safe':
+      return sql`${inventoryBatches.expiryDate} > CURRENT_DATE + INTERVAL '90 days'`
+  }
+}
+
+/**
+ * SQL fragment for a listing-type filter. Donation = no price (null),
+ * Sale = priced (>= 0).
+ */
+function listingTypeFilter(type: ListingType) {
+  return type === 'donation'
+    ? isNull(listings.pricePerUnitCents)
+    : isNotNull(listings.pricePerUnitCents)
+}
 
 export const createListing = createServerFn({
   method: 'POST',
@@ -504,6 +533,8 @@ export const listMyListings = createServerFn({
               ilike(medicines.genericName, `%${data.medicineSearch}%`),
             )
           : undefined,
+        data.listingType ? listingTypeFilter(data.listingType) : undefined,
+        data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
       )
 
       const rows = await db
@@ -551,6 +582,8 @@ export const adminListAllListings = createServerFn({
         data.orgSearch
           ? ilike(organizations.name, `%${data.orgSearch}%`)
           : undefined,
+        data.listingType ? listingTypeFilter(data.listingType) : undefined,
+        data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
       )
 
       const rows = await db
