@@ -36,6 +36,7 @@ import {
   cancelTransferSchema,
   getTransferRequestSchema,
   listMyTransferRequestsSchema,
+  listIncomingTransferRequestsSchema,
   requestTransferSchema,
   sellerAcceptSchema,
   sellerDeclineSchema,
@@ -908,6 +909,68 @@ export const listMyTransferRequests = createServerFn({
         )
         .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
         .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
+        .where(where)
+        .orderBy(desc(transferRequests.createdAt))
+        .limit(data.limit)
+
+      return { ok: true as const, items: rows, total: rows.length }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * List transfer requests _against_ this org's listings — i.e. the seller-side
+ * inbox. Mirrors `listMyTransferRequests` but filters on
+ * `listings.sellerOrgId` instead of `transferRequests.requesterOrgId`. Read-
+ * only; no capability gate (we still require org membership).
+ */
+export const listIncomingTransferRequests = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => listIncomingTransferRequestsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const actor = requireAuth(ctx)
+      if (!isAdminRole(actor.role)) {
+        await requireOrgMember(ctx, data.organizationId)
+      }
+
+      const requesterOrgT = alias(organizations, 'requester_org')
+
+      const where = and(
+        eq(listings.sellerOrgId, data.organizationId),
+        data.status ? eq(transferRequests.status, data.status) : undefined,
+        data.medicineSearch
+          ? or(
+              ilike(medicines.name, `%${data.medicineSearch}%`),
+              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+            )
+          : undefined,
+        data.expiryWindow ? expiryWindowFilter(data.expiryWindow) : undefined,
+      )
+
+      const rows = await db
+        .select({
+          request: transferRequests,
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          requesterOrg: requesterOrgT,
+        })
+        .from(transferRequests)
+        .innerJoin(listings, eq(listings.id, transferRequests.listingId))
+        .innerJoin(
+          inventoryBatches,
+          eq(inventoryBatches.id, listings.batchId),
+        )
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(
+          requesterOrgT,
+          eq(requesterOrgT.id, transferRequests.requesterOrgId),
+        )
         .where(where)
         .orderBy(desc(transferRequests.createdAt))
         .limit(data.limit)

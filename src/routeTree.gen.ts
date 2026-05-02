@@ -44,6 +44,7 @@ import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin.orga
 import { Route as AdminMedicinesIndexRouteImport } from './routes/admin.medicines.index'
 import { Route as AdminListingsIndexRouteImport } from './routes/admin.listings.index'
 import { Route as AdminDeliveriesIndexRouteImport } from './routes/admin.deliveries.index'
+import { Route as OrgRequestsIncomingRouteImport } from './routes/org.requests.incoming'
 import { Route as OrgRequestsRequestIdRouteImport } from './routes/org.requests.$requestId'
 import { Route as OrgMarketplaceListingIdRouteImport } from './routes/org.marketplace.$listingId'
 import { Route as OrgListingsNewRouteImport } from './routes/org.listings.new'
@@ -236,6 +237,11 @@ const AdminDeliveriesIndexRoute = AdminDeliveriesIndexRouteImport.update({
   path: '/deliveries/',
   getParentRoute: () => AdminRoute,
 } as any)
+const OrgRequestsIncomingRoute = OrgRequestsIncomingRouteImport.update({
+  id: '/requests/incoming',
+  path: '/requests/incoming',
+  getParentRoute: () => OrgRoute,
+} as any)
 const OrgRequestsRequestIdRoute = OrgRequestsRequestIdRouteImport.update({
   id: '/requests/$requestId',
   path: '/requests/$requestId',
@@ -362,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/org/listings/new': typeof OrgListingsNewRoute
   '/org/marketplace/$listingId': typeof OrgMarketplaceListingIdRoute
   '/org/requests/$requestId': typeof OrgRequestsRequestIdRoute
+  '/org/requests/incoming': typeof OrgRequestsIncomingRoute
   '/admin/deliveries/': typeof AdminDeliveriesIndexRoute
   '/admin/listings/': typeof AdminListingsIndexRoute
   '/admin/medicines/': typeof AdminMedicinesIndexRoute
@@ -411,6 +418,7 @@ export interface FileRoutesByTo {
   '/org/listings/new': typeof OrgListingsNewRoute
   '/org/marketplace/$listingId': typeof OrgMarketplaceListingIdRoute
   '/org/requests/$requestId': typeof OrgRequestsRequestIdRoute
+  '/org/requests/incoming': typeof OrgRequestsIncomingRoute
   '/admin/deliveries': typeof AdminDeliveriesIndexRoute
   '/admin/listings': typeof AdminListingsIndexRoute
   '/admin/medicines': typeof AdminMedicinesIndexRoute
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/org/listings/new': typeof OrgListingsNewRoute
   '/org/marketplace/$listingId': typeof OrgMarketplaceListingIdRoute
   '/org/requests/$requestId': typeof OrgRequestsRequestIdRoute
+  '/org/requests/incoming': typeof OrgRequestsIncomingRoute
   '/admin/deliveries/': typeof AdminDeliveriesIndexRoute
   '/admin/listings/': typeof AdminListingsIndexRoute
   '/admin/medicines/': typeof AdminMedicinesIndexRoute
@@ -520,6 +529,7 @@ export interface FileRouteTypes {
     | '/org/listings/new'
     | '/org/marketplace/$listingId'
     | '/org/requests/$requestId'
+    | '/org/requests/incoming'
     | '/admin/deliveries/'
     | '/admin/listings/'
     | '/admin/medicines/'
@@ -569,6 +579,7 @@ export interface FileRouteTypes {
     | '/org/listings/new'
     | '/org/marketplace/$listingId'
     | '/org/requests/$requestId'
+    | '/org/requests/incoming'
     | '/admin/deliveries'
     | '/admin/listings'
     | '/admin/medicines'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/org/listings/new'
     | '/org/marketplace/$listingId'
     | '/org/requests/$requestId'
+    | '/org/requests/incoming'
     | '/admin/deliveries/'
     | '/admin/listings/'
     | '/admin/medicines/'
@@ -897,6 +909,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDeliveriesIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/org/requests/incoming': {
+      id: '/org/requests/incoming'
+      path: '/requests/incoming'
+      fullPath: '/org/requests/incoming'
+      preLoaderRoute: typeof OrgRequestsIncomingRouteImport
+      parentRoute: typeof OrgRoute
+    }
     '/org/requests/$requestId': {
       id: '/org/requests/$requestId'
       path: '/requests/$requestId'
@@ -1092,6 +1111,7 @@ interface OrgRouteChildren {
   OrgListingsNewRoute: typeof OrgListingsNewRoute
   OrgMarketplaceListingIdRoute: typeof OrgMarketplaceListingIdRoute
   OrgRequestsRequestIdRoute: typeof OrgRequestsRequestIdRoute
+  OrgRequestsIncomingRoute: typeof OrgRequestsIncomingRoute
   OrgInventoryIndexRoute: typeof OrgInventoryIndexRoute
   OrgListingsIndexRoute: typeof OrgListingsIndexRoute
   OrgMarketplaceIndexRoute: typeof OrgMarketplaceIndexRoute
@@ -1113,6 +1133,7 @@ const OrgRouteChildren: OrgRouteChildren = {
   OrgListingsNewRoute: OrgListingsNewRoute,
   OrgMarketplaceListingIdRoute: OrgMarketplaceListingIdRoute,
   OrgRequestsRequestIdRoute: OrgRequestsRequestIdRoute,
+  OrgRequestsIncomingRoute: OrgRequestsIncomingRoute,
   OrgInventoryIndexRoute: OrgInventoryIndexRoute,
   OrgListingsIndexRoute: OrgListingsIndexRoute,
   OrgMarketplaceIndexRoute: OrgMarketplaceIndexRoute,

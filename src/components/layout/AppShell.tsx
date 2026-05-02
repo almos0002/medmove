@@ -76,9 +76,15 @@ const APP_NAV: NavItem[] = [
   },
   {
     to: '/org/requests',
-    label: 'My requests',
+    label: 'Outgoing requests',
     icon: Inbox,
     show: (s) => !!s.primaryOrg?.canRequestMedicine,
+  },
+  {
+    to: '/org/requests/incoming',
+    label: 'Incoming requests',
+    icon: Inbox,
+    show: (s) => !!s.primaryOrg?.canListMedicine,
   },
   {
     to: '/org/deliveries/outgoing',

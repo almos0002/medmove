@@ -9,12 +9,16 @@ import {
   Building2,
   MapPin,
   CheckCircle2,
+  Check,
+  XCircle,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import {
   getTransferRequest,
   cancelTransfer,
+  sellerAcceptTransfer,
+  sellerDeclineTransfer,
 } from '@/server/functions/transfers'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -59,44 +63,61 @@ const CANCELLABLE: ReadonlyArray<TransferRequestStatus> = [
 function OrgRequestDetailPage() {
   const router = useRouter()
   const data = Route.useLoaderData()
-  const { request, listing, batch, medicine, sellerOrg } = data as unknown as {
-    request: {
-      id: string
-      status: TransferRequestStatus
-      quantityRequested: number
-      intendedUse: string
-      createdAt: string
-      updatedAt: string
-      expiresAt: string
-      adminReviewedAt: string | null
-      adminReviewNotes: string | null
-      sellerReviewedAt: string | null
-      sellerReviewNotes: string | null
-      cancellationReason: string | null
+  const { request, listing, batch, medicine, sellerOrg, requesterOrg } =
+    data as unknown as {
+      request: {
+        id: string
+        status: TransferRequestStatus
+        quantityRequested: number
+        intendedUse: string
+        createdAt: string
+        updatedAt: string
+        expiresAt: string
+        adminReviewedAt: string | null
+        adminReviewNotes: string | null
+        sellerReviewedAt: string | null
+        sellerReviewNotes: string | null
+        cancellationReason: string | null
+        requesterOrgId: string
+      }
+      listing: {
+        id: string
+        pickupCity: string
+        pickupCountry: string
+        pricePerUnitCents: number | null
+        currency: string | null
+      }
+      batch: {
+        id: string
+        batchNumber: string
+        expiryDate: string
+        unit: string
+      }
+      medicine: {
+        id: string
+        name: string
+        strength: string
+        genericName: string | null
+        form: string
+      }
+      sellerOrg: { id: string; name: string; type: string }
+      requesterOrg: { id: string; name: string; type: string }
     }
-    listing: {
-      id: string
-      pickupCity: string
-      pickupCountry: string
-      pricePerUnitCents: number | null
-      currency: string | null
-    }
-    batch: {
-      id: string
-      batchNumber: string
-      expiryDate: string
-      unit: string
-    }
-    medicine: {
-      id: string
-      name: string
-      strength: string
-      genericName: string | null
-      form: string
-    }
-    sellerOrg: { id: string; name: string; type: string }
-  }
   const status = request.status
+  const { session } = Route.useRouteContext() as {
+    session: {
+      user: { role: string } | null
+      primaryOrg: { id: string } | null
+    }
+  }
+  const isAdmin =
+    session.user?.role === 'admin' || session.user?.role === 'super_admin'
+  const viewerOrgId = session.primaryOrg?.id ?? null
+  const viewerIsRequester =
+    !!viewerOrgId && viewerOrgId === request.requesterOrgId
+  const viewerIsSeller =
+    !!viewerOrgId && viewerOrgId === sellerOrg.id
+
   const [cancelOpen, setCancelOpen] = React.useState(false)
   const [cancelReason, setCancelReason] = React.useState('')
   const [cancelError, setCancelError] = React.useState<string | null>(null)
@@ -120,7 +141,55 @@ function OrgRequestDetailPage() {
       toast.error(err instanceof Error ? err.message : 'Could not cancel'),
   })
 
-  const canCancel = CANCELLABLE.includes(status)
+  // ─── Seller-side accept / decline (only when viewer is the seller and
+  //     request is awaiting them). Admins are not given seller buttons here
+  //     — they have their own admin queue.
+  const [acceptOpen, setAcceptOpen] = React.useState(false)
+  const [acceptNotes, setAcceptNotes] = React.useState('')
+  const [declineOpen, setDeclineOpen] = React.useState(false)
+  const [declineReason, setDeclineReason] = React.useState('')
+  const [declineError, setDeclineError] = React.useState<string | null>(null)
+
+  const accept = useMutation({
+    mutationFn: () =>
+      sellerAcceptTransfer({
+        data: {
+          transferRequestId: request.id,
+          notes: acceptNotes.trim() || undefined,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success('Request accepted — coordination for handoff is next.')
+      setAcceptOpen(false)
+      setAcceptNotes('')
+      await router.invalidate()
+    },
+    onError: (err: unknown) =>
+      toast.error(err instanceof Error ? err.message : 'Could not accept'),
+  })
+
+  const decline = useMutation({
+    mutationFn: () =>
+      sellerDeclineTransfer({
+        data: {
+          transferRequestId: request.id,
+          reason: declineReason.trim(),
+        },
+      }),
+    onSuccess: async () => {
+      toast.success('Request declined')
+      setDeclineOpen(false)
+      setDeclineReason('')
+      setDeclineError(null)
+      await router.invalidate()
+    },
+    onError: (err: unknown) =>
+      toast.error(err instanceof Error ? err.message : 'Could not decline'),
+  })
+
+  const canCancel = viewerIsRequester && CANCELLABLE.includes(status)
+  const canSellerAct =
+    viewerIsSeller && !isAdmin && status === 'pending_seller'
   const totalCents =
     listing.pricePerUnitCents !== null
       ? listing.pricePerUnitCents * request.quantityRequested
@@ -130,9 +199,9 @@ function OrgRequestDetailPage() {
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3">
-          <Link to="/org/requests">
+          <Link to={viewerIsSeller ? '/org/requests/incoming' : '/org/requests'}>
             <ArrowLeft className="h-4 w-4" />
-            Back to my requests
+            {viewerIsSeller ? 'Back to incoming requests' : 'Back to my requests'}
           </Link>
         </Button>
         <PageHeader
@@ -144,6 +213,14 @@ function OrgRequestDetailPage() {
               <MedicineFormLabel form={medicine.form} />
               <span className="text-[var(--color-mm-subtle)]">·</span>
               <span>Batch {batch.batchNumber}</span>
+              {viewerIsSeller && (
+                <>
+                  <span className="text-[var(--color-mm-subtle)]">·</span>
+                  <span className="text-[var(--color-mm-accent)] font-medium">
+                    Incoming request
+                  </span>
+                </>
+              )}
             </span>
           }
           actions={<TransferRequestStatusBadge status={status} />}
@@ -188,15 +265,27 @@ function OrgRequestDetailPage() {
       {status === 'pending_seller' && (
         <Banner
           tone="warn"
-          title="Awaiting seller response"
-          body="The admin has approved your request. The seller will accept or decline shortly."
+          title={
+            viewerIsSeller
+              ? 'Awaiting your response'
+              : 'Awaiting seller response'
+          }
+          body={
+            viewerIsSeller
+              ? 'A buyer is requesting stock from your listing. Accept to reserve the quantity, or decline with a short reason.'
+              : 'The admin has approved your request. The seller will accept or decline shortly.'
+          }
         />
       )}
       {status === 'accepted' && (
         <Banner
           tone="ok"
           title="Accepted"
-          body="The seller has accepted your request and reserved the quantity. Coordination for handoff is next."
+          body={
+            viewerIsSeller
+              ? 'You have accepted this request. Coordination for handoff is next; an admin will arrange the delivery.'
+              : 'The seller has accepted your request and reserved the quantity. Coordination for handoff is next.'
+          }
         />
       )}
 
@@ -251,14 +340,20 @@ function OrgRequestDetailPage() {
       <Card className="p-6 space-y-4">
         <h2 className="font-display text-[18px] text-[var(--color-mm-ink)] flex items-center gap-2">
           <Building2 className="h-4 w-4 text-[var(--color-mm-subtle)]" />
-          Seller
+          {viewerIsSeller ? 'Requester' : 'Seller'}
         </h2>
-        <Row label="Name" value={sellerOrg.name} />
+        <Row
+          label="Name"
+          value={viewerIsSeller ? requesterOrg.name : sellerOrg.name}
+        />
         <Row
           label="Type"
           value={
             <span className="capitalize">
-              {sellerOrg.type.replace(/_/g, ' ')}
+              {(viewerIsSeller ? requesterOrg.type : sellerOrg.type).replace(
+                /_/g,
+                ' ',
+              )}
             </span>
           }
         />
@@ -329,14 +424,126 @@ function OrgRequestDetailPage() {
       </Card>
 
       <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-        <Button asChild variant="ghost">
-          <Link
-            to="/org/marketplace/$listingId"
-            params={{ listingId: listing.id }}
-          >
-            View listing
-          </Link>
-        </Button>
+        {!viewerIsSeller && (
+          <Button asChild variant="ghost">
+            <Link
+              to="/org/marketplace/$listingId"
+              params={{ listingId: listing.id }}
+            >
+              View listing
+            </Link>
+          </Button>
+        )}
+        {viewerIsSeller && (
+          <Button asChild variant="ghost">
+            <Link to="/org/listings">View my listings</Link>
+          </Button>
+        )}
+        {canSellerAct && (
+          <>
+            <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" disabled={decline.isPending}>
+                  <XCircle className="h-4 w-4" />
+                  Decline
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Decline this request?</DialogTitle>
+                  <DialogDescription>
+                    The requester and admin will be notified. The reason you
+                    give is shown to the requester.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-1.5">
+                  <Label>
+                    Reason{' '}
+                    <span className="text-[var(--color-mm-bad)]">*</span>
+                  </Label>
+                  <Textarea
+                    rows={3}
+                    value={declineReason}
+                    onChange={(e) => {
+                      setDeclineReason(e.target.value)
+                      if (declineError) setDeclineError(null)
+                    }}
+                    placeholder="e.g. Stock no longer available, batch quarantined, etc."
+                  />
+                  {declineError && (
+                    <p className="text-xs text-[var(--color-mm-bad)]">
+                      {declineError}
+                    </p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setDeclineOpen(false)}
+                    disabled={decline.isPending}
+                  >
+                    Keep open
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (declineReason.trim().length < 1) {
+                        setDeclineError('A short reason is required.')
+                        return
+                      }
+                      decline.mutate()
+                    }}
+                    disabled={decline.isPending}
+                  >
+                    {decline.isPending ? 'Declining…' : 'Decline request'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={acceptOpen} onOpenChange={setAcceptOpen}>
+              <DialogTrigger asChild>
+                <Button disabled={accept.isPending}>
+                  <Check className="h-4 w-4" />
+                  Accept request
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Accept this request?</DialogTitle>
+                  <DialogDescription>
+                    Accepting reserves{' '}
+                    {request.quantityRequested.toLocaleString()} {batch.unit}{' '}
+                    from this listing for the requester. An admin will arrange
+                    the handoff next.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-1.5">
+                  <Label>Notes (optional)</Label>
+                  <Textarea
+                    rows={3}
+                    value={acceptNotes}
+                    onChange={(e) => setAcceptNotes(e.target.value)}
+                    placeholder="Anything the requester or admin should know."
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setAcceptOpen(false)}
+                    disabled={accept.isPending}
+                  >
+                    Not yet
+                  </Button>
+                  <Button
+                    onClick={() => accept.mutate()}
+                    disabled={accept.isPending}
+                  >
+                    {accept.isPending ? 'Accepting…' : 'Accept request'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
         {canCancel && (
           <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
             <DialogTrigger asChild>

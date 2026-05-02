@@ -62,6 +62,12 @@ export const listMyTransferRequestsSchema = z.object({
   limit: z.number().int().positive().max(100).default(100),
 })
 
+/**
+ * Same shape as `listMyTransferRequestsSchema` — used by the seller-side
+ * "incoming requests" page (requests against my org's listings).
+ */
+export const listIncomingTransferRequestsSchema = listMyTransferRequestsSchema
+
 export const adminListTransferRequestsSchema = z.object({
   status: transferRequestStatusSchema.optional(),
   medicineSearch: z.string().trim().max(120).optional(),

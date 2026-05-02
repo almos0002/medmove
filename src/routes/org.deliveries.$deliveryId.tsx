@@ -93,6 +93,21 @@ function OrgDeliveryDetailPage() {
   const data = Route.useLoaderData()
   const row = (data as unknown as { delivery: DetailRow }).delivery
   const d = row.delivery
+  const { session } = Route.useRouteContext() as {
+    session: {
+      user: { role: string } | null
+      primaryOrg: { id: string } | null
+    }
+  }
+  const isAdmin =
+    session.user?.role === 'admin' || session.user?.role === 'super_admin'
+  const viewerOrgId = session.primaryOrg?.id ?? null
+  const viewerIsReceiver =
+    !!viewerOrgId && viewerOrgId === row.request.requesterOrgId
+  const viewerIsSeller =
+    !!viewerOrgId && viewerOrgId === row.sellerOrg.id
+  // Admins can act for support purposes; sellers can only watch.
+  const canActAsReceiver = viewerIsReceiver || isAdmin
 
   const refresh = async () => {
     await router.invalidate()
@@ -142,8 +157,10 @@ function OrgDeliveryDetailPage() {
     onError: onErr,
   })
 
-  const canConfirm = d.status === 'in_transit'
-  const canDispute = d.status === 'in_transit' || d.status === 'delivered'
+  const canConfirm = canActAsReceiver && d.status === 'in_transit'
+  const canDispute =
+    canActAsReceiver &&
+    (d.status === 'in_transit' || d.status === 'delivered')
 
   const events = buildTimeline(row)
 
@@ -194,7 +211,18 @@ function OrgDeliveryDetailPage() {
         <Banner
           tone="ok"
           title="On its way"
-          body="Confirm receipt as soon as the package arrives."
+          body={
+            viewerIsSeller && !isAdmin
+              ? 'The courier has the goods. The receiver will confirm receipt on arrival.'
+              : 'Confirm receipt as soon as the package arrives.'
+          }
+        />
+      )}
+      {viewerIsSeller && !isAdmin && (
+        <Banner
+          tone="cool"
+          title="You are the sender on this delivery"
+          body="Tracking is read-only on your side. The receiver will confirm or dispute the shipment once it arrives."
         />
       )}
       {d.status === 'delivered' && d.receivedAt && (

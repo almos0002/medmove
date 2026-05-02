@@ -67,49 +67,57 @@ function MarketplaceListingDetailPage() {
       } | null
     }
   }
-  const { listing, batch, medicine, sellerOrg, existingRequest } =
-    data as unknown as {
-      listing: {
-        id: string
-        quantityAvailable: number
-        quantityListed: number
-        pricePerUnitCents: number | null
-        currency: string | null
-        pickupCity: string
-        pickupCountry: string
-        photoUrls: string[] | null
-        notes: string | null
-      }
-      batch: {
-        id: string
-        batchNumber: string
-        expiryDate: string
-        unit: string
-      }
-      medicine: {
-        id: string
-        name: string
-        strength: string
-        genericName: string | null
-        form: string
-      }
-      sellerOrg: {
-        id: string
-        name: string
-        type: string
-        city: string
-        country: string
-      }
-      existingRequest:
-        | { id: string; status: TransferRequestStatus; quantityRequested: number }
-        | null
+  const {
+    listing,
+    batch,
+    medicine,
+    sellerOrg,
+    existingRequest,
+    viewerIsSeller,
+  } = data as unknown as {
+    listing: {
+      id: string
+      quantityAvailable: number
+      quantityListed: number
+      pricePerUnitCents: number | null
+      currency: string | null
+      pickupCity: string
+      pickupCountry: string
+      photoUrls: string[] | null
+      notes: string | null
     }
+    batch: {
+      id: string
+      batchNumber: string
+      expiryDate: string
+      unit: string
+    }
+    medicine: {
+      id: string
+      name: string
+      strength: string
+      genericName: string | null
+      form: string
+    }
+    sellerOrg: {
+      id: string
+      name: string
+      type: string
+      city: string
+      country: string
+    }
+    existingRequest:
+      | { id: string; status: TransferRequestStatus; quantityRequested: number }
+      | null
+    viewerIsSeller: boolean
+  }
   const isAdmin =
     session.user?.role === 'admin' || session.user?.role === 'super_admin'
   const canRequest =
     !!session.primaryOrg?.canRequestMedicine &&
     session.primaryOrg?.verificationStatus === 'verified' &&
-    !isAdmin
+    !isAdmin &&
+    !viewerIsSeller
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -277,7 +285,25 @@ function MarketplaceListingDetailPage() {
         </Card>
       )}
 
-      {existingRequest ? (
+      {viewerIsSeller ? (
+        <Card className="p-6 space-y-3 border-[var(--color-mm-accent)]">
+          <h2 className="font-display text-[18px] text-[var(--color-mm-ink)]">
+            This is your listing
+          </h2>
+          <p className="text-sm text-[var(--color-mm-muted)]">
+            You can't request medicine from your own organization. Manage
+            visibility, pricing, and incoming requests from your listings page.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="secondary">
+              <Link to="/org/listings">Manage my listings</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/org/requests/incoming">Incoming requests</Link>
+            </Button>
+          </div>
+        </Card>
+      ) : existingRequest ? (
         <Card className="p-6 space-y-3 border-[var(--color-mm-accent)]">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-[18px] text-[var(--color-mm-ink)]">

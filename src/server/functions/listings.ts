@@ -912,44 +912,51 @@ export const getMarketplaceListing = createServerFn({
       let existingRequest:
         | typeof transferRequests.$inferSelect
         | null = null
+      let viewerIsSeller = false
       if (!isAdminRole(user.role)) {
         if (!ctx.primaryOrg) {
           throw new AppError('FORBIDDEN', 'Join an organization first')
         }
         if (row.listing.sellerOrgId === ctx.primaryOrg.id) {
-          throw new AppError(
-            'FORBIDDEN',
-            'Cannot request your own organization’s listing',
+          // The viewer's own listing — return it with a flag instead of
+          // throwing so the UI can show a friendly "this is your listing"
+          // card and a link to manage it.
+          viewerIsSeller = true
+        } else {
+          // Detail page exposes batch numbers + seller contact context — gate
+          // on can_request_medicine so non-buyers can't enumerate it.
+          await requireCapability(
+            ctx,
+            ctx.primaryOrg.id,
+            CAPABILITIES.CAN_REQUEST_MEDICINE,
           )
+          const [existing] = await db
+            .select()
+            .from(transferRequests)
+            .where(
+              and(
+                eq(transferRequests.listingId, data.id),
+                eq(transferRequests.requesterOrgId, ctx.primaryOrg.id),
+                inArray(transferRequests.status, [
+                  'pending_admin',
+                  'pending_seller',
+                  'accepted',
+                  'awaiting_handoff',
+                  'dispatched',
+                ]),
+              ),
+            )
+            .limit(1)
+          existingRequest = existing ?? null
         }
-        // Detail page exposes batch numbers + seller contact context — gate
-        // on can_request_medicine so non-buyers can't enumerate it.
-        await requireCapability(
-          ctx,
-          ctx.primaryOrg.id,
-          CAPABILITIES.CAN_REQUEST_MEDICINE,
-        )
-        const [existing] = await db
-          .select()
-          .from(transferRequests)
-          .where(
-            and(
-              eq(transferRequests.listingId, data.id),
-              eq(transferRequests.requesterOrgId, ctx.primaryOrg.id),
-              inArray(transferRequests.status, [
-                'pending_admin',
-                'pending_seller',
-                'accepted',
-                'awaiting_handoff',
-                'dispatched',
-              ]),
-            ),
-          )
-          .limit(1)
-        existingRequest = existing ?? null
       }
 
-      return { ok: true as const, ...row, existingRequest }
+      return {
+        ok: true as const,
+        ...row,
+        existingRequest,
+        viewerIsSeller,
+      }
     } catch (e) {
       throw toClientError(e)
     }
