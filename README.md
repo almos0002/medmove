@@ -180,6 +180,7 @@ The seed is idempotent — re-running it heals roles, capabilities and verificat
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deploy checklist |
 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Required env vars and how to set them |
 | [docs/MIGRATIONS.md](docs/MIGRATIONS.md) | Production schema migration runbook |
+| [docs/STEP15_QA_LAUNCH.md](docs/STEP15_QA_LAUNCH.md) | Step 15 — final QA pass, demo script, launch checklist, roadmap |
 
 ---
 
@@ -191,6 +192,16 @@ The seed is idempotent — re-running it heals roles, capabilities and verificat
 - **Tone:** Airbnb-style friendly density — generous whitespace, sentence-case copy, never barked at.
 
 See `src/styles.css` for tokens and `src/components/ui/` for the primitive set.
+
+---
+
+## Status
+
+This is the MVP build (Step 15 complete). The platform is feature-frozen for the launch.
+Anything not listed in [docs/COMPLIANCE.md](docs/COMPLIANCE.md) is explicitly out of scope.
+
+For the launch QA pass, demo script, and deploy checklist, see
+[docs/STEP15_QA_LAUNCH.md](docs/STEP15_QA_LAUNCH.md).
 
 ---
 

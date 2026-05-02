@@ -1,5 +1,18 @@
 # MedMove - TanStack Start App
 
+## Step 15 — Final QA, demo prep, launch checklist (2026-05)
+**Goal:** lock in the MVP. No new features; produce a single, comprehensive QA + demo + launch document and link it from the README.
+
+**Deliverable**
+- `docs/STEP15_QA_LAUNCH.md` — 22 sections covering: end-to-end demo script, demo story, demo accounts, golden path, negative tests, role/capability matrix, status transition matrix, data isolation, audit log + notification verification, UI polish, accessibility, mobile, performance, security, deployment + production env, legal/compliance disclaimers, README final section, pitch talking points, known limitations, post-MVP roadmap (12 items).
+
+**Other docs touched**
+- `README.md` — added Step 15 doc to the Documentation table; added a "Status" section that points at the new doc.
+
+**Status:** MVP feature-frozen. Anything new goes into the Step 15 roadmap, not bolted onto the current build.
+
+---
+
 ## Step 14 — MVP polish (2026-05)
 **Goal:** ship the polish layer needed to call the platform a working MVP — settings/profile, reusable feedback + table primitives, an expanded seed, and the full operator documentation set.
 
