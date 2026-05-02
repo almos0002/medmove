@@ -1,0 +1,98 @@
+You are a senior SaaS product engineer, QA lead, and launch advisor.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout is done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+- Step 8: Listing creation + admin approval workflow is done.
+- Step 9: Request / claim workflow is done.
+- Step 10: Delivery / pickup tracking workflow is done.
+- Step 11: Audit logs + admin reporting dashboard is done.
+- Step 12: Notifications + expiry alerts are done.
+- Step 13: Approved listings discovery/search is done.
+- Step 14: MVP polish, seed data, testing, and deployment readiness is done.
+
+Now I want Step 15: Final QA, demo preparation, and launch checklist.
+
+Important product rules:
+- This is NOT a public medicine marketplace.
+- Only verified organizations can list/request/deliver medicine.
+- Medicine listings are not public.
+- Admin approval is required for organizations, listings, and transfer requests.
+- No expired medicine can be listed.
+- No opened/unsealed medicine can be listed.
+- No cold-chain medicine in MVP.
+- No controlled/restricted medicine in MVP.
+- Every sensitive action must create audit logs.
+- Server-side checks must enforce all safety rules.
+- Organization data must remain isolated.
+
+Create a final QA and demo/launch plan.
+
+Include:
+
+1. Full end-to-end demo script
+2. Demo story using realistic organizations
+3. Demo accounts and what each account should show
+4. Golden path test:
+   - pharmacy creates inventory
+   - pharmacy creates listing
+   - admin approves listing
+   - hospital requests listing
+   - admin approves request
+   - admin schedules delivery
+   - logistics updates delivery
+   - hospital confirms received
+   - audit logs and metrics update
+5. Negative test cases:
+   - unverified organization tries to list
+   - organization tries to request its own listing
+   - organization tries to list expired medicine
+   - organization tries to list opened medicine
+   - organization tries to access another organization’s data
+   - non-admin tries to approve listing
+   - logistics user tries to update unassigned delivery
+   - normal user tries to view admin audit logs
+6. Role/capability test matrix
+7. Status transition test matrix
+8. Data isolation test checklist
+9. Audit log verification checklist
+10. Notification verification checklist
+11. UI polish checklist
+12. Accessibility checklist
+13. Mobile responsiveness checklist
+14. Performance checklist
+15. Security checklist
+16. Deployment verification checklist
+17. Production environment checklist
+18. Legal/compliance disclaimer checklist
+19. README final section
+20. Pitch/demo talking points
+21. Known MVP limitations
+22. Post-MVP roadmap
+
+Post-MVP roadmap should include:
+- distributor route integration
+- verified medical courier integration
+- QR code scanning
+- document upload verification improvements
+- automated expiry alert jobs
+- email/SMS/WhatsApp notifications
+- payment/credit system
+- donation-only mode
+- advanced medicine catalog
+- location-based matching
+- analytics dashboard
+- government/NGO partnership mode
+
+Important:
+- Keep it practical.
+- Make it useful for a buildathon/hackathon demo.
+- Do not add new large features.
+- Focus on testing, demo flow, launch readiness, and explaining the product clearly.
