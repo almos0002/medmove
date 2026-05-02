@@ -1,7 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, ilike, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { inventoryBatches, listings, medicines } from '@/lib/schema'
+import {
+  inventoryBatches,
+  listings,
+  medicines,
+  organizations,
+} from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
@@ -9,13 +14,17 @@ import { CAPABILITIES, isAdminRole } from '@/lib/permissions'
 import { requireAuth } from '../guards/require-auth'
 import { requireAdmin } from '../guards/require-admin'
 import { requireCapability } from '../guards/require-capability'
+import { requireOrgMember } from '../guards/require-org'
 import { LISTING_TRANSITIONS, assertTransition } from '../transitions'
 import {
   adminApproveListingSchema,
+  adminListAllListingsSchema,
   adminPendingListingsSchema,
   adminRejectListingSchema,
   createListingSchema,
+  getListingSchema,
   listActiveListingsSchema,
+  listMyListingsSchema,
   submitListingSchema,
   withdrawListingSchema,
 } from '../validators/listings'
@@ -422,6 +431,147 @@ export const adminListPendingListings = createServerFn({
         .orderBy(listings.submittedAt)
         .limit(data.limit)
       return { ok: true as const, items: rows }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Fetch a single listing with batch + medicine + sellerOrg joined. Used by
+ * both the seller detail page and the admin detail page.
+ *
+ * Auth: any member of the seller org, or any admin. Buyer-side access to
+ * active listings happens via marketplace browse, not here.
+ */
+export const getListing = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => getListingSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const actor = requireAuth(ctx)
+
+      const [row] = await db
+        .select({
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          sellerOrg: organizations,
+        })
+        .from(listings)
+        .innerJoin(inventoryBatches, eq(inventoryBatches.id, listings.batchId))
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
+        .where(eq(listings.id, data.id))
+        .limit(1)
+      if (!row) throw new AppError('NOT_FOUND', 'Listing not found')
+
+      if (!isAdminRole(actor.role)) {
+        await requireOrgMember(ctx, row.listing.sellerOrgId)
+      }
+      return { ok: true as const, ...row }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * List a single org's own listings, across all statuses. Mirrors
+ * `listInventoryBatches`: read-only, so no capability check — viewing your
+ * own pipeline shouldn't depend on the seller flag being currently on.
+ */
+export const listMyListings = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => listMyListingsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const actor = requireAuth(ctx)
+      if (!isAdminRole(actor.role)) {
+        await requireOrgMember(ctx, data.organizationId)
+      }
+
+      const where = and(
+        eq(listings.sellerOrgId, data.organizationId),
+        data.status ? eq(listings.status, data.status) : undefined,
+        data.medicineSearch
+          ? or(
+              ilike(medicines.name, `%${data.medicineSearch}%`),
+              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+            )
+          : undefined,
+      )
+
+      const rows = await db
+        .select({
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+        })
+        .from(listings)
+        .innerJoin(inventoryBatches, eq(inventoryBatches.id, listings.batchId))
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .where(where)
+        .orderBy(desc(listings.updatedAt))
+        .limit(data.limit)
+
+      return { ok: true as const, items: rows, total: rows.length }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Admin browse-all view of listings, with status / medicine / org filters.
+ * Defaults to most-recently-submitted-first. Used by the admin queue page,
+ * which can also surface non-pending listings for audit/support.
+ */
+export const adminListAllListings = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => adminListAllListingsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      requireAdmin(ctx)
+
+      const where = and(
+        data.status ? eq(listings.status, data.status) : undefined,
+        data.medicineSearch
+          ? or(
+              ilike(medicines.name, `%${data.medicineSearch}%`),
+              ilike(medicines.genericName, `%${data.medicineSearch}%`),
+            )
+          : undefined,
+        data.orgSearch
+          ? ilike(organizations.name, `%${data.orgSearch}%`)
+          : undefined,
+      )
+
+      const rows = await db
+        .select({
+          listing: listings,
+          batch: inventoryBatches,
+          medicine: medicines,
+          sellerOrg: organizations,
+        })
+        .from(listings)
+        .innerJoin(inventoryBatches, eq(inventoryBatches.id, listings.batchId))
+        .innerJoin(medicines, eq(medicines.id, inventoryBatches.medicineId))
+        .innerJoin(organizations, eq(organizations.id, listings.sellerOrgId))
+        .where(where)
+        .orderBy(
+          desc(listings.submittedAt),
+          desc(listings.updatedAt),
+        )
+        .limit(data.limit)
+
+      return { ok: true as const, items: rows, total: rows.length }
     } catch (e) {
       throw toClientError(e)
     }
