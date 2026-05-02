@@ -40,6 +40,8 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
   - `admin.tsx` + `admin.index.tsx` - Admin/super_admin layout + index (guarded)
   - `admin.medicines.tsx` / `admin.medicines.new.tsx` / `admin.medicines.$medicineId.tsx` - Catalog list, create, edit (admin-only)
   - `org.inventory.tsx` / `org.inventory.new.tsx` / `org.inventory.$batchId.tsx` - Inventory list (TanStack Table + filters), add batch, batch detail (org members + admins)
+  - `org.listings.tsx` / `org.listings.new.tsx` / `org.listings.$listingId.tsx` - Seller-side listings (TanStack Table + filters), create-from-batch form, detail page with Submit / Withdraw actions
+  - `admin.listings.tsx` / `admin.listings.$listingId.tsx` - Admin review queue (defaults to `pending_admin`, status filter widens to all) + detail with Approve / Reject dialogs
   - `org.tsx` + `org.index.tsx` - **Unified** console for `org_owner` and `org_staff`. UI is the same for both roles — capability flags on the org row decide which actions render.
   - `logistics.tsx` + `logistics.index.tsx` - Logistics layout + index (guarded; admins allowed)
   - `api/auth/$.ts` - Splat route forwarding all `/api/auth/*` to Better Auth handler
@@ -103,6 +105,30 @@ End-to-end flow shipped:
 - TanStack Query **mutations only** for writes; on success, `await router.invalidate()` then route navigations / toasts.
 - All toast feedback via `sonner` (Toaster mounted in `__root.tsx`).
 - All error rendering through `PageError`, which parses `{code, message}` envelopes from `toClientError`.
+
+## Step 8: listing creation & admin approval workflow
+
+End-to-end seller → admin loop shipped on top of the Step-3 listings backend:
+
+- **Seller listings (`/org/listings`)** — server-loader feeds TanStack Table with status / medicine search filters (URL-driven via `validateSearch`). Per-row: medicine, batch #, available/listed quantity, price (or "Free"), expiry badge, pickup city, status badge. Verified + `can_list_medicine` orgs see a "New listing" button; non-verified / non-listing orgs see explanatory banners.
+- **New listing (`/org/listings/new`)** — gated by `verified && canListMedicine`. Inventory batch picker (loaded via `listInventoryBatches`, client-filtered to eligible: sealed, in-date, non-controlled, non-cold-chain, non-refrigerated, qty>0). Form (RHF + Zod `superRefine`):
+  - quantity ≤ batch on-hand,
+  - pricing mode `free | paid` (free → `pricePerUnitCents = null`, paid → required price),
+  - currency (3-letter),
+  - pickup city/country,
+  - photo URLs (newline / comma separated — object-storage upload comes later),
+  - notes.
+  Two actions: **Save draft** (`createListing`) and **Submit for review** (`createListing` → `submitListing`). Server still re-runs every guard via `requireCapability(can_list_medicine)` plus controlled / cold-chain / opened / expired / quantity ceilings.
+- **Listing detail (`/org/listings/$listingId`)** — joined fetch via new `getListing` (listing + batch + medicine + sellerOrg). Renders quantity, price, pickup, medicine + batch panels, photo URL list, notes, full timeline. Status-aware actions:
+  - `draft` → Submit for review + Withdraw,
+  - `pending_admin` / `active` → Withdraw (with confirm `AlertDialog` warning that withdrawals are terminal and blocked when transfer requests are in-flight),
+  - `rejected` → reason banner shown with the admin's note,
+  - `sold_out` / `expired` / `withdrawn` → terminal display only.
+- **Admin queue (`/admin/listings`)** — new `adminListAllListings` server fn (joins listing + batch + medicine + sellerOrg, filters by status / medicine name / org name, ordered by `submittedAt DESC`). Default view = `pending_admin`. Filter bar: medicine search, seller org search, status select (any of the 7 listing statuses), Clear button. URL-driven via `validateSearch`. Empty state distinguishes "queue is clear" from "no matches for filters".
+- **Admin detail (`/admin/listings/$listingId`)** — same join via `getListing` (admin bypasses org membership). Side panel for seller org with deep-link to the org review page. Pending listings get an Approve `Dialog` (optional notes → audit metadata) and a Reject `Dialog` (reason required, min 5 chars, surfaced to seller). Both call the existing `adminApproveListing` / `adminRejectListing`. Non-pending listings get a banner explaining the actions are disabled.
+- **Reusable**: `ListingStatusBadge` covers all 7 statuses (`draft / pending_admin / active / rejected / sold_out / expired / withdrawn`) with consistent tone + icon mapping; `LISTING_STATUS_FILTERS` exports the labelled options for selects.
+- **Server fns added**: `getListing`, `listMyListings`, `adminListAllListings` — none require capability checks for read (mirrors inventory pattern); all enforce membership/admin-bypass via `requireOrgMember` / `requireAdmin`. Listing status names diverge from the original spec: there is no separate `RESERVED` / `COMPLETED` (those live on `transferRequests`), and `CANCELLED` ≈ `withdrawn`.
+- **Nav**: AppShell adds `Listings` to both APP_NAV (after Inventory) and ADMIN_NAV (after Medicines).
 
 ## Step 7: medicine catalog & inventory batch UI
 
