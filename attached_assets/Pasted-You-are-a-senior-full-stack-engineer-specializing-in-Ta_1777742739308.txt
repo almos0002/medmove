@@ -1,0 +1,148 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, TanStack Query, TanStack Table, Tailwind CSS, shadcn/ui, and secure SaaS audit/reporting systems.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout is done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+- Step 8: Listing creation + admin approval workflow is done.
+- Step 9: Request / claim workflow is done.
+- Step 10: Delivery / pickup tracking workflow is done.
+
+Now I want Step 11: Audit logs + admin reporting dashboard.
+
+Important product rules:
+- This is NOT a public medicine marketplace.
+- Every sensitive action must create an audit log.
+- Admins should be able to review who did what and when.
+- Organization users should only see limited logs related to their own organization if needed.
+- Admins can see all audit logs.
+- Audit logs should not be editable by normal users.
+- Audit metadata should help with compliance, debugging, and dispute resolution.
+
+Database tables involved:
+- audit_logs
+- users
+- organizations
+- listings
+- transfer_requests
+- deliveries
+- inventory_batches
+- medicines
+
+Audit log examples:
+- ORGANIZATION_CREATED
+- ORGANIZATION_VERIFIED
+- ORGANIZATION_REJECTED
+- ORGANIZATION_SUSPENDED
+- CAPABILITY_UPDATED
+- MEDICINE_CREATED
+- INVENTORY_BATCH_CREATED
+- INVENTORY_BATCH_UPDATED
+- LISTING_CREATED
+- LISTING_APPROVED
+- LISTING_REJECTED
+- TRANSFER_REQUEST_CREATED
+- TRANSFER_REQUEST_APPROVED
+- TRANSFER_REQUEST_REJECTED
+- DELIVERY_CREATED
+- DELIVERY_ASSIGNED
+- DELIVERY_PICKUP_SCHEDULED
+- DELIVERY_PICKED_UP
+- DELIVERY_IN_TRANSIT
+- DELIVERY_DELIVERED
+- DELIVERY_FAILED
+- DELIVERY_CANCELLED
+
+Now build the audit logs and reporting dashboard.
+
+Create:
+
+1. Audit log helper function
+2. Standard audit log event type enum
+3. Audit metadata structure
+4. Admin audit logs page
+5. Audit log detail drawer/modal
+6. Audit log filters:
+   - event type
+   - actor user
+   - organization
+   - entity type
+   - date range
+7. Audit log table using TanStack Table
+8. Admin reports dashboard
+9. Key metrics cards:
+   - total verified organizations
+   - pending organizations
+   - active listings
+   - pending listings
+   - pending transfer requests
+   - completed transfers
+   - failed deliveries
+   - medicines rescued from expiry
+   - estimated stock value saved
+10. Recent activity feed
+11. Organization activity page
+12. Export placeholder for CSV later
+13. Empty states
+14. Loading states
+15. Error states
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use TypeScript.
+- Use Drizzle ORM style queries.
+- Use Zod where needed.
+- Use TanStack Query for fetching.
+- Use TanStack Table for audit logs.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Include practical file paths.
+- Include reusable components.
+- Include permission checks.
+- Keep MVP clean and practical.
+
+Important backend requirements:
+- audit logs should be append-only
+- normal users cannot delete or edit audit logs
+- admins can view all logs
+- organization users can only view logs connected to their organization, if this feature is enabled
+- every audit log should include:
+  - actor_user_id
+  - actor_organization_id if available
+  - action/event_type
+  - entity_type
+  - entity_id
+  - metadata JSON
+  - created_at
+  - IP/user agent placeholder if available
+- audit helper should be easy to call inside server functions
+- audit logs should be created inside the same database transaction when possible
+
+Reporting dashboard requirements:
+- Use real database queries
+- Avoid fake static metrics
+- Metrics should be scoped correctly
+- Admin sees platform-wide metrics
+- Organization users see only their organization metrics
+- Keep charts optional for MVP
+- Focus on useful cards and tables first
+
+Expected output:
+- File/folder structure
+- Audit log helper code
+- Event type enum
+- Server functions/queries
+- Admin audit logs page
+- Audit table columns
+- Audit filters
+- Report metrics queries
+- Dashboard cards
+- Recent activity feed
+- Route/page code
+- Permission explanation
