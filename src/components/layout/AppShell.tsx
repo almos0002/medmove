@@ -1,11 +1,14 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
+  Activity,
+  BarChart3,
   Boxes,
   Building2,
   Inbox,
   LayoutDashboard,
   Pill,
+  ScrollText,
   ShieldCheck,
   ShoppingBag,
   Truck,
@@ -73,6 +76,7 @@ const APP_NAV: NavItem[] = [
   },
   { to: '/org/profile', label: 'Organization', icon: Building2 },
   { to: '/org/documents', label: 'Documents', icon: FileCheck2 },
+  { to: '/org/activity', label: 'Activity', icon: Activity },
 ]
 const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
@@ -81,6 +85,8 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/listings', label: 'Listings', icon: Tags },
   { to: '/admin/requests', label: 'Transfers', icon: Inbox },
   { to: '/admin/deliveries', label: 'Deliveries', icon: Truck },
+  { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/admin/audit-logs', label: 'Audit logs', icon: ScrollText },
 ]
 const LOGISTICS_NAV: NavItem[] = [
   { to: '/logistics', label: 'Assigned deliveries', icon: Truck },

@@ -78,6 +78,35 @@ Built with TanStack Start (full-stack React framework), TanStack Router for file
 - `src/lib/utils.ts` — `cn()` (clsx + tailwind-merge); `src/lib/query-client.ts` — singleton TanStack Query client used in `__root.tsx`.
 - `src/lib/client/capability.ts` — pure UI helpers (`canUploadOrgDocuments`, `canManageOrgMembers`) — server fns are still the source of truth.
 
+## Step 11: audit logs + reporting dashboards
+
+Append-only audit history exposed through admin and org-scoped surfaces, plus a live metrics dashboard for both audiences.
+
+- **Schema** — no migration. The existing `audit_logs` table (Step 5) is the source of truth; immutability is enforced in app code (no `update`/`delete` server fns in `server/functions/audit.ts` by design).
+- **Action registry** (`src/lib/audit-events.ts`) — central list of `AUDIT_ACTIONS` (39 known actions across organizations, documents, medicines, inventory, listings, transfers, deliveries) and `AUDIT_ENTITY_TYPES`. Helpers: `auditActionLabel(action)` (friendly text + safe fallback for unregistered actions), `auditActionTone(action)` (success / warn / danger / accent / neutral / outline mapped from verb suffix), and `AUDIT_ENTITY_LABELS` for entity badges. The `audit_logs.action` column stays free-form `text` so new actions never need a migration.
+- **Validators** (`server/validators/audit.ts`): `listAuditLogsSchema` (action, entityType, entityId, actorUserId, actorOrgId, search, dateFrom/dateTo `YYYY-MM-DD`, limit/offset), `getAuditLogSchema`, `orgScopeSchema`, `recentActivitySchema`. Date inputs are widened to start/end-of-day UTC server-side.
+- **Server fns** (`server/functions/audit.ts`):
+  - `adminListAuditLogs` — admin-only; joins `actorUser` and `actorOrg` (aliased), returns rows + total + paging info; applies all filter combinations; full-text-ish `ilike` across action/email/orgName/entityId.
+  - `listOrgAuditLogs` — any org member (or admin); forces `actorOrgId = organizationId`; same filters minus `actorOrgId`.
+  - `getAuditLog` — admin can view any row; org users can only view rows whose `actorOrgId` matches their primary org (returns `FORBIDDEN` otherwise).
+  - `listRecentActivity` — recent feed for dashboards. Admin-only when `organizationId` is omitted; otherwise scoped + member-checked.
+- **Reporting fns** (`server/functions/reports.ts`):
+  - `getAdminReportMetrics` — 12 parallel `COUNT`/`SUM` queries: org status counters, listings (active / pending review), transfers (pending / in-flight / completed), failed deliveries, units rescued (`SUM(deliveries.receivedQuantity WHERE status='delivered')`), donated units (price NULL), and stock value saved (`SUM(receivedQuantity × listing.pricePerUnitCents)` joined via transferRequests, paid listings only).
+  - `getOrgReportMetrics` — same shape but scoped to one org as seller (listings/inventory/seller-side transfers + impact) and as buyer (incoming requests + completed buys); membership re-checked at call time.
+- **Components** (`src/components/data/`):
+  - `AuditEventBadge` — wraps `Badge` with tone + friendly label.
+  - `MetricCard` — icon tile with tone variants (neutral / accent / warn / danger / success), optional `to`/`search`/`params` to make the card a deep-link.
+  - `AuditLogDetailDialog` — read-only modal showing actor (user, org link, IP, UA), entity (type + ID), metadata, and side-by-side `before` / `after` JSON blocks.
+  - `RecentActivityFeed` — compact divided list, optional `onSelect(id)` to open the detail dialog. Empty-state aware.
+- **Routes**:
+  - `/admin` — rewritten dashboard. Two metric rows (workload alerts + impact totals), pending-orgs queue, recent activity feed (clicks open detail dialog), and a footer card linking to Reports + Audit logs.
+  - `/admin/reports` — full reporting dashboard. Sectioned `MetricCard` grids: Organizations, Marketplace, Logistics & impact. Recent activity feed at the bottom. CSV export button is disabled with `toast.info('CSV export is coming soon')`.
+  - `/admin/audit-logs` — TanStack Table list. Filter bar: free-text search, action select (all 39 known actions), entity-type select, entity ID input, actor org ID input, dateFrom/dateTo. Search params drive the loader (`page`, `action`, `entityType`, `entityId`, `actorOrgId`, `actorUserId`, `q`, `dateFrom`, `dateTo`); page size 50; pagination via prev/next; row "Open" launches the detail dialog (data fetched lazily through `useQuery(['audit-log', id])`).
+  - `/org/activity` — org-scoped twin: `MetricCard` grid of `getOrgReportMetrics` results, then a filtered table of `listOrgAuditLogs` (search + action + entityType, page size 25). Detail dialog reuses `getAuditLog` with the org-scoped guard.
+- **Nav** (`AppShell`): `ADMIN_NAV` adds `Reports` (`BarChart3`) and `Audit logs` (`ScrollText`). `APP_NAV` adds `Activity` (`Activity`).
+- **Empty / loading / error**: every loader uses `PageLoading` + `PageError`; tables and feeds use `EmptyState` with copy that distinguishes "no data yet" from "no matches for current filters" and offers a Clear-filters action when filters are active.
+- **Authorization recap**: admin pages call `requireAdmin`; org pages re-validate `requireOrgMember(ctx, orgId)` for non-admins; `getAuditLog` enforces org scoping at the row level using `actorOrgId === ctx.primaryOrg.id`. Admins can view any org's report or audit row.
+
 ## Step 10: delivery / pickup tracking workflow
 
 End-to-end delivery lifecycle layered on top of the Step-9 transfer-request loop:

@@ -1,0 +1,138 @@
+You are a senior full-stack engineer specializing in TanStack Start, React, TypeScript, PostgreSQL, Drizzle ORM, TanStack Query, background jobs, notifications, and SaaS workflow automation.
+
+We are building a verified B2B medicine redistribution platform.
+
+Current progress:
+- Step 1: MVP scope and product flows are done.
+- Step 2: Drizzle ORM database schema is done.
+- Step 3: Backend rules and server functions are done.
+- Step 4: Auth, protected routes, and RBAC are done.
+- Step 5: Frontend route structure and dashboard layout is done.
+- Step 6: Organization onboarding and verification UI is done.
+- Step 7: Medicine catalog + inventory batch management is done.
+- Step 8: Listing creation + admin approval workflow is done.
+- Step 9: Request / claim workflow is done.
+- Step 10: Delivery / pickup tracking workflow is done.
+- Step 11: Audit logs + admin reporting dashboard is done.
+
+Now I want Step 12: Notifications + expiry alerts.
+
+Important product rules:
+- This is NOT a public medicine marketplace.
+- Notifications should help organizations act before medicines expire.
+- Expiry alerts should warn organizations about stock that may be wasted.
+- Admin should be notified about pending approvals.
+- Organizations should be notified about listing/request/delivery status changes.
+- Notifications must respect organization boundaries.
+- Users should only see notifications related to their own organization unless they are admin.
+- Do not add SMS/WhatsApp integration yet; create placeholders for later.
+- Use in-app notifications first.
+- Email notifications can be optional for MVP.
+
+Database tables involved:
+- users
+- organizations
+- inventory_batches
+- listings
+- transfer_requests
+- deliveries
+- audit_logs
+
+Add new table if needed:
+- notifications
+
+Notification examples:
+- ORGANIZATION_PENDING_VERIFICATION
+- ORGANIZATION_VERIFIED
+- ORGANIZATION_REJECTED
+- INVENTORY_EXPIRING_SOON
+- INVENTORY_CRITICAL_EXPIRY
+- LISTING_PENDING_REVIEW
+- LISTING_APPROVED
+- LISTING_REJECTED
+- TRANSFER_REQUEST_CREATED
+- TRANSFER_REQUEST_APPROVED
+- TRANSFER_REQUEST_REJECTED
+- DELIVERY_ASSIGNED
+- PICKUP_SCHEDULED
+- DELIVERY_IN_TRANSIT
+- DELIVERY_DELIVERED
+- DELIVERY_FAILED
+
+Expiry alert levels:
+- SAFE: more than 90 days left
+- EXPIRING_SOON: 31 to 90 days left
+- CRITICAL: 1 to 30 days left
+- EXPIRED: expiry date has passed
+
+Now build the notifications and expiry alert system.
+
+Create:
+
+1. notifications database table using Drizzle ORM
+2. notification type enum
+3. notification status/read state
+4. notification helper function
+5. createNotificationForUser()
+6. createNotificationForOrganization()
+7. createNotificationForAdmins()
+8. in-app notification dropdown component
+9. notifications page
+10. mark notification as read action
+11. mark all as read action
+12. unread notification count query
+13. expiry alert query for inventory batches
+14. expiry alert cards on organization dashboard
+15. expiry alert table
+16. admin pending approval notification logic
+17. notification creation inside existing workflows
+18. placeholder email/SMS/WhatsApp service layer for future use
+19. loading states
+20. empty states
+21. error states
+
+Technical requirements:
+- Use TanStack Start route files.
+- Use TypeScript.
+- Use Drizzle ORM style queries.
+- Use Zod validation where needed.
+- Use TanStack Query for fetching/mutations.
+- Use shadcn/ui components.
+- Use Tailwind CSS.
+- Include practical file paths.
+- Include reusable components.
+- Include permission checks.
+- Keep MVP clean and practical.
+
+Important backend requirements:
+- notifications should be scoped to user_id and/or organization_id
+- admin notifications should only be visible to admins
+- organization users should not see other organization notifications
+- expiry alerts should only be generated for the organization that owns the inventory
+- expired inventory should not be listable
+- notification creation should happen during important workflow actions
+- avoid duplicate expiry notifications for the same batch and same alert level
+- notification read/unread status must be user-specific if needed
+- audit logs and notifications are different things; do not mix them
+
+Expiry alert logic:
+- Find inventory batches owned by the organization
+- Calculate days until expiry
+- Show SAFE, EXPIRING_SOON, CRITICAL, or EXPIRED
+- Highlight CRITICAL and EXPIRED items
+- For MVP, display alerts in dashboard even without background jobs
+- Add a placeholder for daily scheduled expiry alert job later
+
+Expected output:
+- File/folder structure
+- Drizzle notifications schema
+- Notification type enum
+- Notification helper code
+- Server functions/queries
+- Notification dropdown component
+- Notifications page
+- Expiry alert dashboard cards
+- Expiry alert table
+- Query/mutation hooks
+- Permission explanation
+- Future email/SMS/WhatsApp integration placeholder
