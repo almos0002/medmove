@@ -6,7 +6,7 @@ import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { requireAuth } from '../guards/require-auth'
-import { requireRole } from '../guards/require-role'
+import { requireAdmin } from '../guards/require-admin'
 import {
   createMedicineSchema,
   listMedicinesSchema,
@@ -17,7 +17,7 @@ export const createMedicine = createServerFn({ method: 'POST', strict: { output:
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'admin')
+      requireAdmin(ctx)
 
       // MVP guard: refuse controlled & cold-chain at the catalog edge.
       if (data.isControlled) {

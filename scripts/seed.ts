@@ -1,17 +1,15 @@
 /**
  * MedMove dev seed.
  *
- * Creates:
- *  - 1 admin user
- *  - 1 verified pharmacy org (with owner)
- *  - 1 verified hospital org (with owner)
- *  - 10 medicines in the catalog
- *  - 1 inventory batch + 1 active listing for the pharmacy
+ * Creates one user per role (super_admin, admin, seller, buyer, logistics_user)
+ * plus one verified org per type (pharmacy, hospital, logistics) with the
+ * appropriate owner. Also populates the medicine catalog and one demo listing.
  *
  * Run:  npm run db:seed
  *
- * Idempotent: re-running won't duplicate orgs/medicines/users
- * (matches by license number / email / name+strength+form).
+ * Idempotent. If a user already exists with an old role string we *update*
+ * their role so re-seeding after a role-model migration still produces a
+ * working test set.
  */
 import { eq } from 'drizzle-orm'
 import { db } from '../src/lib/db'
@@ -24,37 +22,61 @@ import {
   inventoryBatches,
   listings,
 } from '../src/lib/schema'
+import { ROLES, type AppRole, type OrgType } from '../src/lib/permissions'
+
+// Trusted bootstrap path: lets the seed script create admin/super_admin users
+// despite the public-signup role allowlist enforced in src/lib/auth.ts. The
+// env var must be exported by the npm script (`npm run db:seed`) BEFORE the
+// process boots — setting it here would be too late because ES module imports
+// (above) are evaluated first.
+if (process.env.MEDMOVE_TRUSTED_SIGNUP !== '1') {
+  console.error(
+    "Refusing to run seed without MEDMOVE_TRUSTED_SIGNUP=1 — use 'npm run db:seed'.",
+  )
+  process.exit(1)
+}
 
 type SeedUser = {
   email: string
   password: string
   name: string
-  role: 'admin' | 'pharmacy' | 'hospital_ngo'
+  role: AppRole
 }
 
 async function ensureUser(u: SeedUser) {
-  const existing = await db.select().from(user).where(eq(user.email, u.email)).limit(1)
-  if (existing[0]) return existing[0]
+  const existing = await db
+    .select()
+    .from(user)
+    .where(eq(user.email, u.email))
+    .limit(1)
+  if (existing[0]) {
+    if (existing[0].role !== u.role) {
+      await db.update(user).set({ role: u.role }).where(eq(user.id, existing[0].id))
+      return { ...existing[0], role: u.role }
+    }
+    return existing[0]
+  }
 
   const result = await auth.api.signUpEmail({
     body: {
       email: u.email,
       password: u.password,
       name: u.name,
-      // additionalFields registered in auth.ts
       role: u.role,
-    } as Parameters<typeof auth.api.signUpEmail>[0]['body'],
-  })
+    },
+  } as Parameters<typeof auth.api.signUpEmail>[0])
 
   if (!result || !('user' in result) || !result.user) {
     throw new Error(`Failed to create user ${u.email}`)
   }
-  return (await db.select().from(user).where(eq(user.email, u.email)).limit(1))[0]!
+  return (
+    await db.select().from(user).where(eq(user.email, u.email)).limit(1)
+  )[0]!
 }
 
 async function ensureOrg(args: {
   name: string
-  type: 'pharmacy' | 'hospital' | 'clinic' | 'ngo'
+  type: OrgType
   licenseNumber: string
   contactEmail: string
   contactPhone: string
@@ -138,25 +160,39 @@ async function ensureMedicine(m: {
 async function main() {
   console.log('Seeding MedMove…')
 
+  const superAdminUser = await ensureUser({
+    email: 'super-admin@medmove.dev',
+    password: 'SuperAdminPass123!',
+    name: 'MedMove Super Admin',
+    role: ROLES.SUPER_ADMIN,
+  })
   const adminUser = await ensureUser({
     email: 'admin@medmove.dev',
     password: 'AdminPass123!',
     name: 'MedMove Admin',
-    role: 'admin',
+    role: ROLES.ADMIN,
   })
-  const pharmacyOwner = await ensureUser({
+  const sellerOwner = await ensureUser({
     email: 'pharmacy-owner@medmove.dev',
     password: 'PharmaPass123!',
     name: 'Priya Pharmacy Owner',
-    role: 'pharmacy',
+    role: ROLES.SELLER,
   })
-  const hospitalOwner = await ensureUser({
+  const buyerOwner = await ensureUser({
     email: 'hospital-owner@medmove.dev',
     password: 'HospitalPass123!',
     name: 'Henry Hospital Owner',
-    role: 'hospital_ngo',
+    role: ROLES.BUYER,
   })
-  console.log(`Users: admin=${adminUser.id} pharmacy=${pharmacyOwner.id} hospital=${hospitalOwner.id}`)
+  const logisticsOwner = await ensureUser({
+    email: 'logistics-owner@medmove.dev',
+    password: 'LogisticsPass123!',
+    name: 'Liam Logistics Owner',
+    role: ROLES.LOGISTICS_USER,
+  })
+  console.log(
+    `Users: super_admin=${superAdminUser.id} admin=${adminUser.id} seller=${sellerOwner.id} buyer=${buyerOwner.id} logistics=${logisticsOwner.id}`,
+  )
 
   const pharmacyOrg = await ensureOrg({
     name: 'GoodHealth Pharmacy',
@@ -166,7 +202,7 @@ async function main() {
     contactPhone: '+1-555-0100',
     city: 'Boston',
     country: 'USA',
-    ownerUserId: pharmacyOwner.id,
+    ownerUserId: sellerOwner.id,
   })
   const hospitalOrg = await ensureOrg({
     name: "St Mary's Community Hospital",
@@ -176,9 +212,21 @@ async function main() {
     contactPhone: '+1-555-0200',
     city: 'Cambridge',
     country: 'USA',
-    ownerUserId: hospitalOwner.id,
+    ownerUserId: buyerOwner.id,
   })
-  console.log(`Orgs: pharmacy=${pharmacyOrg.id} hospital=${hospitalOrg.id}`)
+  const logisticsOrg = await ensureOrg({
+    name: 'SwiftMove Logistics',
+    type: 'logistics',
+    licenseNumber: 'LOG-LIC-0001',
+    contactEmail: 'ops@swiftmove.test',
+    contactPhone: '+1-555-0300',
+    city: 'Boston',
+    country: 'USA',
+    ownerUserId: logisticsOwner.id,
+  })
+  console.log(
+    `Orgs: pharmacy=${pharmacyOrg.id} hospital=${hospitalOrg.id} logistics=${logisticsOrg.id}`,
+  )
 
   const catalog = await Promise.all([
     ensureMedicine({ name: 'Paracetamol', genericName: 'Acetaminophen', strength: '500 mg', form: 'tablet' }),
@@ -243,7 +291,7 @@ async function main() {
       submittedAt: new Date(),
       approvedAt: new Date(),
       approvedByUserId: adminUser.id,
-      createdByUserId: pharmacyOwner.id,
+      createdByUserId: sellerOwner.id,
       notes: 'Demo listing for development.',
     })
   }
@@ -251,9 +299,11 @@ async function main() {
 
   console.log('\nDone.\n')
   console.log('Login credentials:')
-  console.log('  admin:    admin@medmove.dev / AdminPass123!')
-  console.log('  pharmacy: pharmacy-owner@medmove.dev / PharmaPass123!')
-  console.log('  hospital: hospital-owner@medmove.dev / HospitalPass123!')
+  console.log('  super_admin:    super-admin@medmove.dev / SuperAdminPass123!')
+  console.log('  admin:          admin@medmove.dev / AdminPass123!')
+  console.log('  seller:         pharmacy-owner@medmove.dev / PharmaPass123!')
+  console.log('  buyer:          hospital-owner@medmove.dev / HospitalPass123!')
+  console.log('  logistics_user: logistics-owner@medmove.dev / LogisticsPass123!')
 }
 
 main()

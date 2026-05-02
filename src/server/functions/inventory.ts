@@ -17,7 +17,7 @@ export const createInventoryBatch = createServerFn({ method: 'POST', strict: { o
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
       await requireVerifiedOrg(ctx, data.organizationId)
 
       const [med] = await db

@@ -1,16 +1,22 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   deliveries,
   inventoryBatches,
   listings,
+  organizations,
   transferRequests,
 } from '@/lib/schema'
+import { user as userTable } from '@/lib/auth-schema'
+import { organizationMembers } from '@/lib/schema'
+import { ROLES, isAdminRole } from '@/lib/permissions'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
+import { requireAuth } from '../guards/require-auth'
 import { requireRole } from '../guards/require-role'
+import { requireAdmin } from '../guards/require-admin'
 import { requireVerifiedOrg } from '../guards/require-verified-org'
 import {
   DELIVERY_TRANSITIONS,
@@ -18,8 +24,10 @@ import {
   assertTransition,
 } from '../transitions'
 import {
+  assignDeliveryLogisticsSchema,
   confirmDeliverySchema,
   disputeDeliverySchema,
+  listAssignedDeliveriesSchema,
   markDispatchedSchema,
   scheduleDeliverySchema,
 } from '../validators/deliveries'
@@ -32,7 +40,7 @@ export const scheduleDelivery = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [request] = await tx
@@ -136,7 +144,16 @@ export const markDispatched = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      // Authorization: seller of the source org, the assigned logistics user,
+      // or admin/super_admin. We resolve the actor first, then re-check below
+      // against the actual delivery row.
+      const actor = requireRole(
+        ctx,
+        ROLES.SELLER,
+        ROLES.LOGISTICS_USER,
+        ROLES.ADMIN,
+        ROLES.SUPER_ADMIN,
+      )
 
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
@@ -161,7 +178,22 @@ export const markDispatched = createServerFn({
           .limit(1)
         if (!listing) throw new AppError('NOT_FOUND', 'Listing missing')
 
-        const { user } = await requireVerifiedOrg(ctx, listing.sellerOrgId)
+        // Per-row authorization: which of the allowed roles is this actor in
+        // relation to *this specific* delivery?
+        let user = actor
+        if (actor.role === ROLES.SELLER) {
+          const r = await requireVerifiedOrg(ctx, listing.sellerOrgId)
+          user = r.user
+        } else if (actor.role === ROLES.LOGISTICS_USER) {
+          if (delivery.assignedLogisticsUserId !== actor.id) {
+            throw new AppError(
+              'FORBIDDEN',
+              'You are not assigned to this delivery',
+            )
+          }
+        }
+        // Admin / super_admin have implicit access.
+
         assertTransition(DELIVERY_TRANSITIONS, delivery.status, 'in_transit')
         assertTransition(TRANSFER_TRANSITIONS, request.status, 'dispatched')
 
@@ -245,7 +277,7 @@ export const confirmDelivery = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'hospital_ngo')
+      requireRole(ctx, 'buyer')
 
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx
@@ -415,6 +447,177 @@ export const confirmDelivery = createServerFn({
     }
   })
 
+/**
+ * Admin assigns a delivery to a verified logistics-org user. The target user
+ * must (a) have the logistics_user role and (b) be a member of a verified org
+ * of type 'logistics'. Re-assignment is allowed while the delivery is still
+ * 'scheduled'; once 'in_transit' it's locked.
+ */
+export const adminAssignDeliveryLogistics = createServerFn({
+  method: 'POST',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => assignDeliveryLogisticsSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const admin = requireAdmin(ctx)
+
+      const result = await db.transaction(async (tx) => {
+        const [delivery] = await tx
+          .select()
+          .from(deliveries)
+          .where(eq(deliveries.id, data.deliveryId))
+          .limit(1)
+        if (!delivery) throw new AppError('NOT_FOUND', 'Delivery not found')
+        if (delivery.status !== 'scheduled') {
+          throw new AppError(
+            'INVALID_TRANSITION',
+            `Cannot reassign a delivery in status '${delivery.status}'`,
+          )
+        }
+
+        // Validate the target user is a logistics_user.
+        const [target] = await tx
+          .select({ id: userTable.id, role: userTable.role })
+          .from(userTable)
+          .where(eq(userTable.id, data.logisticsUserId))
+          .limit(1)
+        if (!target) throw new AppError('NOT_FOUND', 'Target user not found')
+        if (target.role !== ROLES.LOGISTICS_USER) {
+          throw new AppError(
+            'FORBIDDEN',
+            'Target user is not a logistics_user',
+          )
+        }
+
+        // Validate the org is a verified logistics org.
+        const [org] = await tx
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, data.logisticsOrgId))
+          .limit(1)
+        if (!org) throw new AppError('NOT_FOUND', 'Logistics org not found')
+        if (org.type !== 'logistics') {
+          throw new AppError(
+            'CONFLICT',
+            "Assigned org must be of type 'logistics'",
+          )
+        }
+        if (org.verificationStatus !== 'verified') {
+          throw new AppError(
+            'ORG_NOT_VERIFIED',
+            'Logistics org is not verified',
+          )
+        }
+
+        // The target user must actually belong to the target logistics org —
+        // otherwise an admin could assign a delivery to a logistics_user from
+        // a *different* logistics company, breaking the contract.
+        const [membership] = await tx
+          .select({ id: organizationMembers.id })
+          .from(organizationMembers)
+          .where(
+            and(
+              eq(organizationMembers.userId, data.logisticsUserId),
+              eq(organizationMembers.organizationId, data.logisticsOrgId),
+            ),
+          )
+          .limit(1)
+        if (!membership) {
+          throw new AppError(
+            'FORBIDDEN',
+            'Target user is not a member of the assigned logistics org',
+          )
+        }
+
+        const updated = await tx
+          .update(deliveries)
+          .set({
+            assignedLogisticsUserId: data.logisticsUserId,
+            assignedLogisticsOrgId: data.logisticsOrgId,
+            assignedAt: new Date(),
+            assignedByUserId: admin.id,
+          })
+          .where(
+            and(
+              eq(deliveries.id, data.deliveryId),
+              eq(deliveries.status, 'scheduled'),
+            ),
+          )
+          .returning()
+        if (updated.length === 0) {
+          throw new AppError(
+            'CONFLICT',
+            'Delivery status changed concurrently; refresh and try again',
+          )
+        }
+        const after = updated[0]
+
+        await writeAudit({
+          ctx,
+          tx,
+          action: 'delivery.logistics_assigned',
+          entityType: 'delivery',
+          entityId: after.id,
+          before: delivery as unknown as Record<string, unknown>,
+          after: after as unknown as Record<string, unknown>,
+          metadata: {
+            logisticsUserId: data.logisticsUserId,
+            logisticsOrgId: data.logisticsOrgId,
+            notes: data.notes ?? null,
+          },
+        })
+        return after
+      })
+      return { ok: true as const, delivery: result }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
+/**
+ * Returns the deliveries assigned to the calling logistics user. Admins see
+ * all assigned deliveries (read-only convenience).
+ */
+export const listMyAssignedDeliveries = createServerFn({
+  method: 'GET',
+  strict: { output: false },
+})
+  .inputValidator((d: unknown) => listAssignedDeliveriesSchema.parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await getRequestContext()
+      const user = requireAuth(ctx)
+      if (
+        !isAdminRole(user.role) &&
+        user.role !== ROLES.LOGISTICS_USER
+      ) {
+        throw new AppError(
+          'FORBIDDEN',
+          'Only logistics users or admins can view assigned deliveries',
+        )
+      }
+
+      const where = isAdminRole(user.role)
+        ? or(
+            eq(deliveries.status, 'scheduled'),
+            eq(deliveries.status, 'in_transit'),
+          )
+        : eq(deliveries.assignedLogisticsUserId, user.id)
+
+      const rows = await db
+        .select()
+        .from(deliveries)
+        .where(where)
+        .orderBy(desc(deliveries.assignedAt))
+        .limit(data.limit)
+      return { ok: true as const, items: rows }
+    } catch (e) {
+      throw toClientError(e)
+    }
+  })
+
 export const disputeDelivery = createServerFn({
   method: 'POST',
   strict: { output: false },
@@ -423,7 +626,7 @@ export const disputeDelivery = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'hospital_ngo')
+      requireRole(ctx, 'buyer')
 
       const result = await db.transaction(async (tx) => {
         const [delivery] = await tx

@@ -1,7 +1,13 @@
 import { z } from 'zod'
 import { nonEmpty, uuid } from './_shared'
 
-export const orgTypeSchema = z.enum(['pharmacy', 'hospital', 'clinic', 'ngo'])
+export const orgTypeSchema = z.enum([
+  'pharmacy',
+  'hospital',
+  'clinic',
+  'ngo',
+  'logistics',
+])
 
 export const docTypeSchema = z.enum([
   'pharmacy_license',

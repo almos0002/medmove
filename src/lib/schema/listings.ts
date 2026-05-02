@@ -164,6 +164,20 @@ export const deliveries = pgTable(
     }),
     receiptNotes: text('receipt_notes'),
     receivedQuantity: integer('received_quantity'),
+    // Optional logistics assignment. Set when an admin routes a delivery to a
+    // verified logistics-org user; that user can then progress dispatch state.
+    assignedLogisticsUserId: text('assigned_logistics_user_id').references(
+      () => user.id,
+      { onDelete: 'set null' },
+    ),
+    assignedLogisticsOrgId: uuid('assigned_logistics_org_id').references(
+      () => organizations.id,
+      { onDelete: 'set null' },
+    ),
+    assignedAt: timestamp('assigned_at'),
+    assignedByUserId: text('assigned_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
     status: deliveryStatusEnum('status').notNull().default('scheduled'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -174,6 +188,9 @@ export const deliveries = pgTable(
   (t) => [
     uniqueIndex('deliveries_transfer_request_uq').on(t.transferRequestId),
     index('deliveries_status_idx').on(t.status),
+    index('deliveries_assigned_logistics_user_idx').on(
+      t.assignedLogisticsUserId,
+    ),
     check(
       'deliveries_received_qty_non_negative',
       sql`${t.receivedQuantity} IS NULL OR ${t.receivedQuantity} >= 0`,

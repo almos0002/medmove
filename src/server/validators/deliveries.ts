@@ -36,3 +36,14 @@ export const disputeDeliverySchema = z.object({
   deliveryId: uuid,
   reason: nonEmpty(1000),
 })
+
+export const assignDeliveryLogisticsSchema = z.object({
+  deliveryId: uuid,
+  logisticsUserId: nonEmpty(255),
+  logisticsOrgId: uuid,
+  notes: z.string().trim().max(1000).optional(),
+})
+
+export const listAssignedDeliveriesSchema = z.object({
+  limit: z.number().int().min(1).max(200).default(50),
+})

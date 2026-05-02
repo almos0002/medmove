@@ -1,40 +1,42 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
-import { LogOut, ShieldCheck, Loader2 } from 'lucide-react'
-import { useSession, signOut } from '@/lib/auth-client'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { LogOut, ShieldCheck } from 'lucide-react'
+import { ROLES, homePathForRole, type AppRole } from '@/lib/permissions'
+import { signOut } from '@/lib/auth-client'
+import { getServerSession } from '@/server/functions/session'
 
-export const Route = createFileRoute('/dashboard')({ component: DashboardPage })
+/**
+ * /dashboard is the universal post-sign-in landing pad. It redirects to the
+ * role-specific console, falling back to a stub page only when the role is
+ * unknown (defensive — should not happen given the role coercion in
+ * `getRequestContext`).
+ */
+export const Route = createFileRoute('/dashboard')({
+  beforeLoad: async () => {
+    const session = await getServerSession()
+    if (!session.user) {
+      throw redirect({ to: '/sign-in' })
+    }
+    const home = homePathForRole(session.user.role)
+    if (home !== '/dashboard') {
+      throw redirect({ to: home })
+    }
+    return { session }
+  },
+  component: DashboardPage,
+})
 
-const ROLE_LABEL: Record<string, string> = {
-  pharmacy: 'Pharmacy',
-  hospital_ngo: 'Hospital / NGO',
-  admin: 'Admin',
+const ROLE_LABEL: Record<AppRole, string> = {
+  [ROLES.SUPER_ADMIN]: 'Super admin',
+  [ROLES.ADMIN]: 'Admin',
+  [ROLES.SELLER]: 'Seller',
+  [ROLES.BUYER]: 'Buyer',
+  [ROLES.LOGISTICS_USER]: 'Logistics',
 }
 
 function DashboardPage() {
   const navigate = useNavigate()
-  const { data: session, isPending } = useSession()
-
-  useEffect(() => {
-    if (!isPending && !session) {
-      navigate({ to: '/sign-in' })
-    }
-  }, [isPending, session, navigate])
-
-  if (isPending) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-      </div>
-    )
-  }
-
-  if (!session) return null
-
-  const user = session.user as typeof session.user & {
-    role?: string
-    organizationName?: string
-  }
+  const { session } = Route.useRouteContext()
+  const user = session.user!
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -53,38 +55,17 @@ function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-bold text-slate-900">Welcome, {user.name}</h1>
-        <p className="mt-2 text-slate-600">
-          You're signed in as a{' '}
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-2">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          Welcome, {user.email}
+        </h1>
+        <p className="text-sm text-slate-600">
+          Account type:{' '}
           <span className="font-medium text-slate-900">
-            {ROLE_LABEL[user.role ?? 'pharmacy']}
+            {ROLE_LABEL[user.role] ?? user.role}
           </span>
-          {user.organizationName ? ` — ${user.organizationName}` : ''}.
         </p>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <Stat label="Email" value={user.email} />
-          <Stat label="Account type" value={ROLE_LABEL[user.role ?? 'pharmacy']} />
-          <Stat
-            label="Organization"
-            value={user.organizationName || 'Not set'}
-          />
-          <Stat
-            label="Member since"
-            value={new Date(user.createdAt).toLocaleDateString()}
-          />
-        </div>
       </main>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-slate-900 font-medium">{value}</div>
     </div>
   )
 }

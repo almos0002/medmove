@@ -2,14 +2,20 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Building2, Mail, Lock, User, Loader2 } from 'lucide-react'
 import { signUp } from '@/lib/auth-client'
+import { ROLES, type AppRole } from '@/lib/permissions'
 
 export const Route = createFileRoute('/sign-up')({ component: SignUpPage })
 
-const ROLES = [
-  { value: 'pharmacy', label: 'Pharmacy' },
-  { value: 'hospital_ngo', label: 'Hospital / NGO' },
-  { value: 'admin', label: 'Admin' },
-] as const
+/**
+ * Public signup intentionally does NOT expose admin/super_admin. Those roles
+ * are bootstrapped via the seed script (or, in production, via an admin-only
+ * back-office endpoint).
+ */
+const ROLES_FOR_SIGNUP: ReadonlyArray<{ value: AppRole; label: string }> = [
+  { value: ROLES.SELLER, label: 'Seller (pharmacy)' },
+  { value: ROLES.BUYER, label: 'Buyer (hospital / NGO)' },
+  { value: ROLES.LOGISTICS_USER, label: 'Logistics' },
+]
 
 function SignUpPage() {
   const navigate = useNavigate()
@@ -17,7 +23,7 @@ function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [organizationName, setOrganizationName] = useState('')
-  const [role, setRole] = useState<(typeof ROLES)[number]['value']>('pharmacy')
+  const [role, setRole] = useState<AppRole>(ROLES.BUYER)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -44,7 +50,9 @@ function SignUpPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Create your account</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Create your account
+          </h1>
           <p className="mt-2 text-sm text-slate-600">
             Join MedMove to start redistributing medicine.
           </p>
@@ -59,7 +67,7 @@ function SignUpPage() {
               Account type
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {ROLES.map((r) => (
+              {ROLES_FOR_SIGNUP.map((r) => (
                 <button
                   type="button"
                   key={r.value}
@@ -135,7 +143,10 @@ function SignUpPage() {
 
           <p className="text-center text-sm text-slate-600">
             Already have an account?{' '}
-            <Link to="/sign-in" className="text-indigo-600 font-medium hover:underline">
+            <Link
+              to="/sign-in"
+              className="text-indigo-600 font-medium hover:underline"
+            >
               Sign in
             </Link>
           </p>
@@ -156,7 +167,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+        {label}
+      </label>
       <div className="relative">
         <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         {children}

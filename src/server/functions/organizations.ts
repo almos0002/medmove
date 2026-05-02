@@ -11,7 +11,8 @@ import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
 import { requireAuth } from '../guards/require-auth'
 import { requireOrgMember } from '../guards/require-org'
-import { requireRole } from '../guards/require-role'
+import { isAdminRole } from '@/lib/permissions'
+import { requireAdmin } from '../guards/require-admin'
 import { ORG_TRANSITIONS, assertTransition } from '../transitions'
 import {
   createOrganizationSchema,
@@ -85,7 +86,7 @@ export const uploadOrganizationDocument = createServerFn({ method: 'POST', stric
         .where(eq(organizations.id, data.organizationId))
         .limit(1)
       if (!org) throw new AppError('NOT_FOUND', 'Organization not found')
-      if (org.verificationStatus === 'verified' && user.role !== 'admin') {
+      if (org.verificationStatus === 'verified' && !isAdminRole(user.role)) {
         throw new AppError(
           'FORBIDDEN',
           'Cannot upload documents to a verified organization',
@@ -130,7 +131,7 @@ export const adminApproveDocument = createServerFn({ method: 'POST', strict: { o
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const admin = requireRole(ctx, 'admin')
+      const admin = requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -191,7 +192,7 @@ export const adminRejectDocument = createServerFn({ method: 'POST', strict: { ou
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const admin = requireRole(ctx, 'admin')
+      const admin = requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -253,7 +254,7 @@ export const adminApproveOrganization = createServerFn({ method: 'POST', strict:
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const admin = requireRole(ctx, 'admin')
+      const admin = requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -342,7 +343,7 @@ export const adminRejectOrganization = createServerFn({ method: 'POST', strict: 
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'admin')
+      requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -403,7 +404,7 @@ export const adminSuspendOrganization = createServerFn({ method: 'POST', strict:
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'admin')
+      requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx

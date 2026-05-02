@@ -5,7 +5,9 @@ import { inventoryBatches, listings, transferRequests } from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
+import { isAdminRole } from '@/lib/permissions'
 import { requireRole } from '../guards/require-role'
+import { requireAdmin } from '../guards/require-admin'
 import { requireVerifiedOrg } from '../guards/require-verified-org'
 import {
   LISTING_TRANSITIONS,
@@ -31,7 +33,7 @@ export const requestTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'hospital_ngo')
+      requireRole(ctx, 'buyer')
       const { user, org: requesterOrg } = await requireVerifiedOrg(
         ctx,
         data.requesterOrgId,
@@ -99,7 +101,7 @@ export const adminApproveTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const admin = requireRole(ctx, 'admin')
+      const admin = requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -163,7 +165,7 @@ export const adminRejectTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const admin = requireRole(ctx, 'admin')
+      const admin = requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -224,7 +226,7 @@ export const sellerAcceptTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -394,7 +396,7 @@ export const sellerDeclineTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -466,7 +468,7 @@ export const cancelTransfer = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const user = requireRole(ctx, 'hospital_ngo', 'admin')
+      const user = requireRole(ctx, 'buyer', 'admin', 'super_admin')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -477,7 +479,7 @@ export const cancelTransfer = createServerFn({
         if (!before)
           throw new AppError('NOT_FOUND', 'Transfer request not found')
 
-        if (user.role !== 'admin') {
+        if (!isAdminRole(user.role)) {
           await requireVerifiedOrg(ctx, before.requesterOrgId)
         }
 

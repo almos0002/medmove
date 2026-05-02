@@ -3,8 +3,9 @@ import { getRequest, getRequestIP } from '@tanstack/react-start/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { organizationMembers, organizations } from '@/lib/schema'
+import { ROLES, type AppRole, type OrgType } from '@/lib/permissions'
 
-export type AppRole = 'pharmacy' | 'hospital_ngo' | 'admin'
+export type { AppRole } from '@/lib/permissions'
 
 export type ActorUser = {
   id: string
@@ -14,7 +15,7 @@ export type ActorUser = {
 
 export type PrimaryOrg = {
   id: string
-  type: 'pharmacy' | 'hospital' | 'clinic' | 'ngo'
+  type: OrgType
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended'
 }
 
@@ -23,6 +24,25 @@ export type RequestContext = {
   userAgent: string | null
   user: ActorUser | null
   primaryOrg: PrimaryOrg | null
+}
+
+/**
+ * Coerce the role string from Better Auth into a known AppRole. Unknown values
+ * are demoted to BUYER (the lowest-trust authenticated role) so a corrupted
+ * row can never accidentally grant admin powers.
+ */
+function coerceRole(input: unknown): AppRole {
+  const allowed: ReadonlyArray<string> = [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.SELLER,
+    ROLES.BUYER,
+    ROLES.LOGISTICS_USER,
+  ]
+  if (typeof input === 'string' && allowed.includes(input)) {
+    return input as AppRole
+  }
+  return ROLES.BUYER
 }
 
 export async function getRequestContext(): Promise<RequestContext> {
@@ -61,8 +81,7 @@ export async function getRequestContext(): Promise<RequestContext> {
       ? {
           id: session.user.id,
           email: session.user.email,
-          role: ((session.user as { role?: string }).role ??
-            'pharmacy') as AppRole,
+          role: coerceRole((session.user as { role?: unknown }).role),
         }
       : null,
     primaryOrg,

@@ -5,6 +5,7 @@ export const orgTypeEnum = pgEnum('org_type', [
   'hospital',
   'clinic',
   'ngo',
+  'logistics',
 ])
 
 export const orgVerificationStatusEnum = pgEnum('org_verification_status', [

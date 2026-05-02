@@ -15,7 +15,7 @@
     "check": "prettier --check .",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "MEDMOVE_TRUSTED_SIGNUP=1 tsx scripts/seed.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

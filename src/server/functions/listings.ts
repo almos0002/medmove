@@ -5,7 +5,9 @@ import { inventoryBatches, listings, medicines } from '@/lib/schema'
 import { writeAudit } from '../audit'
 import { getRequestContext } from '../context'
 import { AppError, toClientError } from '../errors'
+import { isAdminRole } from '@/lib/permissions'
 import { requireRole } from '../guards/require-role'
+import { requireAdmin } from '../guards/require-admin'
 import { requireVerifiedOrg } from '../guards/require-verified-org'
 import { LISTING_TRANSITIONS, assertTransition } from '../transitions'
 import {
@@ -26,7 +28,7 @@ export const createListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
 
       const [row] = await db
         .select({
@@ -116,7 +118,7 @@ export const submitListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -176,7 +178,7 @@ export const withdrawListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'pharmacy')
+      requireRole(ctx, 'seller')
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -240,7 +242,7 @@ export const adminApproveListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const admin = requireRole(ctx, 'admin')
+      const admin = requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -301,7 +303,7 @@ export const adminRejectListing = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'admin')
+      requireAdmin(ctx)
 
       const result = await db.transaction(async (tx) => {
         const [before] = await tx
@@ -360,10 +362,10 @@ export const listActiveListings = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      const user = requireRole(ctx, 'hospital_ngo', 'admin')
+      const user = requireRole(ctx, 'buyer', 'admin', 'super_admin')
 
       // Buyers must come from a verified org. Admins skip the check.
-      if (user.role !== 'admin') {
+      if (!isAdminRole(user.role)) {
         if (!ctx.primaryOrg) {
           throw new AppError('FORBIDDEN', 'Join an organization first')
         }
@@ -399,7 +401,7 @@ export const adminListPendingListings = createServerFn({
   .handler(async ({ data }) => {
     try {
       const ctx = await getRequestContext()
-      requireRole(ctx, 'admin')
+      requireAdmin(ctx)
 
       const rows = await db
         .select()
