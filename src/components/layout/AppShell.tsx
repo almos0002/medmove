@@ -51,7 +51,7 @@ const LOGISTICS_NAV: NavItem[] = [
 
 const SECTION_TITLE: Record<ShellSection, string> = {
   app: 'Workspace',
-  admin: 'Admin console',
+  admin: 'Admin',
   logistics: 'Logistics',
 }
 
@@ -76,18 +76,25 @@ export function AppShell({
   return (
     <div className="min-h-screen flex bg-white">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--color-mm-line)] bg-white">
-        <Link to="/" className="px-6 py-6 flex items-center gap-2.5 border-b border-[var(--color-mm-line)]">
-          <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-ink)] text-white squircle-sm">
-            <ShieldCheck className="h-4 w-4" />
+        <Link
+          to="/"
+          className="px-5 py-5 flex items-center gap-2.5 border-b border-[var(--color-mm-line)]"
+        >
+          <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-accent)] text-white squircle-sm">
+            <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
           </span>
           <div>
-            <div className="font-display text-[18px] leading-none">MedMove</div>
-            <div className="eyebrow text-[9px] mt-1.5">{SECTION_TITLE[section]}</div>
+            <div className="font-display text-[18px] leading-none text-[var(--color-mm-accent)]">
+              MedMove
+            </div>
+            <div className="text-[11px] text-[var(--color-mm-subtle)] mt-1">
+              {SECTION_TITLE[section]}
+            </div>
           </div>
         </Link>
-        <nav className="px-4 py-5 flex-1 app-scroll overflow-y-auto">
-          <div className="eyebrow mb-3 px-2">Navigate</div>
-          <ul className="space-y-0.5">
+
+        <nav className="px-3 py-4 flex-1 app-scroll overflow-y-auto">
+          <ul className="space-y-1">
             {filtered.map((item) => {
               const Icon = item.icon
               return (
@@ -102,14 +109,14 @@ export function AppShell({
                     }}
                     activeProps={{
                       className:
-                        'bg-[var(--color-mm-ink)] text-white border-[var(--color-mm-ink)]',
+                        'bg-[var(--color-mm-accent)] text-white border-[var(--color-mm-accent)] hover:bg-[var(--color-mm-accent)]',
                     }}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium text-[var(--color-mm-ink)] squircle-xs border border-transparent transition-colors',
-                      'hover:border-[var(--color-mm-line-strong)]',
+                      'flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium text-[var(--color-mm-ink)] squircle-sm border border-transparent transition-colors',
+                      'hover:bg-black/[0.04]',
                     )}
                   >
-                    <Icon className="h-4 w-4" strokeWidth={1.6} />
+                    <Icon className="h-4 w-4" strokeWidth={1.7} />
                     {item.label}
                   </Link>
                 </li>
@@ -117,7 +124,8 @@ export function AppShell({
             })}
           </ul>
         </nav>
-        <div className="border-t border-[var(--color-mm-line)] p-4">
+
+        <div className="border-t border-[var(--color-mm-line)] p-3">
           <UserCard session={session} />
         </div>
       </aside>
@@ -131,7 +139,7 @@ export function AppShell({
             navigate({ to: '/sign-in', search: {} })
           }}
         />
-        <main className="flex-1 px-6 sm:px-10 py-10 max-w-6xl w-full mx-auto">
+        <main className="flex-1 px-5 sm:px-8 py-8 max-w-6xl w-full mx-auto">
           {children}
         </main>
       </div>
@@ -153,23 +161,29 @@ function TopBar({
   return (
     <header className="border-b border-[var(--color-mm-line)] bg-white">
       {showAdminBanner && (
-        <div className="border-b border-[var(--color-mm-line)] text-[var(--color-mm-warn)] text-[12px] px-6 py-2 text-center">
-          <span className="eyebrow text-[var(--color-mm-warn)]">
-            Admin view · actions are recorded against your admin account
-          </span>
+        <div className="border-b border-[var(--color-mm-warn)] bg-white text-[12.5px] px-5 sm:px-8 py-2 text-center text-[var(--color-mm-warn)]">
+          Admin view — actions are recorded against your admin account.
         </div>
       )}
-      <div className="flex items-center justify-between px-6 sm:px-10 py-4 gap-4">
+      <div className="flex items-center justify-between px-5 sm:px-8 py-3.5 gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {section === 'app' && session.primaryOrg && (
             <VerificationStatusBadge status={session.primaryOrg.verificationStatus} />
           )}
-          {section === 'admin' && <span className="eyebrow">Admin console</span>}
-          {section === 'logistics' && <span className="eyebrow">Logistics</span>}
+          {section === 'admin' && (
+            <span className="text-[13px] font-semibold text-[var(--color-mm-ink)]">
+              Admin console
+            </span>
+          )}
+          {section === 'logistics' && (
+            <span className="text-[13px] font-semibold text-[var(--color-mm-ink)]">
+              Logistics
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {session.user && (
-            <span className="hidden sm:block text-[12px] text-[var(--color-mm-muted)] truncate max-w-[220px]">
+            <span className="hidden sm:block text-[13px] text-[var(--color-mm-subtle)] truncate max-w-[220px]">
               {session.user.email}
             </span>
           )}
@@ -188,15 +202,15 @@ function UserCard({ session }: { session: SessionShape }) {
   if (!u) return null
   return (
     <div className="flex items-center gap-3 p-2">
-      <div className="h-9 w-9 squircle-xs border border-[var(--color-mm-line-strong)] inline-flex items-center justify-center text-[12px] font-medium font-display text-[var(--color-mm-ink)]">
+      <div className="h-9 w-9 squircle-xs bg-[var(--color-mm-accent)] text-white inline-flex items-center justify-center text-[13px] font-semibold">
         {(u.email[0] ?? 'U').toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] font-medium text-[var(--color-mm-ink)] truncate">
+        <div className="text-[13px] font-medium text-[var(--color-mm-ink)] truncate">
           {u.email}
         </div>
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-mm-muted)] mt-0.5">
-          {u.role.replace('_', ' ')}
+        <div className="text-[11.5px] text-[var(--color-mm-subtle)] mt-0.5 capitalize">
+          {u.role.replace(/_/g, ' ')}
         </div>
       </div>
     </div>

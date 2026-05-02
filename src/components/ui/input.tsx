@@ -2,9 +2,8 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * Editorial input — bottom-rule field. Sits flush in the page (no card),
- * separated from siblings by hairline borders applied at the form level.
- * The visual cue is a single 1px underline that thickens on focus.
+ * Input — boxed, Airbnb-style. Squircle corners, soft border that
+ * deepens on hover, accent ring on focus. White surface, no shadow.
  */
 export const Input = React.forwardRef<
   HTMLInputElement,
@@ -15,10 +14,10 @@ export const Input = React.forwardRef<
       ref={ref}
       type={type}
       className={cn(
-        'w-full h-11 px-0 text-[15px] bg-white text-[var(--color-mm-ink)] placeholder:text-black/35',
-        'border-0 border-b border-[var(--color-mm-line-strong)] rounded-none transition-colors',
+        'w-full h-12 px-4 text-[15px] bg-white text-[var(--color-mm-ink)] placeholder:text-[var(--color-mm-subtle)]',
+        'border border-[var(--color-mm-line-strong)] squircle-sm transition-colors',
         'hover:border-[var(--color-mm-ink)]',
-        'focus:outline-none focus:border-b-2 focus:border-[var(--color-mm-accent)]',
+        'focus:outline-none focus:border-[var(--color-mm-accent)] focus:ring-2 focus:ring-[var(--color-mm-accent)]/20',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         className,
       )}

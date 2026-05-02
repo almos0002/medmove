@@ -3,12 +3,11 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Badge: outline-only on white. The single `accent` tone is the one
- * exception — it inverts to a solid teal pill for active / "on" states.
- * No grays anywhere; tone differences are hue + label only.
+ * Badge — pill-shaped, friendly, soft-bordered. Used for status pills
+ * and small attribute tags. Accent inverts to a filled teal pill.
  */
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] squircle whitespace-nowrap border bg-white',
+  'inline-flex items-center gap-1.5 px-3 py-1 text-[12px] font-medium squircle whitespace-nowrap border bg-white',
   {
     variants: {
       tone: {
@@ -20,7 +19,7 @@ const badgeVariants = cva(
         warn: 'border-[var(--color-mm-warn)] text-[var(--color-mm-warn)]',
         danger: 'border-[var(--color-mm-bad)] text-[var(--color-mm-bad)]',
         outline:
-          'border-[var(--color-mm-line-strong)] text-[var(--color-mm-ink)]',
+          'border-[var(--color-mm-line-strong)] text-[var(--color-mm-subtle)]',
       },
     },
     defaultVariants: { tone: 'neutral' },

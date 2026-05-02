@@ -1,4 +1,5 @@
 import { Link, useRouter } from '@tanstack/react-router'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type ServerErrorShape = { code?: string; message?: string }
@@ -16,7 +17,7 @@ function describe(err: unknown): { title: string; body: string; code?: string } 
         : undefined)
     if (inner?.code === 'FORBIDDEN') {
       return {
-        title: 'No access.',
+        title: 'No access',
         body:
           inner.message ??
           'Your account or organization is not allowed to view this page.',
@@ -25,14 +26,14 @@ function describe(err: unknown): { title: string; body: string; code?: string } 
     }
     if (inner?.code === 'UNAUTHORIZED') {
       return {
-        title: 'Sign in.',
+        title: 'Please sign in',
         body: 'Your session has expired. Sign in again to continue.',
         code: inner.code,
       }
     }
     if (inner?.code === 'NOT_FOUND') {
       return {
-        title: 'Not found.',
+        title: 'Not found',
         body:
           inner.message ?? 'This resource no longer exists or was never created.',
         code: inner.code,
@@ -40,17 +41,17 @@ function describe(err: unknown): { title: string; body: string; code?: string } 
     }
     if (inner?.code) {
       return {
-        title: 'Something broke.',
+        title: 'Something went wrong',
         body: inner.message ?? 'An unexpected error occurred.',
         code: inner.code,
       }
     }
     if (typeof anyErr.message === 'string' && anyErr.message.length > 0) {
-      return { title: 'Something broke.', body: anyErr.message }
+      return { title: 'Something went wrong', body: anyErr.message }
     }
   }
   return {
-    title: 'Something broke.',
+    title: 'Something went wrong',
     body: 'An unexpected error occurred. Please try again.',
   }
 }
@@ -78,18 +79,25 @@ export function PageError({
   const { title, body, code } = describe(error)
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6">
-      <div className="w-full max-w-2xl text-center">
-        <div className="eyebrow text-[var(--color-mm-bad)]">
-          Error{code ? ` · ${code}` : ''}
+      <div className="w-full max-w-xl text-center">
+        <div className="inline-flex h-14 w-14 items-center justify-center bg-white border border-[var(--color-mm-line-strong)] squircle-md">
+          <AlertCircle
+            className="h-6 w-6 text-[var(--color-mm-bad)]"
+            strokeWidth={1.6}
+          />
         </div>
-        <h1 className="mt-6 font-display italic text-[clamp(60px,10vw,140px)] leading-[0.9] text-black">
+        <h1 className="mt-6 font-display text-[28px] text-[var(--color-mm-ink)] tracking-tight">
           {title}
         </h1>
-        <div className="hairline my-10 max-w-xs mx-auto" />
-        <p className="text-sm text-black max-w-md mx-auto leading-relaxed">
+        {code && (
+          <div className="eyebrow mt-2 text-[var(--color-mm-bad)]">
+            Error code · {code}
+          </div>
+        )}
+        <p className="mt-4 text-[15px] text-[var(--color-mm-subtle)] max-w-md mx-auto leading-relaxed">
           {body}
         </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
+        <div className="mt-7 flex items-center justify-center gap-3">
           <Button
             variant="primary"
             size="lg"

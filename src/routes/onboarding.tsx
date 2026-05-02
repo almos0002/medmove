@@ -25,13 +25,6 @@ import { createOrganizationSchema } from '@/server/validators/organizations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { CapabilityChipRow } from '@/components/data/CapabilityChip'
 import { cn } from '@/lib/utils'
 
@@ -141,38 +134,36 @@ function OnboardingPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-[var(--color-mm-line)] bg-white">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 h-[72px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center bg-[var(--color-mm-ink)] text-white squircle-xs">
-              <ShieldCheck className="h-4 w-4" />
+            <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-accent)] text-white squircle-sm">
+              <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
             </span>
-            <span className="font-display text-[18px]">MedMove</span>
+            <span className="font-display text-[20px] text-[var(--color-mm-accent)]">MedMove</span>
           </Link>
-          <span className="eyebrow">Onboarding · Step 02</span>
+          <span className="text-[13px] font-medium text-[var(--color-mm-subtle)]">
+            Step 2 of 2 · Organization
+          </span>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-14 space-y-10">
-        <div>
-          <div className="eyebrow flex items-center gap-3">
-            <span className="tick" /> Register your organization
-          </div>
-          <h1 className="mt-6 font-display text-[clamp(44px,5.5vw,68px)] leading-[0.95] tracking-tight">
-            Tell us who<br />
-            <span className="italic">you serve.</span>
+      <main className="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14 space-y-8">
+        <div className="text-center">
+          <span className="inline-flex items-center justify-center h-12 w-12 bg-white border border-[var(--color-mm-line-strong)] text-[var(--color-mm-accent)] squircle-md">
+            <Building2 className="h-5 w-5" strokeWidth={1.8} />
+          </span>
+          <h1 className="mt-5 font-display text-[28px] sm:text-[34px] leading-tight tracking-tight text-[var(--color-mm-ink)]">
+            Register your organization
           </h1>
-          <p className="mt-5 text-[15px] text-[var(--color-mm-muted)] max-w-xl leading-relaxed">
+          <p className="mt-3 text-[15px] text-[var(--color-mm-subtle)] max-w-xl mx-auto leading-relaxed">
             Once you submit, MedMove admins will review your documents
             (typically within 48 hours) before medicine actions are unlocked.
           </p>
-          <div className="mt-1 inline-flex h-0 items-center justify-center">
-            <Building2 className="h-0 w-0" />
-          </div>
         </div>
 
         <form
           onSubmit={form.handleSubmit((v) => create.mutate(v))}
-          className="bg-white border border-[var(--color-mm-line-strong)] squircle-sm p-6 sm:p-10 space-y-10"
+          className="bg-white border border-[var(--color-mm-line-strong)] squircle-md p-6 sm:p-8 space-y-8"
         >
           {/* Section: Type + name */}
           <section className="space-y-4">
@@ -187,28 +178,28 @@ function OnboardingPage() {
                   key={opt.value}
                   onClick={() => form.setValue('type', opt.value)}
                   className={cn(
-                    'text-left p-3.5 squircle-sm border text-sm transition-colors',
+                    'text-left p-3.5 squircle-sm border bg-white text-sm transition-colors',
                     watchedType === opt.value
-                      ? 'border-[var(--color-mm-ink)] bg-white'
+                      ? 'border-[var(--color-mm-accent)]'
                       : 'border-[var(--color-mm-line-strong)] hover:border-[var(--color-mm-ink)]',
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium text-[var(--color-mm-ink)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-[14px] text-[var(--color-mm-ink)]">
                       {opt.label}
                     </div>
                     {watchedType === opt.value && (
-                      <span className="inline-flex h-3.5 w-3.5 squircle-xs bg-[var(--color-mm-accent)]" />
+                      <span className="inline-flex h-4 w-4 squircle-xs bg-[var(--color-mm-accent)]" />
                     )}
                   </div>
-                  <div className="text-[12px] text-[var(--color-mm-muted)] mt-1">
+                  <div className="text-[12.5px] text-[var(--color-mm-subtle)] mt-1.5 leading-relaxed">
                     {opt.blurb}
                   </div>
                 </button>
               ))}
             </div>
             <div className="border border-[var(--color-mm-line)] squircle-sm px-5 py-4 bg-white">
-              <div className="eyebrow mb-3">
+              <div className="text-[12px] font-medium text-[var(--color-mm-subtle)] mb-3">
                 Default capabilities for this type
               </div>
               <CapabilityChipRow
@@ -329,8 +320,8 @@ function OnboardingPage() {
             </Field>
           </section>
 
-          <div className="flex items-center justify-between gap-3 pt-6 border-t border-[var(--color-mm-line)] -mx-6 sm:-mx-10 px-6 sm:px-10">
-            <p className="text-[12px] text-[var(--color-mm-muted)] max-w-md leading-relaxed">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-[var(--color-mm-line)] -mx-6 sm:-mx-8 px-6 sm:px-8">
+            <p className="text-[12.5px] text-[var(--color-mm-subtle)] max-w-md leading-relaxed">
               By submitting you confirm the information above is accurate and
               that you are authorized to register this organization on its
               behalf.
@@ -342,10 +333,10 @@ function OnboardingPage() {
           </div>
         </form>
 
-        <p className="text-center text-[12px] text-[var(--color-mm-muted)]">
+        <p className="text-center text-[13px] text-[var(--color-mm-subtle)]">
           Need help?{' '}
-          <Link to="/sign-in" search={{}} className="link-underline text-[var(--color-mm-ink)]">
-            Sign in to a different account
+          <Link to="/sign-in" search={{}} className="text-[var(--color-mm-accent)] font-medium hover:underline">
+            Log in to a different account
           </Link>
         </p>
       </main>
@@ -361,12 +352,12 @@ function SectionHeading({
   description?: string
 }) {
   return (
-    <div className="border-l-2 border-[var(--color-mm-ink)] pl-4">
-      <h2 className="font-display text-2xl text-[var(--color-mm-ink)] leading-none">
+    <div>
+      <h2 className="font-display text-[18px] text-[var(--color-mm-ink)] leading-tight">
         {title}
       </h2>
       {description && (
-        <p className="text-[13px] text-[var(--color-mm-muted)] mt-2 leading-relaxed">
+        <p className="text-[13.5px] text-[var(--color-mm-subtle)] mt-1.5 leading-relaxed">
           {description}
         </p>
       )}
@@ -388,30 +379,23 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
         <Label>{label}</Label>
         {optional && (
-          <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-mm-muted)]">
-            optional
+          <span className="text-[12px] text-[var(--color-mm-subtle)]">
+            Optional
           </span>
         )}
       </div>
       {children}
       {hint && !error && (
-        <p className="text-[12px] text-[var(--color-mm-muted)]">{hint}</p>
+        <p className="text-[12.5px] text-[var(--color-mm-subtle)]">{hint}</p>
       )}
       {error && (
-        <p className="text-[12px] text-[var(--color-mm-bad)]">{error}</p>
+        <p className="text-[12.5px] text-[var(--color-mm-bad)]">{error}</p>
       )}
     </div>
   )
 }
 
-// Suppress an unused-import warning by referencing Select primitives; kept
-// in the import surface so other forms in this file can adopt them later.
-void Select
-void SelectTrigger
-void SelectValue
-void SelectContent
-void SelectItem

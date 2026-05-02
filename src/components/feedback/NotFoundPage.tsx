@@ -4,18 +4,19 @@ import { Button } from '@/components/ui/button'
 export function NotFoundPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6">
-      <div className="w-full max-w-2xl text-center">
-        <div className="eyebrow">Error · 404</div>
-        <h1 className="mt-6 font-display italic text-[clamp(80px,14vw,180px)] leading-[0.85] text-black">
-          Not&nbsp;found.
+      <div className="w-full max-w-xl text-center">
+        <div className="font-display text-[80px] sm:text-[112px] leading-none text-[var(--color-mm-ink)] tracking-tight">
+          404
+        </div>
+        <h1 className="mt-4 font-display text-[24px] text-[var(--color-mm-ink)]">
+          We couldn't find that page
         </h1>
-        <div className="hairline my-10 max-w-xs mx-auto" />
-        <p className="text-sm text-black max-w-md mx-auto">
-          The page you were looking for doesn’t exist or has been moved.
+        <p className="mt-3 text-[15px] text-[var(--color-mm-subtle)] max-w-md mx-auto leading-relaxed">
+          The page you were looking for doesn't exist or may have been moved.
         </p>
-        <div className="mt-8">
+        <div className="mt-7">
           <Button asChild variant="primary" size="lg">
-            <Link to="/">← Back to home</Link>
+            <Link to="/">Back to home</Link>
           </Button>
         </div>
       </div>

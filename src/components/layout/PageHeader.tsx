@@ -1,10 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-/**
- * Editorial page header — large display serif title, eyebrow above,
- * hairline rule below. No card, no shadow.
- */
 export function PageHeader({
   eyebrow,
   title,
@@ -12,9 +8,8 @@ export function PageHeader({
   actions,
   className,
 }: {
-  /** Small uppercase label rendered above the title (e.g. "Workspace · Overview"). */
   eyebrow?: React.ReactNode
-  title: React.ReactNode
+  title: string
   description?: React.ReactNode
   actions?: React.ReactNode
   className?: string
@@ -22,18 +17,18 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'mb-10 pb-6 border-b border-[var(--color-mm-line-strong)]',
+        'mb-8 pb-6 border-b border-[var(--color-mm-line)]',
         className,
       )}
     >
-      {eyebrow && <div className="eyebrow mb-4">{eyebrow}</div>}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+      {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
         <div className="min-w-0">
-          <h1 className="font-display text-[clamp(36px,5vw,56px)] leading-[0.95] text-[var(--color-mm-ink)] tracking-tight">
+          <h1 className="font-display text-[28px] sm:text-[32px] leading-tight text-[var(--color-mm-ink)] tracking-tight">
             {title}
           </h1>
           {description && (
-            <p className="mt-3 text-sm text-[var(--color-mm-muted)] max-w-xl leading-relaxed">
+            <p className="mt-2 text-[15px] text-[var(--color-mm-subtle)] max-w-2xl leading-relaxed">
               {description}
             </p>
           )}

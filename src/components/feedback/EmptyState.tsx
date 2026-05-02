@@ -2,10 +2,6 @@ import * as React from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-/**
- * EmptyState — pure white surface bounded by a hairline border. The icon
- * sits in a small bordered square; the title is the editorial display serif.
- */
 export function EmptyState({
   icon: Icon,
   title,
@@ -22,27 +18,27 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center text-center px-6 py-20 bg-white border border-[var(--color-mm-line-strong)] squircle-sm',
+        'flex flex-col items-center justify-center text-center px-6 py-16 bg-white border border-[var(--color-mm-line-strong)] squircle-md',
         className,
       )}
     >
       {Icon && (
-        <div className="mb-6 inline-flex h-12 w-12 items-center justify-center bg-white border border-[var(--color-mm-line-strong)] squircle-xs">
+        <div className="mb-5 inline-flex h-12 w-12 items-center justify-center bg-white border border-[var(--color-mm-line-strong)] squircle-sm">
           <Icon
             className="h-5 w-5 text-[var(--color-mm-ink)]"
-            strokeWidth={1.5}
+            strokeWidth={1.6}
           />
         </div>
       )}
-      <h3 className="font-display text-3xl text-[var(--color-mm-ink)] leading-none">
+      <h3 className="font-display text-[20px] text-[var(--color-mm-ink)] leading-tight">
         {title}
       </h3>
       {description && (
-        <p className="mt-3 max-w-sm text-sm text-[var(--color-mm-muted)] leading-relaxed">
+        <p className="mt-2 max-w-md text-[14px] text-[var(--color-mm-subtle)] leading-relaxed">
           {description}
         </p>
       )}
-      {action && <div className="mt-7">{action}</div>}
+      {action && <div className="mt-6">{action}</div>}
     </div>
   )
 }

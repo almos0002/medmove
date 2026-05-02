@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { ArrowRight, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,106 +37,100 @@ function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white grid grid-cols-1 lg:grid-cols-2">
-      {/* Editorial visual panel */}
-      <aside className="hidden lg:flex relative bg-white border-r border-[var(--color-mm-line)] flex-col p-12">
-        <Link to="/" className="flex items-center gap-2.5">
-          <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-ink)] text-white squircle-sm">
-            <ShieldCheck className="h-4 w-4" />
-          </span>
-          <span className="font-display text-[22px]">MedMove</span>
-        </Link>
-        <div className="my-12 flex-1 squircle-md overflow-hidden border border-[var(--color-mm-line)]">
-          <img src="/img/shelves.jpg" alt="Pharmacy shelves" className="w-full h-full object-cover" />
+    <div className="min-h-screen bg-white flex flex-col">
+      <header className="border-b border-[var(--color-mm-line)]">
+        <div className="max-w-[1200px] mx-auto px-5 sm:px-8 h-[72px] flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <span className="inline-flex h-9 w-9 items-center justify-center bg-[var(--color-mm-accent)] text-white squircle-sm">
+              <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
+            </span>
+            <span className="font-display text-[20px] text-[var(--color-mm-accent)]">
+              MedMove
+            </span>
+          </Link>
+          <Link
+            to="/sign-up"
+            className="text-[14px] font-medium text-[var(--color-mm-ink)] hover:text-[var(--color-mm-accent)]"
+          >
+            Sign up
+          </Link>
         </div>
-        <div>
-          <div className="eyebrow flex items-center gap-3">
-            <span className="tick" /> Welcome back
+      </header>
+
+      <main className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-[420px]">
+          <div className="text-center mb-8">
+            <h1 className="font-display text-[32px] leading-tight text-[var(--color-mm-ink)]">
+              Welcome back
+            </h1>
+            <p className="mt-2 text-[15px] text-[var(--color-mm-subtle)]">
+              Log in to your MedMove workspace.
+            </p>
           </div>
-          <h2 className="mt-4 font-display text-[clamp(40px,4.5vw,60px)] leading-[0.95] tracking-tight">
-            Resume the<br />
-            <span className="italic text-[var(--color-mm-accent)]">redirection.</span>
-          </h2>
-          <p className="mt-5 text-[14px] text-[var(--color-mm-muted)] max-w-sm leading-relaxed">
-            Pick up where you left off — your listings, requests, and assigned
-            deliveries are waiting.
+
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white border border-[var(--color-mm-line-strong)] squircle-md p-6 sm:p-8 space-y-5"
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@your-organization.org"
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <a
+                  href="#"
+                  className="text-[12.5px] font-medium text-[var(--color-mm-accent)] hover:underline"
+                >
+                  Forgot password?
+                </a>
+              </div>
+              <Input
+                id="password"
+                required
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
+
+            {error && (
+              <div className="text-[13px] text-[var(--color-mm-bad)] bg-white border border-[var(--color-mm-bad)] squircle-xs px-3 py-2">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" loading={loading} size="lg" className="w-full">
+              Continue <ArrowRight className="h-4 w-4" />
+            </Button>
+
+            <div className="text-center text-[14px] text-[var(--color-mm-subtle)]">
+              Don't have an account?{' '}
+              <Link
+                to="/sign-up"
+                className="text-[var(--color-mm-accent)] font-medium hover:underline"
+              >
+                Sign up
+              </Link>
+            </div>
+          </form>
+
+          <p className="mt-6 text-center text-[12px] text-[var(--color-mm-subtle)]">
+            By continuing you agree to our Terms and Privacy Policy.
           </p>
         </div>
-      </aside>
-
-      {/* Form panel */}
-      <div className="flex flex-col">
-        <header className="lg:hidden border-b border-[var(--color-mm-line)] px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center bg-[var(--color-mm-ink)] text-white squircle-xs">
-              <ShieldCheck className="h-4 w-4" />
-            </span>
-            <span className="font-display text-[18px]">MedMove</span>
-          </Link>
-          <Link to="/sign-up" className="text-sm link-underline">Open an account</Link>
-        </header>
-        <main className="flex-1 flex items-center justify-center p-6 sm:p-12">
-          <div className="w-full max-w-[420px]">
-            <div className="eyebrow">Sign in</div>
-            <h1 className="mt-5 font-display text-[clamp(40px,5vw,56px)] leading-[0.95] tracking-tight">
-              Welcome<br />
-              <span className="italic">back.</span>
-            </h1>
-            <p className="mt-4 text-sm text-[var(--color-mm-muted)] max-w-sm">
-              Sign in to your MedMove workspace.
-            </p>
-
-            <form onSubmit={handleSubmit} className="mt-12 space-y-8">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  required
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@your-organization.org"
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  required
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                />
-              </div>
-
-              {error && (
-                <div className="text-[13px] text-[var(--color-mm-bad)] border-l-2 border-[var(--color-mm-bad)] pl-3 py-1">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" loading={loading} size="lg" className="w-full">
-                {!loading && <>Continue <ArrowRight className="h-4 w-4" /></>}
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              </Button>
-
-              <p className="text-sm text-[var(--color-mm-muted)]">
-                Don't have an account?{' '}
-                <Link to="/sign-up" className="text-[var(--color-mm-ink)] link-underline font-medium">
-                  Open one
-                </Link>
-              </p>
-            </form>
-          </div>
-        </main>
-        <footer className="border-t border-[var(--color-mm-line)] px-6 sm:px-12 py-4 text-[11px] text-[var(--color-mm-muted)] flex items-center justify-between">
-          <span>© {new Date().getFullYear()} MedMove</span>
-          <span className="font-display italic">Verified-only network</span>
-        </footer>
-      </div>
+      </main>
     </div>
   )
 }
